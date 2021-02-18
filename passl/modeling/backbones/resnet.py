@@ -50,12 +50,14 @@ class ResNet(models.ResNet):
                  num_classes=0,
                  with_pool=False,
                  zero_init_residual=False,
+                 frozen_stages=-1,
                  pretrained=None):
 
         block = BasicBlock if depth in [18, 34] else BottleneckBlock
 
         super(ResNet, self).__init__(block, depth, num_classes, with_pool)
         self.zero_init_residual = zero_init_residual
+        self.frozen_stages = frozen_stages
         self.init_parameters()
 
         if pretrained is not None:
@@ -64,6 +66,8 @@ class ResNet(models.ResNet):
                 state_dict = state_dict['state_dict']
 
             self.set_state_dict(state_dict)
+
+        self._freeze_stages()
 
     def init_parameters(self):
         for m in self.sublayers():
@@ -78,6 +82,19 @@ class ResNet(models.ResNet):
                     init.constant_init(m.bn3, 0)
                 elif isinstance(m, BasicBlock):
                     init.constant_init(m.bn2, 0)
+
+    def _freeze_stages(self):
+        if self.frozen_stages >= 0:
+            self.bn1.eval()
+            for m in [self.conv1, self.bn1]:
+                for param in m.parameters():
+                    param.trainable = False
+
+        for i in range(1, self.frozen_stages + 1):
+            m = getattr(self, 'layer{}'.format(i))
+            m.eval()
+            for param in m.parameters():
+                param.trainable = False
 
     def forward(self, x):
         x = self.conv1(x)

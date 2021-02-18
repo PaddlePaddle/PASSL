@@ -6,6 +6,7 @@ model:
   backbone:
     name: ResNet
     depth: 50
+    frozen_stages: 4
   head:
     name: ClasHead
     with_avg_pool: true
@@ -15,7 +16,7 @@ dataloader:
   train:
     num_workers: 4
     sampler:
-      batch_size: 32
+      batch_size: 64
       shuffle: true
       drop_last: true
     dataset:
@@ -34,14 +35,14 @@ dataloader:
   val:
     num_workers: 4
     sampler:
-      batch_size: 32
+      batch_size: 64
       shuffle: false
       drop_last: false
     dataset:
       name: ImageNet
       dataroot: data/ILSVRC2012/val
-      return_label: False
-      return_two_sample: True
+      return_label: True
+      return_two_sample: False
       transforms:
         - name: Resize
           size: 256
@@ -54,7 +55,7 @@ dataloader:
 
 lr_scheduler:
   name: MultiStepDecay
-  learning_rate: 0.01
+  learning_rate: 30.0
   milestones: [60, 80]
 
 
@@ -66,5 +67,5 @@ log_config:
     name: LogHook
     interval: 50
 
-custom_hooks:
+custom_config:
   - name: EvaluateHook

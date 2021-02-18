@@ -50,7 +50,6 @@ class ImageNet(datasets.DatasetFolder):
         if self.return_two_sample:
             sample1 = self.transform(sample)
             sample2 = self.transform(sample)
-            # print('return two sample!')
             return sample1, sample2
 
         if self.transform is not None:
@@ -61,9 +60,9 @@ class ImageNet(datasets.DatasetFolder):
 
         return sample
 
-    def evaluate(self, preds, *inputs, topk=(1, 5)):
-        _, labels = inputs
+    def evaluate(self, preds, labels, topk=(1, 5)):
+
         eval_res = {}
-        eval_res['acc1'], eval_res['acc5'] = accuracy(preds, labels)
+        eval_res['acc1'], eval_res['acc5'] = accuracy(preds, labels, topk)
 
         return eval_res

@@ -62,7 +62,6 @@ def launch(main_func,
             logger.warning(
                 "file:// is not a reliable init_method in multi-machine jobs. Prefer tcp://"
             )
-        dist.init_parallel_env()
         dist.spawn(
             main_func,
             nprocs=num_gpus_per_machine,

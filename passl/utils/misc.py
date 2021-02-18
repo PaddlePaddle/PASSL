@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import paddle
+from tqdm import tqdm
 
 
 class AverageMeter(object):

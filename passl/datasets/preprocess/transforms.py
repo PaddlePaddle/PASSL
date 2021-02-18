@@ -26,6 +26,8 @@ TRANSFORMS.register(PT.ColorJitter)
 TRANSFORMS.register(PT.Transpose)
 TRANSFORMS.register(PT.Normalize)
 TRANSFORMS.register(PT.RandomHorizontalFlip)
+TRANSFORMS.register(PT.Resize)
+TRANSFORMS.register(PT.CenterCrop)
 
 
 @TRANSFORMS.register()
