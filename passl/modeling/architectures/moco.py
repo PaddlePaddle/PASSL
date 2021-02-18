@@ -195,7 +195,6 @@ class MoCo(nn.Layer):
 def concat_all_gather(tensor):
     """
     Performs all_gather operation on the provided tensors.
-    *** Warning ***: torch.distributed.all_gather has no gradient.
     """
     if paddle.distributed.get_world_size() < 2:
         return tensor
