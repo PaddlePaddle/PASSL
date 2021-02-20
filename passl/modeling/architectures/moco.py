@@ -28,7 +28,6 @@ class MoCo(nn.Layer):
     Build a MoCo model with: a query encoder, a key encoder, and a queue
     https://arxiv.org/abs/1911.05722
     """
-
     def __init__(self,
                  backbone,
                  neck=None,
@@ -46,7 +45,7 @@ class MoCo(nn.Layer):
             dim (int): feature dimension. Default: 128.
             K (int): queue size; number of negative keys. Default: 65536.
             m (float): moco momentum of updating key encoder. Default: 0.999.
-            T: softmax temperature. Default: 0.07.
+            T (float): softmax temperature. Default: 0.07.
         """
         super(MoCo, self).__init__()
 
@@ -56,10 +55,10 @@ class MoCo(nn.Layer):
 
         # create the encoders
         # num_classes is the output fc dimension
-        self.encoder_q = nn.Sequential(
-            build_backbone(backbone), build_neck(neck))
-        self.encoder_k = nn.Sequential(
-            build_backbone(backbone), build_neck(neck))
+        self.encoder_q = nn.Sequential(build_backbone(backbone),
+                                       build_neck(neck))
+        self.encoder_k = nn.Sequential(build_backbone(backbone),
+                                       build_neck(neck))
 
         self.backbone = self.encoder_q[0]
 
