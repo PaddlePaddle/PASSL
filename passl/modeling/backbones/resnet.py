@@ -19,6 +19,7 @@ from paddle.vision.models.resnet import BasicBlock, BottleneckBlock
 
 from .builder import BACKBONES
 from ...modules import init
+from ...utils.logger import get_logger
 
 
 @BACKBONES.register()
@@ -66,6 +67,8 @@ class ResNet(models.ResNet):
                 state_dict = state_dict['state_dict']
 
             self.set_state_dict(state_dict)
+            logger = get_logger()
+            logger.info('Load pretrained backbone weight from {} success!'.format(pretrained))
 
         self._freeze_stages()
 
@@ -95,22 +98,7 @@ class ResNet(models.ResNet):
             m.eval()
             for param in m.parameters():
                 param.trainable = False
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-
-        if self.with_pool:
-            x = self.avgpool(x)
-
-        if self.num_classes > 0:
-            x = paddle.flatten(x, 1)
-            x = self.fc(x)
-
-        return x
+        
+        if self.frozen_stages >= 0:
+            logger = get_logger()
+            logger.info('Frozen layer before stage {}'.format(self.frozen_stages + 1))

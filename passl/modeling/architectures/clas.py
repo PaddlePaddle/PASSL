@@ -56,8 +56,7 @@ class Classification(nn.Layer):
             img, label = inputs
             x = self.backbone_forward(img)
             outs = self.head(x)
-            # loss_inputs = (outs, label)
-            # outputs = self.head.loss(*loss_inputs)
+
         return outs
 
     def forward(self, *inputs, mode='train', **kwargs):

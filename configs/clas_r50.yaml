@@ -14,7 +14,7 @@ model:
 
 dataloader:
   train:
-    num_workers: 4
+    num_workers: 6
     sampler:
       batch_size: 64
       shuffle: true

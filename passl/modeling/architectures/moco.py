@@ -33,17 +33,20 @@ class MoCo(nn.Layer):
                  backbone,
                  neck=None,
                  head=None,
-                 pretrained=None,
                  dim=128,
                  K=65536,
                  m=0.999,
-                 T=0.07,
-                 mlp=False):
+                 T=0.07):
         """
-        dim: feature dimension (default: 128)
-        K: queue size; number of negative keys (default: 65536)
-        m: moco momentum of updating key encoder (default: 0.999)
-        T: softmax temperature (default: 0.07)
+        Args:
+            backbone (dict): config of backbone.
+            neck (dict): config of neck.
+            head (dict): config of head.
+            scale (list|tuple): Range of size of the origin size cropped. Default: (0.08, 1.0)
+            dim (int): feature dimension. Default: 128.
+            K (int): queue size; number of negative keys. Default: 65536.
+            m (float): moco momentum of updating key encoder. Default: 0.999.
+            T: softmax temperature. Default: 0.07.
         """
         super(MoCo, self).__init__()
 
@@ -80,9 +83,7 @@ class MoCo(nn.Layer):
         """
         for param_q, param_k in zip(self.encoder_q.parameters(),
                                     self.encoder_k.parameters()):
-            # param_k = param_k * self.m + param_q * (1. - self.m)
             paddle.assign((param_k * self.m + param_q * (1. - self.m)), param_k)
-            # param_k.set_value(param_k * self.m + param_q * (1. - self.m))
             param_k.stop_gradient = True
 
     @paddle.no_grad()
