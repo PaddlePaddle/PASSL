@@ -19,7 +19,7 @@ import traceback
 class Registry(object):
     """
     The registry that provides name -> object mapping, to support third-party users' custom modules.
-    To create a registry (inside ppgan):
+    To create a registry (inside passl):
     .. code-block:: python
         BACKBONE_REGISTRY = Registry('BACKBONE')
     To register an object:
@@ -31,7 +31,6 @@ class Registry(object):
     .. code-block:: python
         BACKBONE_REGISTRY.register(MyBackbone)
     """
-
     def __init__(self, name):
         """
         Args:
@@ -83,7 +82,7 @@ def build_from_config(cfg, registry, default_args=None):
 
     Args:
         cfg (dict): Config dict. It should at least contain the key "name".
-        registry (ppgan.utils.Registry): The registry to search the name from.
+        registry (passl.utils.Registry): The registry to search the name from.
         default_args (dict, optional): Default initialization arguments.
 
     Returns:
