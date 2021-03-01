@@ -16,7 +16,7 @@ import paddle
 import paddle.nn as nn
 
 from .builder import NECKS
-from ...modules.init import normal_init, kaiming_init, constant_
+from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters
 
 
 def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
@@ -41,14 +41,14 @@ def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
 class LinearNeck(nn.Layer):
     """Linear neck: fc only.
     """
-
     def __init__(self, in_channels, out_channels, with_avg_pool=True):
         super(LinearNeck, self).__init__()
         self.with_avg_pool = with_avg_pool
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
         self.fc = nn.Linear(in_channels, out_channels)
-        self.init_parameters()
+        init_backbone_weight(self.fc)
+        # self.init_parameters()
 
     def init_parameters(self, init_linear='normal'):
         _init_parameters(self, init_linear)
@@ -64,7 +64,6 @@ class LinearNeck(nn.Layer):
 class NonLinearNeckV1(nn.Layer):
     """The non-linear neck in MoCo v2: fc-relu-fc.
     """
-
     def __init__(self,
                  in_channels,
                  hid_channels,
@@ -75,11 +74,12 @@ class NonLinearNeckV1(nn.Layer):
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
 
-        self.mlp = nn.Sequential(
-            nn.Linear(in_channels, hid_channels), nn.ReLU(),
-            nn.Linear(hid_channels, out_channels))
+        self.mlp = nn.Sequential(nn.Linear(in_channels,
+                                           hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, out_channels))
 
-        self.init_parameters()
+        init_backbone_weight(self.mlp)
+        # self.init_parameters()
 
     def init_parameters(self, init_linear='normal'):
         _init_parameters(self, init_linear)

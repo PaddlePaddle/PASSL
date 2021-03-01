@@ -13,3 +13,4 @@
 # limitations under the License.
 
 from .ddp import DistributedDataParallel
+from .freeze import freeze_batchnorm_statictis

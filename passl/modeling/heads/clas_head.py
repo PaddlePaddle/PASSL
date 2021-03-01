@@ -16,13 +16,13 @@ import paddle
 import paddle.nn as nn
 
 from .builder import HEADS
+from ...modules.init import reset_parameters
 
 
 @HEADS.register()
 class ClasHead(nn.Layer):
     """Simple classifier head.
     """
-
     def __init__(self, with_avg_pool=False, in_channels=2048, num_classes=1000):
         super(ClasHead, self).__init__()
         self.with_avg_pool = with_avg_pool
@@ -34,6 +34,7 @@ class ClasHead(nn.Layer):
         if self.with_avg_pool:
             self.avg_pool = nn.AdaptiveAvgPool2D((1, 1))
         self.fc_cls = nn.Linear(in_channels, num_classes)
+        reset_parameters(self.fc_cls)
 
     def forward(self, x):
         if self.with_avg_pool:
@@ -48,8 +49,9 @@ class ClasHead(nn.Layer):
         losses = dict()
 
         losses['loss'] = self.criterion(cls_score, labels)
-        losses['acc1'], losses['acc5'] = accuracy(
-            cls_score, labels, topk=(1, 5))
+        losses['acc1'], losses['acc5'] = accuracy(cls_score,
+                                                  labels,
+                                                  topk=(1, 5))
         return losses
 
 

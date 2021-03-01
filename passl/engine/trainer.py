@@ -12,29 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import time
-import copy
-
 import logging
-import datetime
+from tqdm import tqdm
 from collections import OrderedDict
 
 import paddle
-from paddle.distributed import ParallelEnv
+import paddle.distributed as dist
 
+from ..hooks import build_hook, Hook
+from ..utils.misc import AverageMeter
+from ..modules import DistributedDataParallel
 from ..datasets.builder import build_dataloader
 from ..modeling.architectures import build_model
 from ..solver import build_lr_scheduler, build_optimizer
-from ..hooks import build_hook, Hook
-from ..modules import DistributedDataParallel
 
 
 class IterLoader:
-    def __init__(self, dataloader):
+    def __init__(self, dataloader, epoch=0):
         self._dataloader = dataloader
         self.iter_loader = iter(self._dataloader)
-        self._epoch = 0
+        self._epoch = epoch
 
     @property
     def epoch(self):
@@ -55,7 +52,7 @@ class IterLoader:
 
 
 class Trainer:
-    """
+    r"""
     # trainer calling logic:
     #
     #                build_model                               ||    model(BaseModel)
@@ -76,14 +73,13 @@ class Trainer:
     #                     |                                    ||
     #                    end                                   \/
     """
-
     def __init__(self, cfg):
         # base config
         self.logger = logging.getLogger(__name__)
         self.cfg = cfg
         self.output_dir = cfg.output_dir
 
-        self.local_rank = ParallelEnv().local_rank
+        self.local_rank = dist.get_rank()
         self.log_interval = cfg.log_config.interval
 
         self.start_epoch = 0
@@ -98,7 +94,7 @@ class Trainer:
         # build model
         self.model = build_model(cfg.model)
         # multiple gpus prepare
-        if ParallelEnv().nranks > 1:
+        if dist.get_world_size() > 1:
             paddle.distributed.init_parallel_env()
             self.model = DistributedDataParallel(self.model)
 
@@ -185,14 +181,14 @@ class Trainer:
     def train(self):
         self.mode = 'train'
         self.model.train()
-        iter_loader = IterLoader(self.train_dataloader)
+        iter_loader = IterLoader(self.train_dataloader, self.current_epoch)
         self.call_hook('run_begin')
+
         while self.current_iter < (self.total_iters):
             if self.current_iter % self.iters_per_epoch == 0:
                 self.call_hook('train_epoch_begin')
 
             self.current_iter += 1
-
             self.current_epoch = iter_loader.epoch
             self.inner_iter = self.current_iter % self.iters_per_epoch
 
@@ -209,6 +205,81 @@ class Trainer:
 
         self.call_hook('run_end')
 
+    def val(self, **kargs):
+        if not hasattr(self, 'val_dataloader'):
+            self.val_dataloader = build_dataloader(self.cfg.dataloader.val)
+
+        self.logger.info(
+            'start evaluate on epoch {} ..'.format(self.current_epoch + 1))
+        rank = dist.get_rank()
+        world_size = dist.get_world_size()
+
+        model = self.model
+        total_samples = len(self.val_dataloader.dataset)
+        self.logger.info('Evaluate total samples {}'.format(total_samples))
+
+        if rank == 0:
+            dataloader = tqdm(self.val_dataloader)
+        else:
+            dataloader = self.val_dataloader
+
+        accum_samples = 0
+
+        self.model.eval()
+        outs = OrderedDict()
+
+        for data in dataloader:
+            if isinstance(data, paddle.Tensor):
+                batch_size = data.shape[0]
+            elif isinstance(data, (list, tuple)):
+                batch_size = data[0].shape[0]
+            else:
+                raise TypeError('unknown type of data')
+
+            labels = data[-1]
+            pred = model(*data, mode='test')
+
+            current_samples = batch_size * world_size
+            accum_samples += current_samples
+
+            # for k, v in outputs.items():
+            if world_size > 1:
+                pred_list = []
+                dist.all_gather(pred_list, pred)
+                pred = paddle.concat(pred_list, 0)
+                label_list = []
+                dist.all_gather(label_list, labels)
+                labels = paddle.concat(label_list, 0)
+                if accum_samples > total_samples:
+                    self.logger.info('total samples {} {} {}'.format(
+                        total_samples, accum_samples,
+                        total_samples + current_samples - accum_samples))
+                    pred = pred[:total_samples + current_samples -
+                                accum_samples, ...]
+                    labels = labels[:total_samples + current_samples -
+                                    accum_samples, ...]
+                    current_samples = total_samples + current_samples - accum_samples
+
+            res = self.val_dataloader.dataset.evaluate(pred, labels, **kargs)
+
+            for k, v in res.items():
+                if k not in outs:
+                    outs[k] = AverageMeter(k, ':6.3f')
+                outs[k].update(float(v), current_samples)
+
+        log_str = f'Validate Epoch [{self.current_epoch + 1}] '
+        log_items = []
+        for name, val in outs.items():
+            if isinstance(val, AverageMeter):
+                string = '{} ({' + outs[k].fmt + '})'
+                val = string.format(val.name, val.avg)
+
+            log_items.append(val)
+        log_str += ', '.join(log_items)
+        self.logger.info(log_str)
+
+        self.model.train()
+
     def resume(self, checkpoint_path):
         checkpoint = paddle.load(checkpoint_path)
         if checkpoint.get('epoch', None) is not None:
@@ -219,6 +290,7 @@ class Trainer:
         self.model.set_state_dict(checkpoint['state_dict'])
         self.optimizer.set_state_dict(checkpoint['optimizer'])
         self.lr_scheduler.set_state_dict(checkpoint['lr_scheduler'])
+
         self.logger.info(
             'Resume training from {} success!'.format(checkpoint_path))
 

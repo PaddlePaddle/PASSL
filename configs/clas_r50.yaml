@@ -23,7 +23,6 @@ dataloader:
       name: ImageNet
       dataroot: data/ILSVRC2012/train
       return_label: True
-      return_two_sample: False
       transforms:
         - name: RandomResizedCrop
           size: 224
@@ -42,7 +41,6 @@ dataloader:
       name: ImageNet
       dataroot: data/ILSVRC2012/val
       return_label: True
-      return_two_sample: False
       transforms:
         - name: Resize
           size: 256
