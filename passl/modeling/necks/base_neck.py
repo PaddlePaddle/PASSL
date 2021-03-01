@@ -48,7 +48,6 @@ class LinearNeck(nn.Layer):
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
         self.fc = nn.Linear(in_channels, out_channels)
         init_backbone_weight(self.fc)
-        # self.init_parameters()
 
     def init_parameters(self, init_linear='normal'):
         _init_parameters(self, init_linear)
@@ -79,7 +78,6 @@ class NonLinearNeckV1(nn.Layer):
                                  nn.Linear(hid_channels, out_channels))
 
         init_backbone_weight(self.mlp)
-        # self.init_parameters()
 
     def init_parameters(self, init_linear='normal'):
         _init_parameters(self, init_linear)
