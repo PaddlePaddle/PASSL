@@ -242,7 +242,6 @@ class Trainer:
             current_samples = batch_size * world_size
             accum_samples += current_samples
 
-            # for k, v in outputs.items():
             if world_size > 1:
                 pred_list = []
                 dist.all_gather(pred_list, pred)
@@ -251,9 +250,6 @@ class Trainer:
                 dist.all_gather(label_list, labels)
                 labels = paddle.concat(label_list, 0)
                 if accum_samples > total_samples:
-                    self.logger.info('total samples {} {} {}'.format(
-                        total_samples, accum_samples,
-                        total_samples + current_samples - accum_samples))
                     pred = pred[:total_samples + current_samples -
                                 accum_samples, ...]
                     labels = labels[:total_samples + current_samples -
