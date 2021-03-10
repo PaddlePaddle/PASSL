@@ -70,8 +70,6 @@ class MoCo(nn.Layer):
             param_k.set_value(param_q)  # initialize
             param_k.stop_gradient = True  # not update by gradient
 
-        freeze_batchnorm_statictis(self.encoder_k)
-
         # create the queue
         self.register_buffer("queue", paddle.randn([dim, K]))
         self.queue = nn.functional.normalize(self.queue, axis=0)
