@@ -39,6 +39,10 @@ def main(args, cfg):
     elif args.load:
         trainer.load(args.load)
 
+    if args.evaluate_only:
+        trainer.val()
+        return
+
     trainer.train()
 
 

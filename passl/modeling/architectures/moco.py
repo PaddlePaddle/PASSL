@@ -16,6 +16,7 @@ import paddle
 import paddle.nn as nn
 
 from ...modules.init import init_backbone_weight
+from ...modules import freeze_batchnorm_statictis
 from .builder import MODELS
 from ..backbones import build_backbone
 from ..necks import build_neck
@@ -146,7 +147,6 @@ class MoCo(nn.Layer):
         idx_this = idx_unshuffle.reshape([num_gpus, -1])[gpu_idx]
 
         return paddle.index_select(x_gather, idx_this)
-        # return x_gather[idx_this]
 
     def train_iter(self, *inputs, **kwargs):
         img_q, img_k = inputs

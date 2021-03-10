@@ -37,7 +37,7 @@ dataloader:
           brightness: 0.4
           contrast: 0.4
           saturation: 0.4
-          hue: 0.1
+          hue: 0.4
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize
@@ -45,9 +45,9 @@ dataloader:
           std: [58.395, 57.12, 57.375]
 
 lr_scheduler:
-  name: CosineAnnealingDecay
-  learning_rate: 0.015
-  T_max: 200
+  name: MultiStepDecay
+  learning_rate: 0.03
+  milestones: [120, 160]
 
 
 optimizer:
