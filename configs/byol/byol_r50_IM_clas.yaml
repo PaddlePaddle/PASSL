@@ -7,7 +7,7 @@ model:
     name: ResNet
     depth: 50
     frozen_stages: 4
-    freeze_bn: True
+    # freeze_bn: True
   head:
     name: ClasHead
     with_avg_pool: true
