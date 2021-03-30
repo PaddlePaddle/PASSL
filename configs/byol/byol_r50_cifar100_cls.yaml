@@ -1,0 +1,72 @@
+epochs: 100
+output_dir: output_dir
+
+model:
+  name: Classification
+  backbone:
+    name: ResNetCifar
+    depth: 50
+    freeze_bn: True
+    frozen_stages: 4
+  head:
+    name: ClasHead
+    with_avg_pool: true
+    in_channels: 2048
+    num_classes: 100
+
+dataloader:
+  train:
+    num_workers: 4
+    sampler:
+      batch_size: 64
+      shuffle: true
+      drop_last: False
+    dataset:
+      name: CIFAR100
+      mode: 'train'
+      download: True
+      return_label: True
+      return_two_sample: False
+      transforms:
+        - name: RandomHorizontalFlip
+        - name: Transpose
+        - name: NormToOne 
+        - name: Normalize
+          mean: [0.4914, 0.4822, 0.4465]
+          std: [0.2023, 0.1994, 0.2010]
+  val:
+    num_workers: 4
+    sampler:
+      batch_size: 64
+      shuffle: false
+      drop_last: false
+    dataset:
+      name: CIFAR100
+      mode: 'test'
+      download: True
+      return_label: True
+      return_two_sample: False
+      transforms:
+        - name: Transpose
+        - name: NormToOne 
+        - name: Normalize
+          mean: [0.4914, 0.4822, 0.4465]
+          std: [0.2023, 0.1994, 0.2010]
+
+
+lr_scheduler:
+  name: MultiStepDecay
+  learning_rate: 30.0
+  milestones: [40, 60]
+
+
+optimizer:
+  name: Momentum
+  weight_decay: 0.0
+
+log_config:
+    name: LogHook
+    interval: 50
+
+custom_config:
+  - name: EvaluateHook

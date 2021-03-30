@@ -24,7 +24,7 @@ from ..utils.misc import AverageMeter
 from ..modules import DistributedDataParallel
 from ..datasets.builder import build_dataloader
 from ..modeling.architectures import build_model
-from ..solver import build_lr_scheduler, build_optimizer
+from ..solver import build_lr_scheduler, build_optimizer, MultiStateDictMeta
 
 
 class IterLoader:
@@ -79,7 +79,7 @@ class Trainer:
         self.cfg = cfg
         self.output_dir = cfg.output_dir
 
-        self.local_rank = dist.get_rank()
+        self.local_rank = dist.get_rank() 
         self.log_interval = cfg.log_config.interval
 
         self.start_epoch = 0
@@ -102,20 +102,30 @@ class Trainer:
         self.train_dataloader = build_dataloader(cfg.dataloader.train)
         self.iters_per_epoch = len(self.train_dataloader)
 
-        # build lr scheduler
-        self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
-                                               self.iters_per_epoch)
-
+        
         # build optimizer
-        self.optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler,
-                                         self.model.parameters())
+        self.lr_scheduler = MultiStateDictMeta()
+        self.optimizer = MultiStateDictMeta()
+        # if type(parameters) == list:
+        if not hasattr(self.model._layers, 'separate_parameters'):
+            parameters = self.model.parameters()
+            # build lr scheduler
+            self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
+            self.optimizer.append(build_optimizer(cfg.optimizer, self.lr_scheduler[0], parameters))
+        else:
+            print('Using Seperating Learning Rate')
+            parameters = self.model._layers.separate_parameters()
+            for key, value in parameters.items():
+                current_lr_scheduler = build_lr_scheduler(getattr(cfg.lr_scheduler, key), self.iters_per_epoch)
+                self.lr_scheduler.append(current_lr_scheduler)
+                self.optimizer.append(build_optimizer(cfg.optimizer, current_lr_scheduler, value))
 
         # build hooks
         self.hooks = []
 
         self.add_train_hooks()
-
         self.add_custom_hooks()
+        self.hooks = sorted(self.hooks, key=lambda x: x.priority)
 
         self.epochs = cfg.get('epochs', None)
         if self.epochs:
@@ -196,7 +206,7 @@ class Trainer:
 
             self.call_hook('train_iter_begin')
 
-            self.outputs = self.model(*data)
+            self.outputs = self.model(*data, total_iters=self.total_iters, current_iter=self.current_iter)
             self.call_hook('train_iter_end')
 
             if self.current_iter % self.iters_per_epoch == 0:
@@ -242,6 +252,7 @@ class Trainer:
             current_samples = batch_size * world_size
             accum_samples += current_samples
 
+            # for k, v in outputs.items():
             if world_size > 1:
                 pred_list = []
                 dist.all_gather(pred_list, pred)
@@ -250,6 +261,9 @@ class Trainer:
                 dist.all_gather(label_list, labels)
                 labels = paddle.concat(label_list, 0)
                 if accum_samples > total_samples:
+                    self.logger.info('total samples {} {} {}'.format(
+                        total_samples, accum_samples,
+                        total_samples + current_samples - accum_samples))
                     pred = pred[:total_samples + current_samples -
                                 accum_samples, ...]
                     labels = labels[:total_samples + current_samples -
@@ -285,8 +299,8 @@ class Trainer:
 
         self.model.set_state_dict(checkpoint['state_dict'])
         self.optimizer.set_state_dict(checkpoint['optimizer'])
-        self.lr_scheduler.set_state_dict(checkpoint['lr_scheduler'])
-
+        self.lr_scheduler.set_state_dict(checkpoint['lr_sheduer'])
+        
         self.logger.info(
             'Resume training from {} success!'.format(checkpoint_path))
 

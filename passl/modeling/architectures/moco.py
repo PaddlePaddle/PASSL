@@ -70,6 +70,8 @@ class MoCo(nn.Layer):
             param_k.set_value(param_q)  # initialize
             param_k.stop_gradient = True  # not update by gradient
 
+        freeze_batchnorm_statictis(self.encoder_k)
+
         # create the queue
         self.register_buffer("queue", paddle.randn([dim, K]))
         self.queue = nn.functional.normalize(self.queue, axis=0)
@@ -92,7 +94,7 @@ class MoCo(nn.Layer):
 
         batch_size = keys.shape[0]
 
-        ptr = int(self.queue_ptr)
+        ptr = int(self.queue_ptr[0])
         assert self.K % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
@@ -203,4 +205,4 @@ def concat_all_gather(tensor):
     paddle.distributed.all_gather(tensors_gather, tensor)
 
     output = paddle.concat(tensors_gather, axis=0)
-    return output
+    return output 

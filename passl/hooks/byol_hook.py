@@ -14,25 +14,18 @@
 
 from .hook import Hook
 from .builder import HOOKS
-
+import paddle.distributed as dist
 
 @HOOKS.register()
-class OptimizerHook(Hook):
+class BYOLHook(Hook):
     def __init__(self, priority=1):
         self.priority = priority
-        
+
     def train_iter_end(self, trainer):
-        for i_opt in range(len(trainer.optimizer)):
-            trainer.optimizer[i_opt].clear_grad()
-
-        loss = 0
-        for key, value in trainer.outputs.items():
-            if 'loss' in key:
-                loss += value
-        loss.backward()
-        
-        for i_opt in range(len(trainer.optimizer)):
-            trainer.optimizer[i_opt].step()
-
-        if 'loss' not in trainer.outputs:
-            trainer.outputs['loss'] = loss
+        # print('-----------------------------')
+        # print('updating target network!')
+        # print('-----------------------------')
+        if dist.get_world_size() > 1:
+            trainer.model._layers.update_target_network()
+        else:
+            trainer.model.update_target_network()

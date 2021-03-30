@@ -28,7 +28,23 @@ TRANSFORMS.register(PT.Normalize)
 TRANSFORMS.register(PT.RandomHorizontalFlip)
 TRANSFORMS.register(PT.Resize)
 TRANSFORMS.register(PT.CenterCrop)
+TRANSFORMS.register(PT.ToTensor)
 
+@TRANSFORMS.register()
+class NormToOne():
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be converted to grayscale.
+
+        Returns:
+            PIL Image: Randomly grayscaled image.
+        """
+        norm_img = (img/255.).astype('float32')
+        return norm_img
 
 @TRANSFORMS.register()
 class RandomApply():
@@ -102,3 +118,20 @@ class GaussianBlur(object):
         sigma = random.uniform(self.sigma[0], self.sigma[1])
         x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
         return x
+
+
+@TRANSFORMS.register()
+class Solarization(object):
+    """Solarization augmentation in BYOL https://arxiv.org/abs/2006.07733."""
+
+    def __init__(self, threshold=128):
+        self.threshold = threshold
+
+    def __call__(self, img):
+        img = np.array(img)
+        img = np.where(img < self.threshold, img, 255 -img)
+        return Image.fromarray(img.astype(np.uint8))
+
+    def __repr__(self):
+        repr_str = self.__class__.__name__
+        return repr_str

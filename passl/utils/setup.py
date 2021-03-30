@@ -26,10 +26,7 @@ def setup(args, cfg):
         cfg.is_train = True
 
     cfg.timestamp = time.strftime('-%Y-%m-%d-%H-%M', time.localtime())
-    cfg.output_dir = os.path.join(
-        cfg.output_dir,
-        os.path.splitext(os.path.basename(str(args.config_file)))[0] +
-        cfg.timestamp)
+    cfg.output_dir = args.output_dir
 
     if args.pretrained:
         cfg.model.backbone.pretrained = args.pretrained

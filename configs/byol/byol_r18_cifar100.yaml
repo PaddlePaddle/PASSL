@@ -1,0 +1,88 @@
+epochs: 200
+output_dir: output_dir
+
+model:
+  name: ONON
+  backbone:
+    name: ResNetCifar
+    depth: 18
+  neck:
+    name: NonLinearNeckV2
+    in_channels: 512
+    hid_channels: 512
+    out_channels: 256
+    with_avg_pool: True
+  predictor:
+    name: NonLinearNeckV2
+    in_channels: 256
+    hid_channels: 256
+    out_channels: 256
+    with_avg_pool: False
+  head:
+    name: L2Head
+  target_decay_method: fixed # cosine
+  target_decay_rate: 0.996
+  align_init_network: False
+  use_synch_bn: True
+
+dataloader:
+  train:
+    num_workers: 4
+    sampler:
+      batch_size: 128
+      shuffle: true
+      drop_last: true
+    dataset:
+      name: CIFAR100
+      mode: 'train'
+      return_label: False
+      return_two_sample: True
+      download: True
+      transforms:
+        - name: RandomResizedCrop
+          size: 32
+          scale: [0.2, 1.]
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
+        - name: RandomHorizontalFlip
+        - name: Transpose
+        - name: NormToOne 
+        - name: Normalize
+          mean: [0.4914, 0.4822, 0.4465]
+          std: [0.2023, 0.1994, 0.2010]
+          # mean: [125.307, 122.961, 113.8575]
+          # std: [51.5865, 50.847, 51.255]
+
+lr_scheduler:
+  name: MultiStepDecay
+  learning_rate: 0.12
+  milestones: [160, 190]
+  #T_max: 200
+
+
+optimizer:
+  name: Momentum
+  weight_decay: 5e-4
+
+log_config:
+    name: LogHook
+    interval: 1
+    priority: 2
+
+custom_config:
+  - name: BYOLHook
+  - name: VisualHook
+    priority: 1

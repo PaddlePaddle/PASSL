@@ -13,5 +13,6 @@
 # limitations under the License.
 
 from .imagenet import ImageNet
+from .cifar import CIFAR10, CIFAR100
 
 from .builder import build_dataset, build_dataloader

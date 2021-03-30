@@ -75,13 +75,15 @@ class CheckpointHook(Hook):
                  by_epoch=True,
                  save_optimizer=True,
                  out_dir=None,
-                 max_keep_ckpts=-1,
+                 max_keep_ckpts=5,
+                 priority=1,
                  **kwargs):
+        self.priority = priority
         self.interval = interval
         self.by_epoch = by_epoch
         self.save_optimizer = save_optimizer
         self.out_dir = out_dir
-        self.max_keep_ckpts = max_keep_ckpts
+        self.max_keep_ckpts = 5
         self.args = kwargs
 
     def save_checkpoint(self,
@@ -124,7 +126,7 @@ class CheckpointHook(Hook):
 
         # remove other checkpoints
         if self.max_keep_ckpts > 0:
-            filename_tmpl = self.args.get('filename_tmpl', 'epoch_{}.pth')
+            filename_tmpl = self.args.get('filename_tmpl', 'epoch_{}.pdparams')
             current_epoch = trainer.current_epoch + 1
             for epoch in range(current_epoch - self.max_keep_ckpts, 0, -1):
                 ckpt_path = os.path.join(self.out_dir,
@@ -132,6 +134,7 @@ class CheckpointHook(Hook):
                 if os.path.exists(ckpt_path):
                     os.remove(ckpt_path)
                 else:
+                    print(ckpt_path)
                     break
 
     def train_iter_end(self, trainer):
@@ -151,7 +154,7 @@ class CheckpointHook(Hook):
 
         # remove other checkpoints
         if self.max_keep_ckpts > 0:
-            filename_tmpl = self.args.get('filename_tmpl', 'iter_{}.pth')
+            filename_tmpl = self.args.get('filename_tmpl', 'iter_{}.pdparams')
             current_iter = trainer.iter + 1
             for _iter in range(
                     current_iter - self.max_keep_ckpts * self.interval, 0,

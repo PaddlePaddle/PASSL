@@ -20,3 +20,7 @@ from .timer_hook import IterTimerHook
 from .log_hook import LogHook
 from .checkpoint_hook import CheckpointHook
 from .evaluate_hook import EvaluateHook
+from .byol_hook import BYOLHook
+from .byolL1_hook import BYOLL1Hook
+from .byolClip_hook import BYOLClipHook
+from .visual_hook import VisualHook
