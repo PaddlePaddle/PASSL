@@ -2,7 +2,7 @@
 Under Develop.
 
 ## Introduction
-PASSL is a **PA**ddle based vision library for state-of-the-art **S**elf-**S**upervised **L**earning research with PaddlePaddle. PASSL aims to accelerate research cycle in self-supervised learning: from designing a new self-supervised task to evaluating the learned representations. 
+PASSL is a **PA**ddle based vision library for state-of-the-art **S**elf-**S**upervised **L**earning research. PASSL aims to accelerate research cycle in self-supervised learning: from designing a new self-supervised task to evaluating the learned representations. 
 
 ## Installation
 - Install PaddlePaddle following the [official install guidence](https://www.paddlepaddle.org.cn/install/). 
