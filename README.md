@@ -72,7 +72,7 @@ python tools/train.py -c configs/clas_r50.yaml --load $YOUR_TRAINED_CLS_MODEL --
 
 The trained linear weights in conjuction with the backbone weights can be found at [MoCo v1 linear](https://passl.bj.bcebos.com/models/moco_v1_r50_clas.pdparams) and [MoCo v2 linear](https://passl.bj.bcebos.com/models/moco_v2_r50_clas.pdparams)
 
-
+## BYOL
 
 ### 1. Train BYOL
 ```
