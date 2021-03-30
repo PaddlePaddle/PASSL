@@ -9,7 +9,7 @@ PASSL is a **PA**ddle based vision library for state-of-the-art **S**elf-**S**up
 
 ## Data Preparation
 - Download the ImageNet dataset from the [link](http://www.image-net.org/).
-- Then, and move validation images to labeled subfolders, using [the lined shell script](https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh)
+- Then, and move validation images to labeled subfolders, using [the linked shell script](https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh)
 - Create a symlink under PASSL/data/ as the following examples: ```ln -s $YOUR_ILSVRC2012_PATH data/ILSVRC2012```
 - At last, the folder looks like:
     ```
