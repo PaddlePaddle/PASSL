@@ -83,7 +83,6 @@ class CheckpointHook(Hook):
         self.by_epoch = by_epoch
         self.save_optimizer = save_optimizer
         self.out_dir = out_dir
-        self.max_keep_ckpts = 5
         self.args = kwargs
 
     def save_checkpoint(self,
