@@ -62,12 +62,12 @@ python tools/extract_weight.py $YOUR_TRAINED_MODEL_PATH --output $YOUR_EXTRACTED
 
 #### Train:
 ```
-python tools/train.py -c configs/clas_r50.yaml --pretrained $YOUR_EXTRACTED_BACKBONE_PATH --num-gpus 8 --output_dir $SPECIFIED_OUTPUT_DIR
+python tools/train.py -c configs/moco/moco_clas_r50.yaml --pretrained $YOUR_EXTRACTED_BACKBONE_PATH --num-gpus 8 --output_dir $SPECIFIED_OUTPUT_DIR
 ```
 
 #### Evaluate:
 ```
-python tools/train.py -c configs/clas_r50.yaml --load $YOUR_TRAINED_CLS_MODEL --evaluate-only --num-gpus 8 --output_dir $SPECIFIED_OUTPUT_DIR
+python tools/train.py -c configs/moco/moco_clas_r50.yaml --load $YOUR_TRAINED_CLS_MODEL --evaluate-only --num-gpus 8 --output_dir $SPECIFIED_OUTPUT_DIR
 ```
 
 The trained linear weights in conjuction with the backbone weights can be found at [MoCo v1 linear](https://passl.bj.bcebos.com/models/moco_v1_r50_clas.pdparams) and [MoCo v2 linear](https://passl.bj.bcebos.com/models/moco_v2_r50_clas.pdparams)
