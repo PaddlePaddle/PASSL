@@ -24,7 +24,8 @@ from passl.utils.config import get_config
 from passl.utils.setup import setup
 from passl.engine.trainer import Trainer
 from passl.engine.launch import launch
-
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def main(args, cfg):
     # init environment, include logger, dynamic graph, seed, device, train or test mode...

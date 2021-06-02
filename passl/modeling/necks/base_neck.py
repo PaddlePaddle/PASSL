@@ -16,8 +16,8 @@ import paddle
 import paddle.nn as nn
 
 from .builder import NECKS
-from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters
-
+from paddle.vision.models.resnet import BasicBlock, BottleneckBlock
+from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters, xavier_init
 
 def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
     assert init_linear in ['normal', 'kaiming'], \
@@ -35,6 +35,8 @@ def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
                 constant_(m.weight, 1)
             if m.bias is not None:
                 constant_(m.bias, 0)
+        elif isinstance(m, nn.Conv2D):
+            kaiming_init(m, mode='fan_in', nonlinearity='relu')
 
 
 @NECKS.register()
@@ -47,9 +49,10 @@ class LinearNeck(nn.Layer):
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
         self.fc = nn.Linear(in_channels, out_channels)
-        init_backbone_weight(self.fc)
+        # init_backbone_weight(self.fc)
+        self.init_parameters()
 
-    def init_parameters(self, init_linear='normal'):
+    def init_parameters(self, init_linear='kaiming'):
         _init_parameters(self, init_linear)
 
     def forward(self, x):
@@ -77,13 +80,129 @@ class NonLinearNeckV1(nn.Layer):
                                            hid_channels), nn.ReLU(),
                                  nn.Linear(hid_channels, out_channels))
 
+        # init_backbone_weight(self.mlp)
+        self.init_parameters()
+
+    def init_parameters(self, init_linear='kaiming'):
+        _init_parameters(self, init_linear)
+
+    def forward(self, x):
+
+        if self.with_avg_pool:
+            x = self.avgpool(x)
+        return self.mlp(x.reshape([x.shape[0], -1]))
+
+
+@NECKS.register()
+class NonLinearNeckV2(nn.Layer):
+    """The non-linear neck in MoCo v2: fc-relu-fc.
+    """
+
+    def __init__(self,
+                 in_channels,
+                 hid_channels,
+                 out_channels,
+                 with_avg_pool=True):
+        super(NonLinearNeckV2, self).__init__()
+        self.with_avg_pool = with_avg_pool
+        if with_avg_pool:
+            self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
+
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels, hid_channels), 
+            nn.BatchNorm1D(hid_channels),
+            nn.ReLU(),
+            nn.Linear(hid_channels, out_channels))
+
+        # init_backbone_weight(self.mlp)
+        # self.init_parameters()
+        
+    def init_parameters(self, init_linear='kaiming'):
+        # _init_parameters(self, init_linear)
+        for m in self.sublayers():
+            if isinstance(m, nn.Linear):
+                xavier_init(m, distribution='uniform')
+            elif isinstance(
+                m,
+                (nn.BatchNorm1D, nn.BatchNorm2D, nn.GroupNorm, nn.SyncBatchNorm)):
+                if m.weight is not None:
+                    constant_(m.weight, 1)
+                if m.bias is not None:
+                    constant_(m.bias, 0)
+
+    def forward(self, x):
+        if self.with_avg_pool:
+            x = self.avgpool(x)
+        return self.mlp(x.reshape([x.shape[0], -1]))
+
+
+@NECKS.register()
+class NonLinearNeckV3(nn.Layer):
+    """MLP"""
+    def __init__(self,
+                 in_channels,
+                 hid_channels,
+                 out_channels):
+        super(NonLinearNeckV3, self).__init__()
+
+        self.l1 = nn.Linear(in_channels, hid_channels)
+        self.bn1 = nn.BatchNorm1D(hid_channels)
+        self.relu1 = nn.ReLU()
+        self.l2 = nn.Linear(hid_channels, out_channels)
+
+    def init_parameters(self, init_linear='kaiming'):
+        # _init_parameters(self, init_linear)
+        for m in self.sublayers():
+            if isinstance(m, nn.Linear):
+                xavier_init(m, distribution='uniform')
+            elif isinstance(
+                m,
+                (nn.BatchNorm1D, nn.BatchNorm2D, nn.GroupNorm, nn.SyncBatchNorm)):
+                if m.weight is not None:
+                    constant_(m.weight, 1)
+                if m.bias is not None:
+                    constant_(m.bias, 0)
+
+    def forward(self, x):
+        """forward"""
+        x = self.l1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+        x = self.l2(x)
+        return x
+
+
+@NECKS.register()
+class ConvNonLinearNeck(nn.Layer):
+    """
+    The Convolutioanl Neck proposed by F.
+    """
+
+    def __init__(self, 
+                in_channels, 
+                hid_channels, 
+                out_channels,
+                with_avg_pool=True):
+        super(ConvNonLinearNeck, self).__init__()
+        self.with_avg_pool = with_avg_pool
+        assert with_avg_pool, 'The with_avg_pool must be set to True in ConvNonLinearNeck!'
+        if with_avg_pool:
+            self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
+
+        self.conv = BottleneckBlock(in_channels, in_channels//4)
+
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels, hid_channels), 
+            nn.ReLU(),
+            nn.Linear(hid_channels, out_channels))
+
         init_backbone_weight(self.mlp)
 
     def init_parameters(self, init_linear='normal'):
         _init_parameters(self, init_linear)
 
     def forward(self, x):
-
+        x = self.conv(x)
         if self.with_avg_pool:
             x = self.avgpool(x)
         return self.mlp(x.reshape([x.shape[0], -1]))

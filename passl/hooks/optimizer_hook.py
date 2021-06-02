@@ -18,15 +18,25 @@ from .builder import HOOKS
 
 @HOOKS.register()
 class OptimizerHook(Hook):
+    def __init__(self, priority=1):
+        self.priority = priority
+        
     def train_iter_end(self, trainer):
-        trainer.optimizer.clear_grad()
-        loss = 0
-        for key, value in trainer.outputs.items():
-            if 'loss' in key:
-                loss += value
-        loss.backward()
+        for i_opt in range(len(trainer.optimizer)):
+            if 'lars' in trainer.optimizer[0].type:
+                trainer.optimizer[i_opt].clear_gradients()
+            else:
+                trainer.optimizer[i_opt].clear_grad()
 
-        trainer.optimizer.step()
+        loss = 0
+        loss = trainer.outputs['loss']
+        loss.backward()
+        
+        for i_opt in range(len(trainer.optimizer)):
+            if 'lars' in trainer.optimizer[0].type:
+                trainer.optimizer[i_opt].minimize(loss)
+            else:
+                trainer.optimizer[i_opt].step()
 
         if 'loss' not in trainer.outputs:
             trainer.outputs['loss'] = loss

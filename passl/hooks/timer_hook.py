@@ -21,6 +21,9 @@ from ..utils import AverageMeter
 
 @HOOKS.register()
 class IterTimerHook(Hook):
+    def __init__(self, priority=1):
+        self.priority = priority
+        
     def epoch_begin(self, runner):
         self.t = time.time()
 

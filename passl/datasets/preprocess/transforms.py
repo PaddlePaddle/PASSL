@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import random
-from PIL import ImageFilter
+from PIL import ImageFilter, Image, ImageOps
+import numpy as np
+
 import paddle
 
 import paddle.vision.transforms as PT
@@ -28,7 +30,25 @@ TRANSFORMS.register(PT.Normalize)
 TRANSFORMS.register(PT.RandomHorizontalFlip)
 TRANSFORMS.register(PT.Resize)
 TRANSFORMS.register(PT.CenterCrop)
+TRANSFORMS.register(PT.ToTensor)
 
+
+
+@TRANSFORMS.register()
+class NormToOne():
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be converted to grayscale.
+
+        Returns:
+            PIL Image: Randomly grayscaled image.
+        """
+        norm_img = (img/255.).astype('float32')
+        return norm_img
 
 @TRANSFORMS.register()
 class RandomApply():
@@ -86,7 +106,8 @@ class RandomGrayscale(object):
             PIL Image: Randomly grayscaled image.
         """
         num_output_channels = 1 if img.mode == 'L' else 3
-        if random.random() < self.p:
+
+        if random.random()< self.p:
             return F.to_grayscale(img, num_output_channels=num_output_channels)
         return img
 
@@ -95,10 +116,26 @@ class RandomGrayscale(object):
 class GaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
 
-    def __init__(self, sigma=[.1, 2.]):
+    def __init__(self, sigma=[.1, 2.], _PIL=False):
         self.sigma = sigma
+        self.kernel_size = 23
+        self._PIL = _PIL
 
     def __call__(self, x):
-        sigma = random.uniform(self.sigma[0], self.sigma[1])
-        x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
-        return x
+        sigma = np.random.uniform(self.sigma[0], self.sigma[1])
+        if self._PIL: 
+            x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
+            return x
+        else:  
+            import cv2
+            x = cv2.GaussianBlur(np.array(x), (self.kernel_size, self.kernel_size), sigma)
+            return Image.fromarray(x.astype(np.uint8))
+               
+
+@TRANSFORMS.register()
+class Solarization(object):
+    def __init__(self, threshold=128):
+        self.threshold = threshold
+
+    def __call__(self, sample):
+        return ImageOps.solarize(sample, self.threshold)

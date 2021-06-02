@@ -12,13 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .builder import build_hook
 from .hook import Hook
-from .lr_scheduler_hook import LRSchedulerHook
-from .optimizer_hook import OptimizerHook
-from .timer_hook import IterTimerHook
-from .log_hook import LogHook
-from .checkpoint_hook import CheckpointHook
-from .evaluate_hook import EvaluateHook
-from .byol_hook import BYOLHook
-from .visual_hook import VisualHook
+from .builder import HOOKS
+import paddle.distributed as dist
+
+@HOOKS.register()
+class BYOLHook(Hook):
+    def __init__(self, priority=1):
+        self.priority = priority
+
+    def train_iter_end(self, trainer):
+        # print('-----------------------------')
+        # print('updating target network!')
+        # print('-----------------------------')
+        if dist.get_world_size() > 1:
+            trainer.model._layers.update_target_network()
+        else:
+            trainer.model.update_target_network()
