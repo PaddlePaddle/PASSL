@@ -83,7 +83,6 @@ class CosineWarmup(LinearWarmup):
                  eta_min=0,
                  last_epoch=-1,
                  verbose=False):
-        start_lr = 0.0
         lr_sch = Cosine(learning_rate,
                         T_max,
                         eta_min=eta_min,
