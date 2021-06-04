@@ -104,3 +104,4 @@ class ResNet(models.ResNet):
             logger = get_logger()
             logger.info(
                 'Frozen layer before stage {}'.format(self.frozen_stages + 1))
+

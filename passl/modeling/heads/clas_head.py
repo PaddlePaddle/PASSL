@@ -16,7 +16,7 @@ import paddle
 import paddle.nn as nn
 
 from .builder import HEADS
-from ...modules.init import reset_parameters
+from ...modules.init import reset_parameters, normal_init
 
 
 @HEADS.register()
@@ -34,7 +34,8 @@ class ClasHead(nn.Layer):
         if self.with_avg_pool:
             self.avg_pool = nn.AdaptiveAvgPool2D((1, 1))
         self.fc_cls = nn.Linear(in_channels, num_classes)
-        reset_parameters(self.fc_cls)
+        # reset_parameters(self.fc_cls)
+        normal_init(self.fc_cls, mean=0.0, std=0.01, bias=0.0)
 
     def forward(self, x):
         if self.with_avg_pool:

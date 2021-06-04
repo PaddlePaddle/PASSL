@@ -14,5 +14,6 @@
 
 from .moco import MoCo
 from .clas import Classification
+from .MoCoBYOL import MoCoBYOL
 
 from .builder import build_model

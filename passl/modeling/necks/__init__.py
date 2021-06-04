@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base_neck import LinearNeck, NonLinearNeckV1
+from .base_neck import LinearNeck
+from .base_neck import NonLinearNeckV1
+from .base_neck import NonLinearNeckV2
+from .base_neck import NonLinearNeckV3
 
 from .builder import build_neck

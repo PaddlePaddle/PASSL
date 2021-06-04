@@ -340,7 +340,7 @@ def reset_parameters(m):
 def init_backbone_weight(net):
     def reset_func(m):
         if hasattr(m, 'weight') and (not isinstance(
-                m, (nn.BatchNorm, nn.BatchNorm2D))):
+                m, (nn.BatchNorm, nn.BatchNorm2D, nn.BatchNorm1D))):
             reset_parameters(m)
 
     def init_func(m):  # define the initialization function

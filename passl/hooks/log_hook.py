@@ -28,7 +28,8 @@ class LogHook(Hook):
                  by_epoch=True,
                  interval=10,
                  ignore_last=True,
-                 reset_flag=True):
+                 reset_flag=True,
+                 priority=1):
 
         self.interval = interval
         self.ignore_last = ignore_last
@@ -36,6 +37,7 @@ class LogHook(Hook):
 
         self.by_epoch = by_epoch
         self.time_sec_tot = 0
+        self.priority = priority
 
     def run_begin(self, trainer):
         self.start_iter = trainer.current_iter
@@ -113,7 +115,7 @@ class LogHook(Hook):
         else:
             log_dict['iter'] = trainer.current_iter + 1
 
-        cur_lr = trainer.lr_scheduler.get_lr()
+        cur_lr = trainer.lr_scheduler[0].get_lr()
         if isinstance(cur_lr, list):
             log_dict['lr'] = cur_lr[0]
         elif isinstance(cur_lr, dict):
