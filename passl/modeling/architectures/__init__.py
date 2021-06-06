@@ -15,5 +15,6 @@
 from .moco import MoCo
 from .clas import Classification
 from .MoCoBYOL import MoCoBYOL
+from .CLIPWrapper import CLIPWrapper 
 
 from .builder import build_model
