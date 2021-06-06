@@ -141,7 +141,6 @@ class Solarization(object):
         return ImageOps.solarize(sample, self.threshold)
 
 
-
 @TRANSFORMS.register()
 class ToRGB(object):
     def __init__(self, mode='RGB'):
