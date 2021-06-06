@@ -129,6 +129,7 @@ class GaussianBlur(object):
         else:  
             import cv2
             x = cv2.GaussianBlur(np.array(x), (self.kernel_size, self.kernel_size), sigma)
+            #cv2.imwrite('Taug.png', x)
             return Image.fromarray(x.astype(np.uint8))
                
 
@@ -138,4 +139,19 @@ class Solarization(object):
         self.threshold = threshold
 
     def __call__(self, sample):
+        #ImageOps.solarize(sample, self.threshold).save('pd_aug.png')
+        #import pdb
+        #pdb.set_trace()
         return ImageOps.solarize(sample, self.threshold)
+
+
+
+@TRANSFORMS.register()
+class ToRGB(object):
+    def __init__(self, mode='RGB'):
+        self.mode = mode
+
+    def __call__(self, sample):
+        if sample.mode != self.mode:
+            return sample.convert(self.mode)
+        return sample
