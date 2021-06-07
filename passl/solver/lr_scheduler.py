@@ -14,19 +14,20 @@
 
 import math
 import paddle
+import numpy as np
 
-from paddle.optimizer.lr import MultiStepDecay
+from paddle.optimizer.lr import MultiStepDecay, LRScheduler
 from paddle.optimizer.lr import CosineAnnealingDecay
 from paddle.optimizer.lr import LinearWarmup
 from .builder import LRSCHEDULERS, build_lr_scheduler
 
 
+LRSCHEDULERS.register(LinearWarmup)
 LRSCHEDULERS.register(MultiStepDecay)
 LRSCHEDULERS.register(CosineAnnealingDecay)
-LRSCHEDULERS.register(LinearWarmup)
 
 
-class Cosine(CosineAnnealingDecay):
+class Cosine(LRScheduler):
     """
     Cosine learning rate decay
     lr = 0.05 * (math.cos(epoch * (math.pi / epochs)) + 1)
@@ -39,14 +40,17 @@ class Cosine(CosineAnnealingDecay):
     def __init__(self,
                  learning_rate,
                  T_max,
+                 warmup_steps,
                  eta_min=0,
                  last_epoch=1,
                  verbose=False):
         super(Cosine, self).__init__(learning_rate,
-                                     T_max,
-                                     eta_min=eta_min,
                                      last_epoch=last_epoch,
                                      verbose=verbose)
+        self.T_max = T_max
+        self.warmup_steps = warmup_steps
+        self.eta_min = eta_min
+        self.last_epoch = last_epoch
 
 
     def get_lr(self):
@@ -58,7 +62,7 @@ class Cosine(CosineAnnealingDecay):
 
         return self.eta_min + 0.5 * (
             self.base_lr - self.eta_min) * (
-            1 + math.cos(math.pi * self.last_epoch / self.T_max)) 
+            1 + np.cos(np.pi * self.last_epoch / (self.T_max - self.warmup_steps))) 
 
 
 LRSCHEDULERS.register()
@@ -83,8 +87,10 @@ class CosineWarmup(LinearWarmup):
                  eta_min=0,
                  last_epoch=-1,
                  verbose=False):
+        #start_lr = 0.0
         lr_sch = Cosine(learning_rate,
                         T_max,
+                        warmup_steps,
                         eta_min=eta_min,
                         last_epoch=last_epoch,
                         verbose=verbose)
@@ -100,3 +106,4 @@ class CosineWarmup(LinearWarmup):
 
 LRSCHEDULERS.register(Cosine)
 LRSCHEDULERS.register(CosineWarmup)
+
