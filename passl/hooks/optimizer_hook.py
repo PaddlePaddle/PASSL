@@ -23,7 +23,7 @@ class OptimizerHook(Hook):
         
     def train_iter_end(self, trainer):
         for i_opt in range(len(trainer.optimizer)):
-            if 'lars' in trainer.optimizer[0].type:
+            if 'lars' in trainer.optimizer[i_opt].type:
                 trainer.optimizer[i_opt].clear_gradients()
             else:
                 trainer.optimizer[i_opt].clear_grad()
