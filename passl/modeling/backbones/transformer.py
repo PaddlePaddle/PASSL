@@ -1,3 +1,4 @@
+import numpy as np
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
@@ -174,7 +175,7 @@ class Transformer(Layer):
         self.d_model = d_model
         self.nhead = nhead
 
-    def forward(self, src, tgt, src_mask=None, tgt_mask=None, memory_mask=None):
+    def forward(self, src, src_mask=None, tgt_mask=None, memory_mask=None):
         src_mask = _convert_attention_mask(src_mask, src.dtype)
         return self.encoder(src, src_mask=src_mask)
 

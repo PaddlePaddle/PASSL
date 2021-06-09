@@ -3,11 +3,12 @@ from random import randint, choice
 
 import PIL
 import argparse
-import clip
+import paddle
 
 from .builder import DATASETS
 from paddle.io import Dataset
 from .preprocess import build_transforms
+from ..utils.tokenizer import tokenize
 
 
 @DATASETS.register()
@@ -77,7 +78,7 @@ class TextImageDataset(Dataset):
             print(f"Skipping index {ind}")
             return self.skip_sample(ind)
 
-        tokenized_text = clip.tokenize(description)[0]
+        tokenized_text = tokenize(description)[0]
 
         try:
             image_tensor = self.image_transform(PIL.Image.open(image_file))
@@ -87,5 +88,4 @@ class TextImageDataset(Dataset):
             return self.skip_sample(ind)
 
         # Success
-        import paddle
-        return image_tensor, paddle.to_tensor(tokenized_text.cpu().numpy())
+        return image_tensor, tokenized_text

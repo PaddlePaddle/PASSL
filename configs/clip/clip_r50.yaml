@@ -18,7 +18,9 @@ model:
     transformer_width: 512
     transformer_heads: 8
     transformer_layers: 12
-  minibatch_size: 0
+  minibatch_size: 8
+  head:
+    name: CLIPHead
 
 
 dataloader:
@@ -30,7 +32,7 @@ dataloader:
       drop_last: True
     dataset:
       name: TextImageDataset 
-      dataroot: /dbq/common/datasets/VL/FOOD101/captions/
+      dataroot: /your datasets/
       transforms:
         - name: ToRGB
         - name: RandomResizedCrop
@@ -53,12 +55,15 @@ lr_scheduler:
 
 
 optimizer:
-  name: LarsMomentumOptimizer
-  momentum: 0.9
-  lars_weight_decay: 1.0e-6
-  exclude_from_weight_decay: ['.bias', 'bn', 'batch_norm', '.b_0']
-  epsilon: 1e-9
+  name: AdamW 
+  #learning_rate: 5e-4
+  beta1: 0.9
+  beta2: 0.98
+  epsilon: 1e-8 
+  weight_decay: 0.2 
 
+optimizer_config:
+  name: CLIPOptimizerHook
 
 log_config:
     name: LogHook
