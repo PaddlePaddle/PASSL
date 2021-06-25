@@ -18,7 +18,6 @@ import paddle.nn as nn
 from .builder import HEADS
 import paddle.nn.functional as F
 import paddle.fluid.layers as layers
-# import pdb
 LARGE_NUM = 1e9
 
 @HEADS.register()
@@ -73,53 +72,36 @@ class SimCLRContrastiveHead(nn.Layer):
             masks = F.one_hot(
                 paddle.reshape(labels_idx, [batch_size]),
                 enlarged_batch_size)
-
-            # 标签实际是batch单位矩阵并上一个零矩阵
-            # batch=2  
-            # label = [[1., 0., 0., 0.],
-            #         [0., 1., 0., 0.]] 
-            # mask =  [[1., 0.],
-            #         [0., 1.]]
         else:
             hidden1_large = hidden1
-            # pdb.set_trace()
-            # print('hidden1_large',hidden1_large)
             hidden2_large = hidden2
-            # print('hidden2_large',hidden2_large)
             labels = F.one_hot(
                 paddle.reshape(
                     paddle.arange(0, batch_size, 1, "int32"), [batch_size]),
-                batch_size * 2)  # why one_hot must ge 1 dim
-            # print('labels', labels)
+                batch_size * 2)  
             masks = F.one_hot(
                 paddle.reshape(
                     paddle.arange(0, batch_size, 1, "int32"), [batch_size]),
-                batch_size)  # [bs, bs]
-            # print('masks',masks)
+                batch_size)  
         
         logits_aa = paddle.matmul(
             hidden1, hidden1_large, transpose_y=True) / self.temperature
         logits_aa = logits_aa - masks * LARGE_NUM
-        # print('logits_aa',logits_aa)
         logits_bb = paddle.matmul(
             hidden2, hidden2_large, transpose_y=True) / self.temperature
         logits_bb = logits_bb - masks * LARGE_NUM
-        # print('logits_bb',logits_bb)
         logits_ab = paddle.matmul(
             hidden1, hidden2_large, transpose_y=True) / self.temperature
-        # print('logits_ab',logits_ab)
         logits_ba = paddle.matmul(
             hidden2, hidden1_large, transpose_y=True) / self.temperature
-        # print('logits_ba',logits_ba)
+      
 
         # contrastive loss
         loss_a = paddle.nn.functional.softmax_with_cross_entropy(
                 paddle.concat([logits_ab, logits_aa], 1), labels, soft_label=True)
         loss_b = paddle.nn.functional.softmax_with_cross_entropy(
             paddle.concat([logits_ba, logits_bb], 1), labels, soft_label=True)
-        # co2_loss = loss_a + loss_b
         contrast_loss = loss_a + loss_b
-        # print('contrast_loss',contrast_loss)
 
 
         # co2
@@ -135,48 +117,17 @@ class SimCLRContrastiveHead(nn.Layer):
         kl_2 = paddle.nn.functional.kl_div(log_b, a, reduction='batchmean')
         co2_loss = 1 * (kl_1 + kl_2)
 
-        # print('co2_loss',co2_loss)
-
-
         total_contrast_loss = contrast_loss + 3 * co2_loss
         loss = layers.reduce_mean(total_contrast_loss)
-
-        # print('end_loss')
-        
-
-
-
-            # return co2_loss, logits_ab, labels
-
-
-
-        # contrast_loss += 3 * co2_loss # magic number
-        # loss = paddle.mean(contrast_loss)
         contrastive_label = paddle.unsqueeze(
             paddle.argmax(
                 labels, axis=1), 1)
-        # print('logits_ab_co2',logits_ab_co2)
-        # print('contrastive_label',contrastive_label)
+      
         acc1 = layers.accuracy(input=logits_ab, label=contrastive_label)
         outputs = dict()
         outputs['loss'] = loss
-        # acc1, acc5 = accuracy(logits_ab, contrastive_label, topk=(1, 5))
         outputs['acc1'] = acc1
-        # outputs['acc5'] = acc5
-
-
-        # m = paddle.metric.Accuracy()
-        # correct = m.compute(logits_ab, contrastive_label)
-        # m.update(correct)
-        # res = m.accumulate()
-        # print('wuwuwuw')
-        # print(res) 
-
-
-
-        # acc1 = layers.accuracy(input=logits_ab, label=contrastive_label)
-        # outputs['acc1'] = acc1
-        # print('outputs',outputs)
+    
 
         return outputs
 

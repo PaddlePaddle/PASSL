@@ -44,67 +44,20 @@ class SimCLR(nn.Layer):
         self.encoder = nn.Sequential(build_backbone(backbone),
                                        build_neck(neck))
         
-        # self.encoder_k = nn.Sequential(build_backbone(backbone),
-        #                                build_neck(neck))
-        
-        # self.finetunencode_q = nn.Sequential(build_backbone(bachbone))
-        
-
-
-        
         self.backbone = self.encoder[0]
         self.head = build_head(head)
 
 
 
     def train_iter(self, *inputs, **kwargs):
-        # 1, 3, 224, 224
-        # print('imageqandk')
-        # print('inputs', inputs)
         img_q, img_k = inputs
-        # print('img_q',img_q.type)
-        # print('img_k',img_k)
         img_con = [img_q, img_k]
         img_con = paddle.concat(img_con)
-        # print('img_con', img_con)
         con = self.encoder(img_con)
-        # print('con',con)
         con = layers.l2_normalize(con, -1)
-        # print('l2_con',con)
         q, k = layers.split(con, num_or_sections=2, dim=0)
-        # print('q', q)
-        # print('k', k)
-        # img = paddle.concat(inputs)
-        # feature = self.encoder(img)
-        # feature = layers.l2_normalize(feature, -1)
-        # q, k = feature.split(feature, num_output_channels= 2, dim=0)
-
-        
-
-
-        # q = self.encoder_q(img_q)  # queries: NxC
-        # print('q',q)
-        # # hidden = layers.l2_normalize(hidden, -1)
-        # q = layers.l2_normalize(q, -1)
-        # # q = nn.functional.normalize(q, axis=1)
-        # # print('norm_q',q)
-        # # print('k')
-        # k = self.encoder_k(img_k)  # keys: NxC
-        # print('k',k)
-        # k = layers.l2_normalize(k, -1)
-        # k = nn.functional.normalize(k, axis=1)
-        # print('norm_k',k)
-      
         outputs = self.head(q, k)
-        
-        # print('outputs', outputs)
-
-        # print(outputs)
-
-
-
-
-
+      
         return outputs
     def test_iter(self, *inputs, **kwargs):
         with paddle.no_grad():

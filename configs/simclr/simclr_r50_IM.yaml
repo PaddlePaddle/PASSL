@@ -5,8 +5,7 @@ model:
   name: SimCLR
   backbone:
     name: ResNet
-    depth: 18
-    frozen_stages: 4
+    depth: 50
   neck:
     name: NonLinearNeckfc3
     in_channels: 512
@@ -20,18 +19,15 @@ model:
 
 dataloader:
   train:
-    num_workers: 0
+    num_workers: 6
     sampler:
-      # batch_size: 2
-      batch_size: 512
+      batch_size: 32
+      
       shuffle: true
       drop_last: true
     dataset:
       name: CIFAR10
-      # dataroot: data/ILSVRC2012/train
-      # dataroot: data/cifar10/train
-      # return_label: False
-      # return_two_sample: True
+      dataroot: data/cifar10/train
       mode: 'train'
       return_label: False
       return_two_sample: True
@@ -59,23 +55,16 @@ dataloader:
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize
-          # mean: [125.3, 123.0, 113.9]
-          # std: [63.0, 62.1, 66.7]
-          # mean: [0.4914, 0.4822, 0.4465]
-          # std: [0.2023, 0.1994, 0.2010]
 
   val:
-    num_workers: 0
+    num_workers: 4
     sampler:
-      # batch_size: 64
       batch_size: 512
       shuffle: false
       drop_last: false
     dataset:
       name: Cifar10
-      # dataroot: data/ILSVRC2012/val
-      # dataroot: data/cifar10/test
-      mode: 'test'
+      dataroot: data/cifar10/test
       return_label: True
       transforms:
         - name: Resize
@@ -84,8 +73,8 @@ dataloader:
           size: 224
         - name: Transpose
         - name: Normalize
-          # mean: [123.675, 116.28, 103.53]
-          # std: [58.395, 57.12, 57.375]
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
 
 
 
@@ -101,43 +90,14 @@ lr_scheduler:
   T_max: 200
 
 
-
-# lr_scheduler:
-#   name: CosineAnnealingDecay
-#   learning_rate: 3
-#   T_max: 20
-# # lr_scheduler:
-# #   name: 
-  
-
-# learning_rate_scaling:
-# lr_scheduler:
-#   name: Cosine
-#   learning_rate: 1.0
-#   T_max: 200
-
-
 optimizer:
   name: LarsMomentumOptimizer
   momentum: 0.9
   lars_weight_decay: 0.0001
   exclude_from_weight_decay: ['scale', 'offset', 'b_0']
   
-
-# optimizer:
-#   name: Momentum
-#   momentum: 0.9
-#   use_nesterov: True
-#   weight_decay: 0.0001
-
-  # momentum: 0.9
-  # lars_weight_decay: 0.0001
-# optimizer:
-#   name: Momentum
-#   weight_decay: 0.0001
-
 log_config:
     name: LogHook
-    interval: 10
+    interval: 30
 
 
