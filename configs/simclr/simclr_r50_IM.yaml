@@ -12,7 +12,6 @@ model:
     hid_channels: 512
     out_channels: 128
     with_avg_pool: False
-    # with_bn: False
   head:
     name: SimCLRContrastiveHead
     temperature: 0.5
@@ -47,11 +46,6 @@ dataloader:
           p: 0.8
         - name: RandomGrayscale
           p: 0.2
-        # - name: RandomApply
-        #   transforms:
-        #   - name: GaussianBlur
-        #     sigma: [0.1, 2.0]
-        #   p: 0.5
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize

@@ -36,7 +36,6 @@ class SimCLRContrastiveHead(nn.Layer):
         self.temperature = temperature
         self.return_accuracy = return_accuracy
         self.multi_rank = multi_rank
-        # self.co2 = co2
 
     def forward(self, pos, neg):
         """Forward head.
@@ -95,16 +94,12 @@ class SimCLRContrastiveHead(nn.Layer):
         logits_ba = paddle.matmul(
             hidden2, hidden1_large, transpose_y=True) / self.temperature
       
-
-        # contrastive loss
         loss_a = paddle.nn.functional.softmax_with_cross_entropy(
                 paddle.concat([logits_ab, logits_aa], 1), labels, soft_label=True)
         loss_b = paddle.nn.functional.softmax_with_cross_entropy(
             paddle.concat([logits_ba, logits_bb], 1), labels, soft_label=True)
         contrast_loss = loss_a + loss_b
 
-
-        # co2
         logits_ab_co2 = logits_ab - masks * LARGE_NUM
         logits_ba_co2 = logits_ba - masks * LARGE_NUM
         logit_a = paddle.concat([logits_aa, logits_ab_co2], 1)
@@ -146,7 +141,7 @@ def accuracy(output, target, topk=(1, )):
         for k in topk:
             correct_k = correct[:k].reshape([-1]).sum(0, keepdim=True)
             res.append(correct_k * 100.0 / batch_size)
-        # print('accres', res)
+        
         return res
 
 
