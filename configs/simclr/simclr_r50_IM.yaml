@@ -1,4 +1,4 @@
-epochs: 1000
+epochs: 100
 output_dir: output_dir
 
 model:
@@ -20,13 +20,13 @@ dataloader:
   train:
     num_workers: 6
     sampler:
-      batch_size: 32
+      batch_size: 128
       
       shuffle: true
       drop_last: true
     dataset:
-      name: CIFAR10
-      dataroot: data/cifar10/train
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train
       mode: 'train'
       return_label: False
       return_two_sample: True
@@ -57,8 +57,8 @@ dataloader:
       shuffle: false
       drop_last: false
     dataset:
-      name: Cifar10
-      dataroot: data/cifar10/test
+      name: ImageNet
+      dataroot: data/ILSVRC2012
       return_label: True
       transforms:
         - name: Resize
