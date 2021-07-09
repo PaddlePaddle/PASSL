@@ -136,24 +136,8 @@ class MoCoBYOL(nn.Layer):
         keys = concat_all_gather(keys)
         batch_size = keys.shape[0]
         ptr = int(self.queue_ptr[0])
-        try:
-            assert self.K % batch_size == 0  # for simplicity
-        except:
-            print("self.K: {}\n".format(self.K))
-            print("batch_size: {}\n".format(batch_size))
-            import pdb 
-            pdb.set_trace()
-        # replace the keys at ptr (dequeue and enqueue)
-        try:
-            self.queue[:, ptr:ptr + batch_size] = keys.transpose([1, 0])
-        except:
-            print("********* debug debug debug debug *********")
-            print("keys shape: {}\n".format(keys.shape))
-            print("batch_size: {}\n".format(batch_size))
-            print("ptr: {}\n".format(ptr))
-            print("********* close debug close debug *********")
-            import pdb
-            pdb.set_trace() 
+        assert self.K % batch_size == 0  # for simplicity
+        self.queue[:, ptr:ptr + batch_size] = keys.transpose([1, 0])
         ptr = (ptr + batch_size) % self.K  # move pointer
         self.queue_ptr[0] = ptr
 
