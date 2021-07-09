@@ -1,4 +1,17 @@
-# Sourced directly from OpenAI's CLIP repo
+# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserve.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from collections import OrderedDict
 from typing import Tuple, Union
 
@@ -10,11 +23,11 @@ from paddle.nn import Linear
 from paddle import ParamAttr
 import paddle.nn.functional as F
 from paddle.nn.initializer import Uniform
-#from paddle.nn.layer.transformer import Transformer
 
 from ...modules import init 
 from .builder import BACKBONES
 from .transformer import Transformer
+from .base_transformer import AttentionPool2D
 from .vision_transformer import VisionTransformer
 
 
@@ -66,41 +79,6 @@ class Bottleneck(nn.Layer):
         return out
 
 
-class AttentionPool2D(nn.Layer):
-    def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):
-        super().__init__()
-        self.positional_embedding = paddle.randn((spacial_dim ** 2 + 1, embed_dim)) / embed_dim ** 0.5
-        self.k_proj = nn.Linear(embed_dim, embed_dim)
-        self.q_proj = nn.Linear(embed_dim, embed_dim)
-        self.v_proj = nn.Linear(embed_dim, embed_dim)
-        self.c_proj = nn.Linear(embed_dim, output_dim or embed_dim)
-        self.num_heads = num_heads
-
-    def forward(self, x):
-        x = x.reshape(x.shape[0], x.shape[1], x.shape[2] * x.shape[3]).transpose((2, 0, 1))  # NCHW -> (HW)NC
-        x = paddle.concat([x.mean(dim=0, keepdim=True), x], axis=0)  # (HW+1)NC
-        x = x + self.positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
-        x, _ = F.multi_head_attention_forward(
-            query=x, key=x, value=x,
-            embed_dim_to_check=x.shape[-1],
-            num_heads=self.num_heads,
-            q_proj_weight=self.q_proj.weight,
-            k_proj_weight=self.k_proj.weight,
-            v_proj_weight=self.v_proj.weight,
-            in_proj_weight=None,
-            in_proj_bias=paddle.concat([self.q_proj.bias, self.k_proj.bias, self.v_proj.bias]),
-            bias_k=None,
-            bias_v=None,
-            add_zero_attn=False,
-            dropout_p=0,
-            out_proj_weight=self.c_proj.weight,
-            out_proj_bias=self.c_proj.bias,
-            use_separate_proj_weight=True,
-            training=self.training,
-            need_weights=False
-        )
-
-        return x[0]
 
 
 class ModifiedResNet(nn.Layer):
@@ -134,16 +112,7 @@ class ModifiedResNet(nn.Layer):
         self.layer4 = self._make_layer(width * 8, layers[3], stride=2)
 
         embed_dim = width * 32  # the ResNet feature dimension
-        #self.attnpool = AttentionPool2D(input_resolution // 32, embed_dim, heads, output_dim)
-        self.attnpool = None
-        self.pool2d_max = nn.MaxPool2D(kernel_size=3, stride=2, padding=1)
-        stdv = 1.0 / math.sqrt(1024* 1.0)
-        self.out = Linear(
-            8192,
-            1024,
-            weight_attr=ParamAttr(
-                initializer=Uniform(-stdv, stdv), name="fc_0.w_0"),
-            bias_attr=ParamAttr(name="fc_0.b_0"))
+        self.attnpool = AttentionPool2D(input_resolution // 32, embed_dim, heads, output_dim)
 
     def _make_layer(self, planes, blocks, stride=1):
         layers = [Bottleneck(self._inplanes, planes, stride)]
@@ -161,16 +130,13 @@ class ModifiedResNet(nn.Layer):
             x = self.avgpool(x)
             return x
 
-        x = x.type(self.conv1.weight.dtype)
+        x = x.astype(self.conv1.weight.dtype)
         x = stem(x)
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        #x = self.attnpool(x)
-        x = self.pool2d_max(x)
-        x = paddle.reshape(x,shape=(-1, 8192))
-        x = self.out(x)
+        x = self.attnpool(x)
 
         return x
 
@@ -180,8 +146,8 @@ class LayerNorm(nn.LayerNorm):
 
     def forward(self, x):
         orig_type = x.dtype
-        ret = super().forward(x.type(paddle.float32))
-        return ret.type(orig_type)
+        ret = super().forward(x.astype(paddle.float32))
+        return ret.astype(orig_type)
 
 
 class QuickGELU(nn.Layer):
@@ -260,10 +226,14 @@ class CLIP(nn.Layer):
 
         self.vocab_size = vocab_size
         self.token_embedding = nn.Embedding(vocab_size, transformer_width)
-        self.positional_embedding = paddle.empty((self.context_length, transformer_width))
+
+        self.positional_embedding = paddle.empty((
+            self.context_length, transformer_width))
+
         self.ln_final = LayerNorm(transformer_width)
 
         self.text_projection = paddle.empty((transformer_width, embed_dim))
+
         self.logit_scale = paddle.ones([]) * np.log(1 / 0.07)
 
         self.initialize_parameters()
@@ -274,11 +244,11 @@ class CLIP(nn.Layer):
 
         if isinstance(self.visual, ModifiedResNet):
             if self.visual.attnpool is not None:
-                std = self.visual.attnpool.c_proj.in_features ** -0.5
+                std = self.visual.attnpool.in_features ** -0.5
                 init.normal_init(self.visual.attnpool.q_proj, std=std)
                 init.normal_init(self.visual.attnpool.k_proj, std=std)
                 init.normal_init(self.visual.attnpool.v_proj, std=std)
-                init.normal_init(self.visual.attnpool.c_proj, std=std)
+                init.normal_init(self.visual.attnpool.out_proj, std=std)
 
             for resnet_block in [self.visual.layer1, self.visual.layer2, self.visual.layer3, self.visual.layer4]:
                 for name, param in resnet_block.named_parameters():
@@ -312,20 +282,22 @@ class CLIP(nn.Layer):
         return self.visual.conv1.weight.dtype
 
     def encode_image(self, image):
-        return self.visual(image.type(self.dtype))
+        return self.visual(image.astype(self.dtype))
 
     def encode_text(self, text):
-        x = self.token_embedding(text).type(self.dtype)  # [batch_size, n_ctx, d_model]
+        x = self.token_embedding(text).astype(self.dtype)  # [batch_size, n_ctx, d_model]
 
-        x = x + self.positional_embedding.type(self.dtype)
+        x = x + self.positional_embedding.astype(self.dtype)
         x = x.transpose((1, 0, 2))  # NLD -> LND
         x = self.transformer(x)
         x = x.transpose((1, 0, 2))  # LND -> NLD
-        x = self.ln_final(x).type(self.dtype)
+        x = self.ln_final(x).astype(self.dtype)
 
-        # x.shape = [batch_size, n_ctx, transformer.width]
         # take features from the eot embedding (eot_token is the highest number in each sequence)
-        x = x[paddle.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
+        idx = text.argmax(axis=-1)
+        ran = paddle.arange(x.shape[0])
+        x = paddle.concat([x[i][idx[i]].unsqueeze(axis=0) for i in ran],axis=0)
+        x = paddle.matmul(x, self.text_projection)
 
         return x
 
@@ -339,10 +311,9 @@ class CLIP(nn.Layer):
 
         # cosine similarity as logits
         logit_scale = self.logit_scale.exp()
-        logits_per_image = logit_scale * image_features @ text_features.t()
-        logits_per_text = logit_scale * text_features @ image_features.t()
+        logits_per_image = paddle.matmul(logit_scale * image_features, text_features.t())
+        logits_per_text = paddle.matmul(logit_scale * text_features, image_features.t())
 
-        # shape = [global_batch_size, global_batch_size]
         return logits_per_image, logits_per_text
 
 

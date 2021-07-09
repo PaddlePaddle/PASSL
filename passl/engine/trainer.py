@@ -147,24 +147,24 @@ class Trainer:
     def add_train_hooks(self):
         optim_cfg = self.cfg.get('optimizer_config', None)
         if optim_cfg is not None:
-            self.add_hook(optim_cfg)
+            self.add_hook(build_hook(optim_cfg))
         else:
             self.add_hook(build_hook({'name': 'OptimizerHook'}))
 
         lr_cfg = self.cfg.get('lr_config', None)
         if lr_cfg is not None:
-            self.add_hook(lr_cfg)
+            self.add_hook(build_hook(lr_cfg))
         else:
             self.add_hook(build_hook({'name': 'LRSchedulerHook'}))
 
         timer_cfg = self.cfg.get('timer_config', None)
         if timer_cfg is not None:
-            self.add_hook(timer_cfg)
+            self.add_hook(build_hook(timer_cfg))
         else:
             self.add_hook(build_hook({'name': 'IterTimerHook'}))
         ckpt_cfg = self.cfg.get('checkpoint', None)
         if ckpt_cfg is not None:
-            self.add_hook(ckpt_cfg)
+            self.add_hook(build_hook(ckpt_cfg))
         else:
             self.add_hook(build_hook({'name': 'CheckpointHook'}))
 

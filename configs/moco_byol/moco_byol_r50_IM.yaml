@@ -113,7 +113,7 @@ optimizer:
   name: LarsMomentumOptimizer
   momentum: 0.9
   lars_weight_decay: 1.0e-6
-  exclude_from_weight_decay: ['.bias', 'bn', 'batch_norm', '.b_0']
+  exclude_from_weight_decay: ['batch_norm', '.b_0']
   epsilon: 1e-9
 
 
