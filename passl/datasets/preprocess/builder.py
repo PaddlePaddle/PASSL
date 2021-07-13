@@ -29,4 +29,4 @@ def build_transforms(cfg_list):
     for cfg in cfg_list:
         transforms.append(build_transform(cfg))
 
-    return paddle.vision.Compose(transforms)
+    return paddle.vision.transforms.Compose(transforms)
