@@ -93,7 +93,7 @@ dataloader:
 lr_scheduler:
   name: simclrCosineWarmup
   learning_rate_scaling: sqrt
-  total_images: 50000
+  total_images: 1281167
   warmup_epochs: 10
   start_lr: 0
   end_lr: 1.0
