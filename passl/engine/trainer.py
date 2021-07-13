@@ -24,7 +24,7 @@ from ..utils.misc import AverageMeter
 from ..modules import DistributedDataParallel
 from ..datasets.builder import build_dataloader
 from ..modeling.architectures import build_model
-from ..solver import build_lr_scheduler, build_optimizer, MultiStateDictMeta
+from ..solver import build_lr_scheduler, build_lr_scheduler_simclr, build_optimizer, MultiStateDictMeta
 
 
 class IterLoader:
@@ -90,6 +90,8 @@ class Trainer:
         self.global_steps = 0
         use_byol_iters = cfg.get('use_byol_iters', False)
         self.use_byol_iters = use_byol_iters
+        use_simclr_iters = cfg.get('use_simclr_iters', False)
+        self.use_simclr_iters = use_simclr_iters
         self.epochs = cfg.get('epochs', None)
         self.timestamp = cfg.timestamp
         self.logs = OrderedDict()
@@ -120,6 +122,13 @@ class Trainer:
             # build lr scheduler
             if self.use_byol_iters:
                 self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.byol_total_iters))
+            elif self.use_simclr_iters:
+                self.batch_size = cfg.dataloader.train.sampler.batch_size
+                self.global_batch_size= cfg.global_batch_size
+                self.epochs = cfg.epochs
+                self.lr_scheduler.append(build_lr_scheduler_simclr(cfg.lr_scheduler,
+                                                   self.iters_per_epoch, self.global_batch_size,
+                                                   cfg.epochs, self.current_iter))
             else:
                 self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
             self.optimizer.append(build_optimizer(cfg.optimizer, self.lr_scheduler[0], parameters))

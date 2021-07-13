@@ -1,4 +1,6 @@
 epochs: 100
+use_simclr_iters: True
+global_batch_size: 4096
 output_dir: output_dir
 
 model:
@@ -6,15 +8,16 @@ model:
   backbone:
     name: ResNet
     depth: 50
+    frozen_stages: 4
   neck:
     name: NonLinearNeckfc3
-    in_channels: 512
-    hid_channels: 512
+    in_channels: 2048
+    hid_channels: 2048
     out_channels: 128
     with_avg_pool: False
   head:
     name: SimCLRContrastiveHead
-    temperature: 0.5
+    temperature: 0.1
 
 dataloader:
   train:
@@ -30,12 +33,12 @@ dataloader:
       mode: 'train'
       return_label: False
       return_two_sample: True
-      download: True
       transforms:
         - name: RandomResizedCrop
           size: 32
           scale: [0.1, 1.]
           interpolation: bicubic
+      view_trans1:
         - name: RandomApply
           transforms:
           - name: ColorJitter
@@ -49,7 +52,20 @@ dataloader:
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize
-
+      view_trans2:
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomHorizontalFlip
+        - name: Transpose
+        - name: Normalize
   val:
     num_workers: 4
     sampler:
@@ -75,8 +91,8 @@ dataloader:
 
 
 lr_scheduler:
-  name: CosineWarmup
-  learning_rate_scaling: linear
+  name: simclrCosineWarmup
+  learning_rate_scaling: sqrt
   total_images: 50000
   warmup_epochs: 10
   start_lr: 0

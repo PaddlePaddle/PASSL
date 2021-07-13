@@ -19,7 +19,7 @@ import numpy as np
 from paddle.optimizer.lr import MultiStepDecay, LRScheduler
 from paddle.optimizer.lr import CosineAnnealingDecay
 from paddle.optimizer.lr import LinearWarmup
-from .builder import LRSCHEDULERS, build_lr_scheduler
+from .builder import LRSCHEDULERS, build_lr_scheduler, build_lr_scheduler_simclr
 
 
 LRSCHEDULERS.register(LinearWarmup)
@@ -103,6 +103,79 @@ class CosineWarmup(LinearWarmup):
             end_lr=end_lr)
 
         self.update_specified = False
+
+
+@LRSCHEDULERS.register()
+
+class Cosinesimclr(LRScheduler):
+
+    def __init__(self,
+                 learning_rate,
+                 T_max,
+                 last_epoch=-1,
+                 verbose=False):
+        self.T_max = T_max
+        
+        super(Cosinesimclr, self).__init__(learning_rate, last_epoch,
+                                                   verbose)
+
+    def get_lr(self):
+        return self.base_lr* (1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2
+
+
+
+
+
+
+
+@LRSCHEDULERS.register()
+class simclrCosineWarmup(LinearWarmup):
+
+    def __init__(self, lr, warmup_steps, T_max, current_iter, last_epoch=-1, warmup_epoch=10, **kwargs):
+        warmup_steps = warmup_steps
+        T_max = T_max
+        start_lr = 0.0
+        lr = lr
+        lr_sch = Cosinesimclr(lr, T_max, last_epoch=-1)
+
+        super(simclrCosineWarmup, self).__init__(
+            learning_rate=lr_sch,
+            warmup_steps=warmup_steps,
+            start_lr=start_lr,
+            last_epoch=last_epoch,
+            end_lr=lr)
+
+        self.update_specified = False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 LRSCHEDULERS.register(Cosine)
 LRSCHEDULERS.register(CosineWarmup)
