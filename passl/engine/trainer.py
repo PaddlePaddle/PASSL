@@ -114,7 +114,8 @@ class Trainer:
         # build optimizer
         self.lr_scheduler = MultiStateDictMeta()
         self.optimizer = MultiStateDictMeta()
-        if not hasattr(self.model._layers, 'separate_parameters'):
+        separete = cfg.get('separete', False)
+        if not separete:
             parameters = self.model.parameters()
             # build lr scheduler
             if self.use_byol_iters:
@@ -123,12 +124,26 @@ class Trainer:
                 self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
             self.optimizer.append(build_optimizer(cfg.optimizer, self.lr_scheduler[0], parameters))
         else:
-            print('Using Seperating Learning Rate')
-            parameters = self.model._layers.separate_parameters()
-            for key, value in parameters.items():
-                current_lr_scheduler = build_lr_scheduler(getattr(cfg.lr_scheduler, key), self.iters_per_epoch)
+            visual_params = []
+            textual_params = []
+            other_params = []
+            #for name, param in self.model._layers.model.named_parameters():
+            for name, param in self.model.named_parameters():
+                if 'visual.' in name:
+                    visual_params.append(param)
+                elif 'textual.' in name:
+                    textual_params.append(param)
+                else:
+                    other_params.append(param)
+            parameters = dict()
+            parameters['lr'] = [cfg.solver.lr, other_params]
+            parameters['visual'] = [cfg.solver.visual_lr, visual_params]
+            parameters['textual'] = [cfg.solver.textual_lr, textual_params]
+            for _, value in parameters.items():
+                current_lr_scheduler = build_lr_scheduler(value[0], self.iters_per_epoch)
                 self.lr_scheduler.append(current_lr_scheduler)
-                self.optimizer.append(build_optimizer(cfg.optimizer, current_lr_scheduler, value))
+                self.optimizer.append(build_optimizer(cfg.optimizer, current_lr_scheduler, value[1]))
+
 
         # build hooks
         self.hooks = []
