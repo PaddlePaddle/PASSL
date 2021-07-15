@@ -14,7 +14,7 @@
 
 from ..utils.registry import Registry, build_from_config
 import paddle
-
+import math
 LRSCHEDULERS = Registry("LRSCHEDULER")
 OPTIMIZERS = Registry("OPTIMIZER")
 
@@ -35,6 +35,33 @@ def build_lr_scheduler(cfg, iters_per_epoch):
         return build_from_config(cfg, LRSCHEDULERS)
     else:
         raise NotImplementedError
+
+# To create a registry
+def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs, current_iter):
+    # FIXME: if have a better way
+
+    if cfg.name == 'CosineAnnealingDecay':
+        cfg.T_max = T_max
+        cfg.T_max *= iters_per_epoch
+    elif cfg.name == 'MultiStepDecay':
+        cfg.milestones = [x * iters_per_epoch for x in cfg.milestones]
+    elif cfg.name == 'Cosinesimclr':
+        cfg.iters_per_epoch = iters_per_epoch
+        cfg.epochs = epochs
+        cfg.T_max = T_max
+    elif cfg.name == 'simclrCosineWarmup':   
+        cfg.step_each_epoch = iters_per_epoch
+        cfg.epochs = epochs
+        cfg.warmup_steps = int(round(cfg.warmup_epochs * cfg.total_images // batch_size))
+        cfg.total_steps = cfg.total_images * epochs // batch_size + 1
+        cfg.T_max = cfg.total_steps - cfg.warmup_steps
+        cfg.current_iter = current_iter 
+        if cfg.learning_rate_scaling == 'linear':
+            cfg.lr = cfg.end_lr * batch_size / 256.
+        elif cfg.learning_rate_scaling == 'sqrt':
+            cfg.lr = cfg.end_lr * math.sqrt(batch_size)
+    return build_from_config(cfg, LRSCHEDULERS)
+
 
 
 def build_optimizer(cfg, lr_scheduler, parameters=None):
