@@ -1,38 +1,35 @@
-epochs: 300
-use_byol_iters: True
-total_images: 1281167
-global_batch_size: 4096  # 128 * 4 * 8
+epochs: 40
 output_dir: output_dir
-
 model:
-  name: MoCoBYOL
+  name: BYOL
   backbone:
     name: ResNet
     depth: 50
-    num_classes: 1000
     with_pool: True
   neck:
-    name: NonLinearNeckV3
+    name: NonLinearNeckV2
     in_channels: 2048
     hid_channels: 4096
     out_channels: 256
+    with_avg_pool: False
   predictor:
-    name: NonLinearNeckV3
+    name: NonLinearNeckV2
     in_channels: 256
     hid_channels: 4096
     out_channels: 256
+    with_avg_pool: False
   head:
-    name: MBHead
-  queue_dim: 65536
-  T: 0.2
+    name: L2Head
   target_decay_method: cosine # cosine
-  target_decay_rate: 0.99
+  target_decay_rate: 0.97
   align_init_network: True
   use_synch_bn: True
+  num_classes: 1000
+  embedding_dim: 2048
 
 dataloader:
   train:
-    num_workers: 8
+    num_workers: 4
     sampler:
       batch_size: 128
       shuffle: true
@@ -40,83 +37,113 @@ dataloader:
     dataset:
       name: ImageNet
       dataroot: data/ILSVRC2012/train
-      return_label: False
+      return_label: True
       return_two_sample: True
-      transforms:
+      transforms: 
         - name: RandomResizedCrop
           size: 224
           scale: [0.08, 1.]
-          interpolation: 'bicubic'
-      view_trans1:
+          interpolation: "bicubic"
+        - name: NormToOne
+        - name: Clip 
+      post_view_trans1:
         - name: RandomHorizontalFlip
         - name: RandomApply
           transforms:
-          - name: ColorJitter
+          - name: BrightnessTransform
             brightness: 0.4
+          - name: Clip
+          - name: ContrastTransform
             contrast: 0.4
-            saturation: 0.4
+          - name: Clip
+          - name: SaturationTransform
+            saturation: 0.2
+          - name: Clip
+          - name: HueTransform
             hue: 0.1
           p: 0.8
+        - name: Clip 
         - name: RandomGrayscale
           p: 0.2
+        - name: Clip
         - name: RandomApply
           transforms:
           - name: GaussianBlur
+            kernel_size: 23
             sigma: [0.1, 2.0]
-            _PIL: False
+            use_cv: True
           p: 1.0
         - name: RandomApply
           transforms:
           - name: Solarization
+            threshold: 0.5
+            norm: True
           p: 0.0
+        - name: Clip
         - name: Transpose
         - name: Normalize
-          mean: [123.675, 116.28, 103.53]
-          std: [58.395, 57.12, 57.375]
-      view_trans2:
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+      post_view_trans2:
         - name: RandomHorizontalFlip
         - name: RandomApply
           transforms:
-          - name: ColorJitter
+          - name: BrightnessTransform
             brightness: 0.4
+          - name: Clip
+          - name: ContrastTransform
             contrast: 0.4
-            saturation: 0.4
+          - name: Clip
+          - name: SaturationTransform
+            saturation: 0.2
+          - name: Clip
+          - name: HueTransform
             hue: 0.1
           p: 0.8
+        - name: Clip
         - name: RandomGrayscale
           p: 0.2
+        - name: Clip
         - name: RandomApply
           transforms:
           - name: GaussianBlur
+            kernel_size: 23
             sigma: [0.1, 2.0]
-            _PIL: False
+            use_cv: True
           p: 0.1
         - name: RandomApply
           transforms:
           - name: Solarization
-          p: 0.5
+            threshold: 0.5
+            norm: True
+          p: 0.2
+        - name: Clip
         - name: Transpose
         - name: Normalize
-          mean: [123.675, 116.28, 103.53]
-          std: [58.395, 57.12, 57.375]
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
 
 lr_scheduler:
-  name: CosineWarmup
-  learning_rate: 4.8
-  T_max: 93835
-  warmup_steps: 3127
-  start_lr: 0.0048
-  end_lr: 4.8
+  name: LinearWarmup
+  learning_rate:
+    name: CosineDecay
+    learning_rate: 0.225
+    T_max: 38
+  warmup_steps: 2
+  start_lr: 0.0
+  end_lr: 0.225
 
 
 optimizer:
   name: LarsMomentumOptimizer
   momentum: 0.9
   lars_weight_decay: 1.0e-6
-  exclude_from_weight_decay: ['batch_norm', '.b_0']
-  epsilon: 1e-9
+  exclude_from_weight_decay: [".bias",".b_0","bn","batch_norm"]
 
 
 log_config:
     name: LogHook
-    interval: 100
+    interval: 1
+
+custom_config:
+  - name: BYOLHook

@@ -6,25 +6,24 @@ model:
   backbone:
     name: ResNet
     depth: 50
-    with_pool: true
     frozen_stages: 4
     # freeze_bn: True
   head:
     name: ClasHead
+    with_avg_pool: true
     in_channels: 2048
     num_classes: 1000
 
 dataloader:
   train:
-    num_workers: 8
+    num_workers: 4
     sampler:
-      batch_size: 128
+      batch_size: 64
       shuffle: true
       drop_last: False
     dataset:
       name: ImageNet
-      dataroot: imagenet/train
-      #dataroot: /dbq/imagenet_orig/train
+      dataroot: data/ILSVRC2012/train
       return_label: True
       transforms:
         - name: RandomResizedCrop
@@ -35,14 +34,14 @@ dataloader:
           mean: [123.675, 116.28, 103.53]
           std: [58.395, 57.12, 57.375]
   val:
-    num_workers: 8
+    num_workers: 4
     sampler:
       batch_size: 64
       shuffle: false
       drop_last: false
     dataset:
       name: ImageNet
-      dataroot: imagenet/val
+      dataroot: data/ILSVRC2012/val
       return_label: True
       transforms:
         - name: Resize
@@ -57,7 +56,7 @@ dataloader:
 lr_scheduler:
   name: MultiStepDecay
   learning_rate: 30.0
-  milestones: [60, 75, 90]
+  milestones: [60, 80]
 
 
 optimizer:
@@ -66,8 +65,7 @@ optimizer:
 
 log_config:
     name: LogHook
-    interval: 10
+    interval: 50
 
 custom_config:
   - name: EvaluateHook
-
