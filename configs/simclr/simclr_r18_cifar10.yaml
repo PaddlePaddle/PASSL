@@ -1,0 +1,91 @@
+epochs: 1000
+output_dir: output_dir
+
+model:
+  name: SimCLR
+  backbone:
+    name: ResNet
+    depth: 18
+    frozen_stages: 4
+  neck:
+    name: NonLinearNeckfc3
+    in_channels: 512
+    hid_channels: 512
+    out_channels: 128
+    with_avg_pool: False
+  head:
+    name: SimCLRContrastiveHead
+    temperature: 0.5
+
+dataloader:
+  train:
+    num_workers: 0
+    sampler:
+      batch_size: 512
+      shuffle: true
+      drop_last: true
+    dataset:
+      name: CIFAR10
+      dataroot: data/cifar10/train
+      mode: 'train'
+      return_label: False
+      return_two_sample: True
+      download: True
+      transforms:
+        - name: RandomResizedCrop
+          size: 32
+          scale: [0.1, 1.]
+          interpolation: bicubic
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomHorizontalFlip
+        - name: Transpose
+        - name: Normalize
+
+  val:
+    num_workers: 0
+    sampler:
+      batch_size: 512
+      shuffle: false
+      drop_last: false
+    dataset:
+      name: Cifar10
+      dataroot: data/cifar10/test
+      mode: 'test'
+      return_label: True
+      transforms:
+        - name: Resize
+          size: 256
+        - name: CenterCrop
+          size: 224
+        - name: Transpose
+        - name: Normalize
+         
+lr_scheduler:
+  name: CosineWarmup
+  learning_rate_scaling: linear
+  total_images: 50000
+  warmup_epochs: 10
+  start_lr: 0
+  end_lr: 1.0
+  T_max: 200
+
+optimizer:
+  name: LarsMomentumOptimizer
+  momentum: 0.9
+  lars_weight_decay: 0.0001
+  exclude_from_weight_decay: ['scale', 'offset', 'b_0']
+  
+log_config:
+    name: LogHook
+    interval: 10
+
+
