@@ -26,23 +26,17 @@ from .builder import MODELS
 @MODELS.register()
 class CLIPWrapper(nn.Layer):
     def __init__(self,
-                 model_name,
                  architecture,
-                 minibatch_size,
                  head=None
                  ):
         """A wrapper for a CLIP model as specified in the paper.
 
         Args:
-            model_name (str): A case sensitive visual model name.
             architecture (dict): A dictionary containing the CLIP instantiation parameters.
         """
         super().__init__()
 
-        self.model_name = model_name
         self.model = build_backbone(architecture) 
-        self.minibatch_size = minibatch_size
-        self.isViT = 'ViT' in self.model_name
         self.image_loss = nn.CrossEntropyLoss()
         self.text_loss = nn.CrossEntropyLoss()
         self.automatic_optimization = False
@@ -50,26 +44,11 @@ class CLIPWrapper(nn.Layer):
 
     def train_iter(self, *inputs, **kwargs): 
         image, text = inputs
-        n = math.ceil(len(image) // self.minibatch_size) if self.minibatch_size > 0 else 1
-        batch_offset = dist.get_rank() * len(image) # offset to align across gpus
-        image_mbs = paddle.chunk(image, n)
-        text_mbs = paddle.chunk(text, n)
+        img_labels = paddle.arange(len(image)).astype('int64')
+        text_labels = paddle.arange(len(text)).astype('int64')
 
-        # calculate original statistics
-        ims_list = [] 
-        txt_list = [] 
-        with paddle.no_grad():
-            ims = [F.normalize(self.model.encode_image(im), axis=1) for im in image_mbs]
-            txt = [F.normalize(self.model.encode_text(t), axis=1) for t in text_mbs]
-            # gather from all GPUs
-            dist.all_gather(ims_list, paddle.concat(ims))
-            dist.all_gather(txt_list, paddle.concat(txt))
-
-            if not isinstance(ims_list, list):
-                ims_list = [ims_list]
-                txt_list = [txt_list]
-
-        return self.head(image, text, image_mbs, text_mbs, ims_list, txt_list, batch_offset)
+        img_logits, text_logits = self.model(image, text, is_train=False)
+        return self.head(img_logits, text_logits, img_labels, text_labels)
         
 
     def forward(self, *inputs, mode='train', **kwargs):

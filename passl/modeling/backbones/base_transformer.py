@@ -5,6 +5,15 @@ import paddle.nn.functional as F
 from paddle.nn import Layer, Linear
 from paddle.fluid.data_feeder import convert_dtype
 
+__all__ = ['QuickGELU', 'AttentionPool2D']
+
+
+class QuickGELU(Layer):
+    """ GELU """
+    def forward(self, x):
+        return x * F.sigmoid(1.702 * x)
+
+
 class AttentionPool2D(Layer):
     def __init__(self, spacial_dim, embed_dim, num_heads, output_dim,
                  dropout=0,
