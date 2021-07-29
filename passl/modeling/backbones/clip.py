@@ -22,13 +22,12 @@ import paddle.nn as nn
 from paddle.nn import Linear
 from paddle import ParamAttr
 import paddle.nn.functional as F
-from paddle.nn.initializer import Uniform
+from paddle.nn.initializer import Uniform, Constant, Normal
 
 from ...modules import init 
 from .builder import BACKBONES
-from .transformer import Transformer
 from .base_transformer import AttentionPool2D
-from .vision_transformer import VisionTransformer
+from .vision_transformer import Transformer, VisionTransformer
 
 
 class Bottleneck(nn.Layer):
@@ -146,7 +145,7 @@ class LayerNorm(nn.LayerNorm):
 
     def forward(self, x):
         orig_type = x.dtype
-        ret = super().forward(x.astype(paddle.float32))
+        ret = super().forward(x.astype("float32"))
         return ret.astype(orig_type)
 
 
@@ -193,7 +192,8 @@ class CLIP(nn.Layer):
                  vocab_size,
                  transformer_width,
                  transformer_heads,
-                 transformer_layers
+                 transformer_layers,
+                 qkv_bias
                  ):
         super().__init__()
 
@@ -213,28 +213,37 @@ class CLIP(nn.Layer):
             self.visual = VisionTransformer(
                               img_size=image_resolution,
                               patch_size=vision_patch_size,
-                              embed_dim=vision_width,
-                              num_haeds=vision_heads,
+                              width=vision_width,
+                              out_dim=embed_dim,
+                              depth=vision_layers,
+                              num_heads=vision_heads
             )
 
         self.transformer = Transformer(
-                               d_model=transformer_width,
-                               nhead=transformer_heads,
-                               dropout=0.,
-                               layers=12,
+                               embed_dim=transformer_width,
+                               depth=transformer_layers,
+                               num_heads=transformer_heads,
                           )
 
         self.vocab_size = vocab_size
         self.token_embedding = nn.Embedding(vocab_size, transformer_width)
 
-        self.positional_embedding = paddle.empty((
-            self.context_length, transformer_width))
+        self.positional_embedding = self.create_parameter(shape=(
+            self.context_length, transformer_width),
+             default_initializer=Normal(std=0.01))
+        self.add_parameter("positional_embedding", self.positional_embedding)
+
 
         self.ln_final = LayerNorm(transformer_width)
+        scale = transformer_width ** -0.5
+        self.text_projection = self.create_parameter(
+            shape=(transformer_width, embed_dim), default_initializer=Normal(std=scale))
+        self.add_parameter("text_projection", self.text_projection)
 
-        self.text_projection = paddle.empty((transformer_width, embed_dim))
-
-        self.logit_scale = paddle.ones([]) * np.log(1 / 0.07)
+        logit_ = Constant(value=np.log(1 / 0.07))
+        self.logit_scale = self.create_parameter(
+            shape=(1,), default_initializer=logit_)
+        self.add_parameter("logit_scale", self.logit_scale)
 
         self.initialize_parameters()
 
@@ -255,23 +264,8 @@ class CLIP(nn.Layer):
                     if name.endswith("bn3.weight"):
                         init.constant_init(param, 0)
 
-        proj_std = (self.transformer.width ** -0.5) * ((2 * self.transformer.layers) ** -0.5)
-        attn_std = self.transformer.width ** -0.5
-        fc_std = (2 * self.transformer.width) ** -0.5
-        for block in self.transformer.encoder.layers:
-            init.normal_init(block.attn.q_proj, std=attn_std)
-            init.normal_init(block.attn.k_proj, std=attn_std)
-            init.normal_init(block.attn.v_proj, std=attn_std)
-            init.normal_init(block.attn.out_proj, std=proj_std)
-            init.normal_init(block.mlp.c_fc, std=fc_std)
-            init.normal_init(block.mlp.c_proj, std=proj_std)
-
-        if self.text_projection is not None:
-            init.normal_init(self.text_projection, std=self.transformer.width ** -0.5)
 
     def build_attention_mask(self):
-        # lazily create causal attention mask, with full attention between the vision tokens
-        # pytorch uses additive attention mask; fill with -inf
         mask = paddle.empty((self.context_length, self.context_length))
         mask = (paddle.cast(mask, float) - 1.0) * 1e9
         mask = paddle.triu(mask, 1)  # zero out the lower diagonal
@@ -279,7 +273,7 @@ class CLIP(nn.Layer):
 
     @property
     def dtype(self):
-        return self.visual.conv1.weight.dtype
+        return self.visual.patch_embed.proj.weight.dtype
 
     def encode_image(self, image):
         return self.visual(image.astype(self.dtype))
@@ -296,25 +290,30 @@ class CLIP(nn.Layer):
         # take features from the eot embedding (eot_token is the highest number in each sequence)
         idx = text.argmax(axis=-1)
         ran = paddle.arange(x.shape[0])
-        x = paddle.concat([x[i][idx[i]].unsqueeze(axis=0) for i in ran],axis=0)
+        x = paddle.concat([paddle.unsqueeze(x[i][idx[i]], axis=0) for i in ran],axis=0)
         x = paddle.matmul(x, self.text_projection)
 
         return x
 
-    def forward(self, image, text):
+    def clip_logit_scale(self):
+        self.logit_scale.clip(-float('inf'), np.log(100))
+
+    def forward(self, image, text, is_train=True):
         image_features = self.encode_image(image)
         text_features = self.encode_text(text)
 
         # normalized features
-        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        image_features = image_features / image_features.norm(axis=-1, keepdim=True)
+        text_features = text_features / text_features.norm(axis=-1, keepdim=True)
 
         # cosine similarity as logits
-        logit_scale = self.logit_scale.exp()
-        logits_per_image = paddle.matmul(logit_scale * image_features, text_features.t())
-        logits_per_text = paddle.matmul(logit_scale * text_features, image_features.t())
+        logit_scale = self.logit_scale.exp() if is_train else 1
+        image_logits = paddle.matmul(logit_scale * image_features, text_features.t())
+        text_logits = paddle.matmul(logit_scale * text_features, image_features.t())
+        self.clip_logit_scale()
 
-        return logits_per_image, logits_per_text
+
+        return image_logits, text_logits
 
 
 def convert_weights(model):
