@@ -3,13 +3,13 @@ output_dir: output_dir
 
 model:
   name: CLIPWrapper
-  architecture: 
+  architecture:
     name: CLIP
-    embed_dim: 512 
+    embed_dim: 512
     image_resolution: 224
     vision_layers: 12
-    vision_width: 768 
-    vision_patch_size: 32 
+    vision_width: 768
+    vision_patch_size: 32
     context_length: 77
     vocab_size: 49408
     transformer_width: 512
@@ -19,25 +19,23 @@ model:
   head:
     name: CLIPHead
 
-
 dataloader:
   train:
-    num_workers: 0
+    num_workers: 8
     sampler:
-      batch_size: 16 
+      batch_size: 16
       shuffle: true
       drop_last: True
     dataset:
-      name: TextImageDataset 
-      dataroot: /dbq/common/datasets/VL/FOOD101/captions/
-      #dataroot: /dbq/codes/PASSL-MBv2_single/captions/
+      name: TextImageDataset
+      dataroot: /FOOD101/captions/
       transforms:
         - name: ToRGB
         - name: RandomResizedCrop
           size: 224
           scale: [0.75, 1.]
           ratio: [1., 1.]
-        - name: ToTensor 
+        - name: ToTensor
         - name: Normalize
           mean: [0.48145466, 0.4578275, 0.40821073]
           std: [0.26862954, 0.26130258, 0.27577711]
@@ -50,24 +48,23 @@ solver:
     T_max: 10
   visual_lr:
     name: CosineAnnealingDecay
-    learning_rate: 0.00001 
-    T_max: 10 
+    learning_rate: 0.00001
+    T_max: 10
   textual_lr:
-    name: CosineAnnealingDecay 
-    learning_rate: 0.00001 
-    T_max: 10 
+    name: CosineAnnealingDecay
+    learning_rate: 0.00001
+    T_max: 10
 
 separete: True
 optimizer:
-  name: AdamW 
+  name: AdamW
   beta1: 0.9
   beta2: 0.98
-  epsilon: 1e-8 
+  epsilon: 1e-8
   weight_decay: 0.0005
 
 optimizer_config:
-  #name: CLIPOptimizerHook
-  name: ClipCNOptimizerHook
+  name: CLIPOptimizerHook
 
 log_config:
     name: LogHook
