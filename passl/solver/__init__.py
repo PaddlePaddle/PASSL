@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .lr_scheduler import *
+from .byol_lr_scheduler import ByolLRScheduler 
 from .optimizer import *
 from .builder import build_lr_scheduler
 from .builder import build_optimizer
