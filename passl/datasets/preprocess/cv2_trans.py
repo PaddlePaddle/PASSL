@@ -69,19 +69,6 @@ class Resize(object):
     def __call__(self, img):
         return F.resize(img, self.size, self.interpolation)
 
-'''
-class CenterCrop(object):
-    """ size, int or (h, w)"""
-    def __init__(self, size):
-        if type(size) is int:
-            self.size = (size, size)
-        else:
-            self.size = size  # (h, w)
-
-    def __call__(self, img):
-        return F.center_crop(img, self.size)
-'''
-
 class ToCHW(object):
     def __call__(self, img):
         return F.to_chw(img)
