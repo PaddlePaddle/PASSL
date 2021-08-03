@@ -59,7 +59,10 @@ class ImageNet(DatasetFolder):
             sample2 = self.transform(sample)
             sample1 = self.view_transform1(sample1)
             sample2 = self.view_transform2(sample2)
-            return sample1, sample2
+            if self.return_label:
+                return sample1, sample2, target
+            else:
+                return sample1, sample2
 
         if self.transform is not None:
             sample = self.transform(sample)
