@@ -228,10 +228,6 @@ def random_crop_with_resize(img,
                          interpolation=interpolation)
     return resized
 
-
-# ====================================
-
-
 def rotate_image(img):
     """ rotate_image """
     (h, w) = img.shape[:2]
@@ -255,23 +251,3 @@ def crop_image(img, size, center):
     h_end = h_start + size
     img = img[h_start:h_end, w_start:w_end, :]
     return img
-
-def gaussian_blur(img,blur_divider,sigma):
-     kernel_size = images.shape[1] / blur_divider
-     radius = int(kernel_size / 2)
-     kernel_size_ = 2 * radius + 1
-     x = np.arange(-radius, radius + 1).astype(np.float32)
-     blur_filter = np.exp(-x**2 / (2. * sigma**2))
-     blur_filter = blur_filter / jnp.sum(blur_filter)
-     blur_v = jnp.reshape(blur_filter, [kernel_size_, 1, 1, 1])
-     blur_h = jnp.reshape(blur_filter, [1, kernel_size_, 1, 1])
-     num_channels = image.shape[-1]
-     blur_h = jnp.tile(blur_h, [1, 1, 1, num_channels])
-     blur_v = jnp.tile(blur_v, [1, 1, 1, num_channels])
-     expand_batch_dim = len(image.shape) == 3
-     if expand_batch_dim:
-         image = image[jnp.newaxis, ...]
-     blurred = _depthwise_conv2d(image, blur_h, strides=[1, 1], padding=padding)
-     blurred = _depthwise_conv2d(blurred, blur_v, strides=[1, 1], padding=padding)
-     blurred = jnp.squeeze(blurred, axis=0)
-     return blurred
