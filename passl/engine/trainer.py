@@ -127,7 +127,7 @@ class Trainer:
                 self.global_batch_size= cfg.global_batch_size
                 self.epochs = cfg.epochs
                 self.lr_scheduler.append(build_lr_scheduler_simclr(cfg.lr_scheduler,
-                                                   self.iters_per_epoch, self.global_batch_size,
+                                                   self.iters_per_epoch, self.batch_size*8,
                                                    cfg.epochs, self.current_iter))
             else:
                 self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
