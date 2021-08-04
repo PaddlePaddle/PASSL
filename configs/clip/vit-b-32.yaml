@@ -1,4 +1,4 @@
-epochs: 300
+epochs: 10
 output_dir: output_dir
 
 model:
@@ -21,14 +21,14 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    num_workers: 0
     sampler:
-      batch_size: 16
+      batch_size: 128
       shuffle: true
       drop_last: True
     dataset:
       name: TextImageDataset
-      dataroot: /FOOD101/captions/
+      dataroot: data/FOOD101/captions/
       transforms:
         - name: ToRGB
         - name: RandomResizedCrop
@@ -44,7 +44,7 @@ dataloader:
 solver:
   lr:
     name: CosineAnnealingDecay
-    learning_rate: 0.0001
+    learning_rate: 0.00001
     T_max: 10
   visual_lr:
     name: CosineAnnealingDecay
@@ -68,4 +68,4 @@ optimizer_config:
 
 log_config:
     name: LogHook
-    interval: 1
+    interval: 20

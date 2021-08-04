@@ -6,7 +6,6 @@ from paddle.nn.layer.common import Linear, Dropout
 from paddle.nn.layer.norm import LayerNorm
 from paddle.fluid.dygraph import Layer, LayerList
 from paddle.nn.layer.transformer import MultiHeadAttention 
-from paddle.nn.layer.transformer import _convert_attention_mask
 from paddle.nn.layer.transformer import _convert_param_attr_to_list
 
 

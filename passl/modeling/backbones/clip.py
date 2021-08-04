@@ -78,8 +78,6 @@ class Bottleneck(nn.Layer):
         return out
 
 
-
-
 class ModifiedResNet(nn.Layer):
     """
     A ResNet class that is similar to torchvision's but contains the following changes:
@@ -154,30 +152,6 @@ class QuickGELU(nn.Layer):
         return x * F.sigmoid(1.702 * x)
 
 
-class ResidualAttentionBlock(nn.Layer):
-    def __init__(self, d_model, n_head, attn_mask=None):
-        super().__init__()
-
-        self.attn = nn.MultiHeadAttention(d_model, n_head)
-        self.ln_1 = LayerNorm(d_model)
-        self.mlp = nn.Sequential(
-            ("c_fc", nn.Linear(d_model, d_model * 4)),
-            ("gelu", QuickGELU()),
-            ("c_proj", nn.Linear(d_model * 4, d_model))
-        )
-        self.ln_2 = LayerNorm(d_model)
-        self.attn_mask = attn_mask
-
-    def attention(self, x):
-        self.attn_mask = self.attn_mask.to(dtype=x.dtype, device=x.device) if self.attn_mask is not None else None
-        return self.attn(x, x, x, need_weights=False, attn_mask=self.attn_mask)[0]
-
-    def forward(self, x):
-        x = x + self.attention(self.ln_1(x))
-        x = x + self.mlp(self.ln_2(x))
-        return x
-
-
 @BACKBONES.register()
 class CLIP(nn.Layer):
     def __init__(self,
@@ -223,6 +197,8 @@ class CLIP(nn.Layer):
                                embed_dim=transformer_width,
                                depth=transformer_layers,
                                num_heads=transformer_heads,
+                               attn_mask=self.build_attention_mask(
+                                   context_length)
                           )
 
         self.vocab_size = vocab_size
@@ -264,12 +240,20 @@ class CLIP(nn.Layer):
                     if name.endswith("bn3.weight"):
                         init.constant_init(param, 0)
 
+        proj_std = (self.transformer.embed_dim ** -0.5) * ((2 * self.transformer.depth))
+        attn_std = self.transformer.embed_dim ** -0.5
+        fc_std = (2 * self.transformer.embed_dim) ** -0.5
+        for block in self.transformer.blocks:
+            init.normal_init(block.attn.proj, std=proj_std)
+            init.normal_init(block.attn.qkv, std=attn_std)
+            init.normal_init(block.mlp.fc1, std=fc_std)
+            init.normal_init(block.mlp.fc2, std=proj_std)
 
-    def build_attention_mask(self):
-        mask = paddle.empty((self.context_length, self.context_length))
-        mask = (paddle.cast(mask, float) - 1.0) * 1e9
-        mask = paddle.triu(mask, 1)  # zero out the lower diagonal
-        return mask
+    def build_attention_mask(self, length):
+        return paddle.tensor.triu(
+            (paddle.ones(
+                (length, length), dtype=paddle.get_default_dtype()) * -np.inf),
+            1)
 
     @property
     def dtype(self):
@@ -282,9 +266,7 @@ class CLIP(nn.Layer):
         x = self.token_embedding(text).astype(self.dtype)  # [batch_size, n_ctx, d_model]
 
         x = x + self.positional_embedding.astype(self.dtype)
-        x = x.transpose((1, 0, 2))  # NLD -> LND
         x = self.transformer(x)
-        x = x.transpose((1, 0, 2))  # LND -> NLD
         x = self.ln_final(x).astype(self.dtype)
 
         # take features from the eot embedding (eot_token is the highest number in each sequence)
@@ -296,7 +278,7 @@ class CLIP(nn.Layer):
         return x
 
     def clip_logit_scale(self):
-        self.logit_scale.clip(-float('inf'), np.log(100))
+        self.logit_scale.clip(-4.6, 4.6)
 
     def forward(self, image, text, is_train=True):
         image_features = self.encode_image(image)
