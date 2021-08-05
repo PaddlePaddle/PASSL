@@ -1,4 +1,4 @@
-# Train MoCo Model
+# Train BYOL Model
 
 ## Introduction
 
