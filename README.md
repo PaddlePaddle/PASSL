@@ -16,6 +16,7 @@ Models are all trained with ResNet-50 backbone.
 | SimCLR | 100 | 64.5 | 65.3 | ResNet-50 | [download](https://passl.bj.bcebos.com/models/simclr_r50_ep100_ckpt.pdparams)|
 | MoCo v2 | 200 | 67.7 | 67.72| ResNet-50 | [download](https://passl.bj.bcebos.com/models/moco_v2_r50_e200_ckpt.pdparams)|
 | MoCo-BYOL | 300 | 71.56 | 72.10| ResNet-50 | [download](https://passl.bj.bcebos.com/models/mocobyol_r50_ep300_ckpt.pdparams)|
+| BYOL | 300 | 72.50 | 71.62| ResNet-50 | [download](https://passl.bj.bcebos.com/models/byol_r50_300.pdparams)|
 
 ## Getting Started
 Please see [GETTING_STARTED.md](https://github.com/PaddlePaddle/PASSL/blob/main/docs/GETTING_STARTED.md) for the basic usage of PASSL.
