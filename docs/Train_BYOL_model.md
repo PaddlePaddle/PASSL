@@ -26,7 +26,7 @@ python tools/train.py -c configs/byol/byol_r50_IM.yaml
 python tools/train.py -c configs/byol/byol_r50_IM.yaml --num-gpus 8
 ```
 
-Pretraining models with 300 epochs can be found at [BYOL](https://arxiv.org/abs/2006.07733).
+Pretraining models with 300 epochs can be found at [BYOL](https://passl.bj.bcebos.com/models/byol_r50_300.pdparams).
 
 Note: The default learning rate in config files is for 32 GPUs. If using differnt number GPUs, the total batch size will change in proportion, you have to scale the learning rate following ```end_lr = base_lr * total_batch / 256```.
 
@@ -48,5 +48,5 @@ python tools/train.py -c configs/byol/byol_clas_r50.yaml --pretrained ${WEIGHT_F
 python tools/train.py -c configs/byol/byol_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only --num-gpus 8
 ```
 
-The trained linear weights in conjuction with the backbone weights can be found at [BYOL linear](https://passl.bj.bcebos.com/models/moco_v1_r50_clas.pdparams) 
+The trained linear weights in conjuction with the backbone weights can be found at [BYOL linear](https://passl.bj.bcebos.com/models/byol_r50_clas.pdparams) 
 
