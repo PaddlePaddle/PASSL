@@ -2,8 +2,8 @@
 
 ## Introduction
 
-[BYOL](https://arxiv.org/abs/2006.07733), a new approach to self-supervised image representation learning. BYOL relies on two neural networks, referred to as online and target networks.it does not rely on negative pairs,which is a novel idea.
-the paddle reproduction is according to the [jax code](https://github.com/deepmind/deepmind-research/tree/master/byol), and we found it seemed the largest affected by image augmentations.you can find the [jax code](https://github.com/deepmind/deepmind-research/tree/master/byol) focusing more on image augmentations.
+[BYOL](https://arxiv.org/abs/2006.07733), a new approach to self-supervised image representation learning. BYOL relies on two neural networks, referred to as online and target networks.it does not rely on negative pairs,which is a novel idea.  
+the paddle reproduction is according to the [jax code](https://github.com/deepmind/deepmind-research/tree/master/byol), and we found it seemed the largest affected by image augmentations.you can find the [jax code](https://github.com/deepmind/deepmind-research/tree/master/byol) focusing more on image augmentations.at present,the paddle accuracy is about 71.62% at 300 epoch, while the paper shows its accuracy is about 72.5%.
 ## Installation
 - See [INSTALL.md](INSTALL.md)
 
