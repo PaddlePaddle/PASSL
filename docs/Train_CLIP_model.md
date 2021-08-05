@@ -258,7 +258,7 @@ for filename in [filename for filename in os.listdir(skimage.data_dir) if filena
 
 plt.tight_layout()
 ```
-<img src="docs/imgs/clip_demo1.png" width="900"/>
+<img src="imgs/clip_demo1.png" width="900"/>
 
 ### Building features
 
@@ -317,7 +317,7 @@ plt.title("Cosine similarity between text and image features", size=20)
 ```
 Text(0.5, 1.0, 'Cosine similarity between text and image features')
 
-<img src="docs/imgs/clip_demo2.png" width="900"/>
+<img src="imgs/clip_demo2.png" width="900"/>
 
 ## Reference
 <div id="refer-anchor-1"></div>
