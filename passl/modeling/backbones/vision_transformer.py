@@ -15,7 +15,9 @@
 import numpy as np
 import paddle
 import paddle.nn as nn
+from paddle.nn.layer.transformer import _convert_attention_mask
 from paddle.nn.initializer import TruncatedNormal, Constant, Normal
+
 from .base_transformer import QuickGELU
 
 __all__ = ["VisionTransformer"]
@@ -93,6 +95,7 @@ class Attention(nn.Layer):
                  num_heads=8,
                  qkv_bias=True,
                  qk_scale=None,
+                 attn_mask=None,
                  attn_drop=0.,
                  proj_drop=0.):
         super().__init__()
@@ -101,6 +104,7 @@ class Attention(nn.Layer):
         self.scale = qk_scale or head_dim**-0.5
 
         self.qkv = nn.Linear(dim, dim * 3, bias_attr=qkv_bias)
+        self.attn_mask = attn_mask
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
@@ -112,6 +116,9 @@ class Attention(nn.Layer):
                                    self.num_heads)).transpose((2, 0, 3, 1, 4))
         q, k, v = qkv[0], qkv[1], qkv[2]
         attn = (q.matmul(k.transpose((0, 1, 3, 2)))) * self.scale
+        if self.attn_mask is not None:
+            attn_mask = _convert_attention_mask(self.attn_mask, attn.dtype)
+            attn = attn + attn_mask
         attn = nn.functional.softmax(attn, axis=-1)
         attn = self.attn_drop(attn)
 
@@ -129,6 +136,7 @@ class Block(nn.Layer):
                  qkv_bias=False,
                  qk_scale=None,
                  drop=0.,
+                 attn_mask=None,
                  attn_drop=0.,
                  drop_path=0.,
                  act_layer=QuickGELU,
@@ -136,11 +144,13 @@ class Block(nn.Layer):
                  epsilon=1e-5):
         super().__init__()
         self.norm1 = eval(norm_layer)(dim, epsilon=epsilon)
+        self.attn_mask = attn_mask
         self.attn = Attention(
             dim,
             num_heads=num_heads,
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
+            attn_mask=attn_mask,
             attn_drop=attn_drop,
             proj_drop=drop)
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
@@ -151,6 +161,8 @@ class Block(nn.Layer):
                        hidden_features=mlp_hidden_dim,
                        act_layer=act_layer,
                        drop=drop)
+    def attention(self, x):
+        return self.attn(x, attn_mask=self.attn_mask)
 
     def forward(self, x):
         x = x + self.drop_path(self.attn(self.norm1(x)))
@@ -167,6 +179,7 @@ class Transformer(nn.Layer):
                  qkv_bias=True,
                  qk_scale=None,
                  drop_rate=0.,
+                 attn_mask=None,
                  attn_drop_rate=0.,
                  drop_path_rate=0.,
                  norm_layer='nn.LayerNorm',
@@ -184,6 +197,7 @@ class Transformer(nn.Layer):
                 qkv_bias=qkv_bias,
                 qk_scale=qk_scale,
                 drop=drop_rate,
+                attn_mask=attn_mask,
                 attn_drop=attn_drop_rate,
                 drop_path=dpr[i],
                 norm_layer=norm_layer,

@@ -26,7 +26,7 @@ from .builder import MODELS
 @MODELS.register()
 class CLIPWrapper(nn.Layer):
     def __init__(self,
-                 architecture,
+                 architecture=None,
                  head=None
                  ):
         """A wrapper for a CLIP model as specified in the paper.
@@ -47,7 +47,7 @@ class CLIPWrapper(nn.Layer):
         img_labels = paddle.arange(len(image)).astype('int64')
         text_labels = paddle.arange(len(text)).astype('int64')
 
-        img_logits, text_logits = self.model(image, text, is_train=False)
+        img_logits, text_logits = self.model(image, text, is_train=True)
         return self.head(img_logits, text_logits, img_labels, text_labels)
         
 
