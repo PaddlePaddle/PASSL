@@ -229,7 +229,6 @@ class Trainer:
         while self.current_iter < (self.total_iters):
             if self.current_iter % self.iters_per_epoch == 0:
                 self.call_hook('train_epoch_begin')
-
             self.current_iter += 1
             self.current_epoch = iter_loader.epoch
             self.inner_iter = self.current_iter % self.iters_per_epoch
