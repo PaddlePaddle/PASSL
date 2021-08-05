@@ -20,7 +20,7 @@ import paddle
 
 import paddle.vision.transforms as PT
 import paddle.vision.transforms.functional as F
-
+from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize,ToCHW,ToRGB,ByolCenterCrop, ByolRandomCrop
 from .builder import TRANSFORMS, build_transform
 
 TRANSFORMS.register(PT.RandomResizedCrop)
@@ -32,7 +32,14 @@ TRANSFORMS.register(PT.Resize)
 TRANSFORMS.register(PT.CenterCrop)
 TRANSFORMS.register(PT.ToTensor)
 
-
+TRANSFORMS.register(ByolRandomHorizontalFlip)
+TRANSFORMS.register(ByolColorJitter)
+TRANSFORMS.register(ByolRandomGrayscale)
+TRANSFORMS.register(ByolNormalize)
+TRANSFORMS.register(ToCHW)
+TRANSFORMS.register(ToRGB)
+TRANSFORMS.register(ByolRandomCrop)
+TRANSFORMS.register(ByolCenterCrop)
 
 @TRANSFORMS.register()
 class NormToOne():
