@@ -356,3 +356,10 @@ def init_backbone_weight(net):
     net.apply(reset_func)
 
     net.apply(init_func)
+
+
+def init_backbone_weight_simclr(net):
+    def init_func(m):  # define the initialization function
+        if isinstance(m, (nn.Conv2D, nn.Linear)):
+            normal_(m.weight, mean=0., std=0.01)
+    net.apply(init_func)

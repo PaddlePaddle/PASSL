@@ -6,9 +6,9 @@ output_dir: output_dir
 model:
   name: SimCLR
   backbone:
-    name: ResNet
+    name: ResNetsimclr
     depth: 50
-    frozen_stages: 4
+    #frozen_stages: 4
   neck:
     name: NonLinearNeckfc3
     in_channels: 2048
@@ -23,19 +23,18 @@ dataloader:
   train:
     num_workers: 6
     sampler:
-      batch_size: 128
-      
+      batch_size: 32
       shuffle: true
       drop_last: true
     dataset:
       name: ImageNet
       dataroot: data/ILSVRC2012/train
-      mode: 'train'
+      #mode: 'train'
       return_label: False
       return_two_sample: True
       transforms:
         - name: RandomResizedCrop
-          size: 32
+          size: 224
           scale: [0.1, 1.]
           interpolation: bicubic
       view_trans1:
@@ -49,6 +48,11 @@ dataloader:
           p: 0.8
         - name: RandomGrayscale
           p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize
@@ -63,6 +67,11 @@ dataloader:
           p: 0.8
         - name: RandomGrayscale
           p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize

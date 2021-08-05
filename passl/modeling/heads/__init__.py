@@ -18,3 +18,5 @@ from .l2_head import L2Head
 from .mb_head import MBHead
 from .clip_head import CLIPHead
 from .builder import build_head
+from .simclr_contrastive_head import SimCLRContrastiveHead
+

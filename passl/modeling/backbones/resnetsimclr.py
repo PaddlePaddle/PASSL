@@ -56,7 +56,7 @@ class ResNetsimclr(ResNet):
 
         block = BasicBlock if depth in [18, 34] else BottleneckBlock
 
-        super(ResNet, self).__init__(block, depth, num_classes, with_pool)
+        super(ResNetsimclr, self).__init__(block, depth, num_classes, with_pool)
         self.zero_init_residual = zero_init_residual
         self.frozen_stages = frozen_stages
         # self.init_parameters()
