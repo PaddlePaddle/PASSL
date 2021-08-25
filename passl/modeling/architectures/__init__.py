@@ -14,6 +14,7 @@
 
 from .moco import MoCo
 from .clas import Classification
+from .BYOL import BYOL
 from .MoCoBYOL import MoCoBYOL
 from .CLIPWrapper import CLIPWrapper 
 from .simclr import SimCLR
