@@ -16,6 +16,8 @@
 - CUDA 9.2+ (If you build PyTorch from source, CUDA 9.0 is also compatible)
 - GCC 5+
 - Numpy
+- ftfy
+- regex 
 - boto3
 - [visualdl](https://github.com/PaddlePaddle/VisualDL)
 

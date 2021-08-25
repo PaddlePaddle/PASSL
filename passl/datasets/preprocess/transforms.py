@@ -20,7 +20,7 @@ import paddle
 
 import paddle.vision.transforms as PT
 import paddle.vision.transforms.functional as F
-from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize,ToCHW,ToRGB,ByolCenterCrop, ByolRandomCrop
+from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize,ToCHW,ByolToRGB,ByolCenterCrop, ByolRandomCrop
 from .builder import TRANSFORMS, build_transform
 
 TRANSFORMS.register(PT.RandomResizedCrop)
@@ -37,9 +37,28 @@ TRANSFORMS.register(ByolColorJitter)
 TRANSFORMS.register(ByolRandomGrayscale)
 TRANSFORMS.register(ByolNormalize)
 TRANSFORMS.register(ToCHW)
-TRANSFORMS.register(ToRGB)
+TRANSFORMS.register(ByolToRGB)
 TRANSFORMS.register(ByolRandomCrop)
 TRANSFORMS.register(ByolCenterCrop)
+
+
+@TRANSFORMS.register()
+class Clip():
+    def __init__(self,min_val=0.0,max_val=1.0):
+        self.min_val = min_val
+        self.max_val = max_val
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be converted to grayscale.
+
+        Returns:
+            PIL Image: Cliped image.
+        """
+        clip_img = img.clip(self.min_val,self.max_val)
+        return clip_img
+
 
 @TRANSFORMS.register()
 class NormToOne():
@@ -56,6 +75,7 @@ class NormToOne():
         """
         norm_img = (img/255.).astype('float32')
         return norm_img
+
 
 @TRANSFORMS.register()
 class RandomApply():
