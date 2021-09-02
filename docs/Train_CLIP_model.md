@@ -321,4 +321,5 @@ Text(0.5, 1.0, 'Cosine similarity between text and image features')
 
 ## Reference
 <div id="refer-anchor-1"></div>
-- [1] [CLIP: Connecting Text and Images](https://openai.com/blog/clip/)
+- [1] CLPI: [Connecting Text and Images](https://openai.com/blog/clip/)
+
