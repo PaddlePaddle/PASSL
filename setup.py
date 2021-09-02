@@ -19,7 +19,7 @@ long_description = "PaddlePaddle Self-Supervised Development Toolkit"
 
 setuptools.setup(
     name="passl",
-    version='0.0.3',
+    version='0.0.4',
     author="duanboqiang",
     author_email="duanboqiang@baidu.com",
     description=long_description,
