@@ -59,8 +59,8 @@ arch = {'name': 'CLIP', 'embed_dim':512,
         'context_length': 77, 'vocab_size': 49408,
         'transformer_width': 512, 'transformer_heads': 8,
         'transformer_layers': 12,'qkv_bias': True}
-head = {'name': 'ClipCNHead'}
-model = CLIPWrapper(architectual=arch, head=head)
+head = {'name': 'ClipHead'}
+model = CLIPWrapper(architecture=arch, head=head)
 ```
 ### Image Preprocessing
 
@@ -281,9 +281,9 @@ for i, tokens in enumerate(text_tokens):
 
 with paddle.no_grad():
     import numpy as np
-    image_input = paddle.to_tensor(np.load('image_input.npy'))
-    text_input = paddle.to_tensor(np.load('text_input.npy'))
-    state_dict = paddle.load("pretrain/ViT-B-32.pdparams")['state_dict']
+    image_input = paddle.to_tensor(image_input)
+    text_input = paddle.to_tensor(text_input)
+    state_dict = paddle.load("ViT-B-32.pdparams")['state_dict']
     model.set_state_dict(state_dict)
     image_features = model.model.encode_image(image_input)
     text_features = model.model.encode_text(text_input)
