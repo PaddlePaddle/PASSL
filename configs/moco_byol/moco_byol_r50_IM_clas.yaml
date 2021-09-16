@@ -23,12 +23,12 @@ dataloader:
       drop_last: False
     dataset:
       name: ImageNet
-      dataroot: imagenet/train
-      #dataroot: /dbq/imagenet_orig/train
+      dataroot: data/ILSVRC2012/train
       return_label: True
       transforms:
         - name: RandomResizedCrop
           size: 224
+          interpolation: bicubic 
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: Normalize
@@ -42,11 +42,12 @@ dataloader:
       drop_last: false
     dataset:
       name: ImageNet
-      dataroot: imagenet/val
+      dataroot: data/ILSVRC2012/val
       return_label: True
       transforms:
         - name: Resize
           size: 256
+          interpolation: bicubic 
         - name: CenterCrop
           size: 224
         - name: Transpose
