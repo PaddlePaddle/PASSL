@@ -48,7 +48,7 @@ print("Paddle version:", paddle.__version__)
 Paddle version: 2.1.1
 ### Downloading the model
 
-```
+```python
 !wget https://passl.bj.bcebos.com/models/ViT-B-32.pdparams
 
 # Load Model
@@ -65,7 +65,7 @@ model = CLIPWrapper(architecture=arch, head=head)
 ### Image Preprocessing
 
 We resize the input images and center-crop them to conform with the image resolution that the model expects. Before doing so, we will normalize the pixel intensity using the dataset mean and standard deviation.
-```
+```python
 # Data Preprocessing
 from paddle.vision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from passl.datasets.preprocess.transforms import ToRGB
@@ -80,7 +80,7 @@ image_std = paddle.to_tensor([0.26862954, 0.26130258, 0.27577711])
 ### Text Preprocessing
 
 We use a case-insensitive tokenizer. The tokenizer code is hidden in the second cell below
-```
+```python
 import gzip
 import html
 import os
@@ -214,7 +214,7 @@ class SimpleTokenizer(object):
 We are going to feed 8 example images and their textual descriptions to the model, and compare the similarity between the corresponding features.
 
 The tokenizer is case-insensitive, and we can freely give any suitable textual descriptions.
-```
+```python
 import os
 import skimage
 
@@ -263,7 +263,7 @@ plt.tight_layout()
 ### Building features
 
 We normalize the images, tokenize each text input, and run the forward pass of the model to get the image and text features.
-```
+```python
 image_input = paddle.to_tensor(np.stack(images))
 image_input -= paddle.to_tensor(np.array(image_mean).reshape(-1,1,1))
 image_input /= paddle.to_tensor(np.array(image_std).reshape(-1,1,1))
