@@ -36,6 +36,12 @@ b. Install Paddle following the [official instructions](https://www.paddlepaddle
 python -m pip install paddlepaddle-gpu -i https://mirror.baidu.com/pypi/simple
 ```
 
+c. Install PASSL from pypi.
+
+```shell
+python -m pip install passl==0.0.4 -U -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
 Note: Make sure that your compilation CUDA version and runtime CUDA version match.
 You can check the supported CUDA version for precompiled packages on the [Paddle website](https://www.paddlepaddle.org.cn/install/quick?docurl=/documentation/docs/zh/install/conda/linux-conda.html).
 
