@@ -161,6 +161,8 @@ class CLIP(nn.Layer):
                  vision_layers,
                  vision_width,
                  vision_patch_size,
+                 pre_norm,
+                 proj,
                  # text
                  context_length,
                  vocab_size,
@@ -190,7 +192,9 @@ class CLIP(nn.Layer):
                               width=vision_width,
                               out_dim=embed_dim,
                               depth=vision_layers,
-                              num_heads=vision_heads
+                              num_heads=vision_heads,
+                              pre_norm=pre_norm,
+                              proj=proj,
             )
 
         self.transformer = Transformer(

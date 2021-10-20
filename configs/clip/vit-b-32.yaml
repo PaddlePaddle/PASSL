@@ -16,6 +16,8 @@ model:
     transformer_heads: 8
     transformer_layers: 12
     qkv_bias: True
+    pre_norm: True
+    proj: True
   head:
     name: CLIPHead
 

@@ -15,6 +15,7 @@
 import numpy as np
 import paddle
 import paddle.nn as nn
+from .builder import BACKBONES
 from paddle.nn.layer.transformer import _convert_attention_mask
 from paddle.nn.initializer import TruncatedNormal, Constant, Normal
 
@@ -222,6 +223,8 @@ class PatchEmbed(nn.Layer):
             (img_size[0] // patch_size[0])
         self.img_size = img_size
         self.patch_size = patch_size
+        self.patches_resolution = ((img_size[1] // patch_size[1]), (
+                                    img_size[0] // patch_size[0]))
         self.num_patches = num_patches
 
         self.proj = nn.Conv2D(
@@ -236,6 +239,7 @@ class PatchEmbed(nn.Layer):
         return x
 
 
+@BACKBONES.register()
 class VisionTransformer(nn.Layer):
     """ Vision Transformer with support for patch input
     """
@@ -256,6 +260,9 @@ class VisionTransformer(nn.Layer):
                  attn_drop_rate=0.,
                  drop_path_rate=0.,
                  norm_layer='nn.LayerNorm',
+                 pre_norm=False,
+                 proj=False,
+                 output_cls_token=True,
                  epsilon=1e-5,
                  **args):
         super().__init__()
@@ -276,14 +283,16 @@ class VisionTransformer(nn.Layer):
         self.positional_embedding = self.create_parameter(
             shape=(1, num_patches + 1, width), default_initializer=Normal(std=scale))
         self.proj = self.create_parameter(
-            shape=(width, out_dim), default_initializer=Normal(std=scale))
+            shape=(width, out_dim), default_initializer=Normal(
+                std=scale)) if proj else None
         self.add_parameter("positional_embedding", self.positional_embedding)
         self.add_parameter("class_embedding", self.class_embedding)
         self.pos_drop = nn.Dropout(p=drop_rate)
+        self.output_cls_token = output_cls_token
 
         dpr = np.linspace(0, drop_path_rate, depth)
 
-        self.norm_pre = eval(norm_layer)(width, epsilon=epsilon)
+        self.norm_pre = eval(norm_layer)(width, epsilon=epsilon) if pre_norm else Identity()
 
         self.blocks = nn.LayerList([
             Block(
@@ -300,8 +309,6 @@ class VisionTransformer(nn.Layer):
         ])
 
         self.norm_post = eval(norm_layer)(width, epsilon=epsilon)
-
-        # Classifier head
 
         trunc_normal_(self.positional_embedding)
         trunc_normal_(self.class_embedding)
@@ -320,6 +327,7 @@ class VisionTransformer(nn.Layer):
         # B = x.shape[0]
         B = paddle.shape(x)[0]
         x = self.patch_embed(x)
+        patch_resolution = self.patch_embed.patches_resolution
         class_embedding = self.class_embedding.expand((B, -1, -1))
         x = paddle.concat((class_embedding, x), axis=1)
         x = x + self.positional_embedding
@@ -327,10 +335,23 @@ class VisionTransformer(nn.Layer):
         x = self.norm_pre(x)
         for blk in self.blocks:
             x = blk(x)
-        x = self.norm_post(x[:, 0, :])
         if self.proj is not None:
+            x = self.norm_post(x[:, 0, :])
             x = paddle.matmul(x, self.proj)
-        return x
+            return x
+        outs = []
+        x = self.norm_post(x)
+        B, _, C = x.shape
+        patch_token = x[:, 1:].reshape((B, *patch_resolution, C))
+        patch_token = patch_token.transpose((0, 3, 1, 2))
+        cls_token = x[:, 0]
+        if self.output_cls_token:
+           out = [patch_token, cls_token]
+        else:
+           out = patch_token
+        outs.append(out)
+
+        return tuple(outs)
 
     def forward(self, x):
         x = self.forward_features(x)
