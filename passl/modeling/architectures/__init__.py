@@ -19,4 +19,5 @@ from .MoCoBYOL import MoCoBYOL
 from .CLIPWrapper import CLIPWrapper 
 from .simclr import SimCLR
 from .byol_clas import ByolClassification
+from .ViTWrapper import ViTWrapper 
 from .builder import build_model

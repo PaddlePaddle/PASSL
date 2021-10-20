@@ -1,0 +1,60 @@
+epochs: 300 
+output_dir: output_dir
+
+model:
+  name: ViTWrapper
+  architecture:
+      name: VisionTransformer 
+      img_size: 384 
+      patch_size: 16 
+      width: 768 
+      depth: 8 
+      num_heads: 8 
+      mlp_ratio: 3 
+      qkv_bias: True 
+  head:
+    name: VisionTransformerClsHead
+    num_classes: 1000
+    in_channels: 768 
+
+dataloader:
+  train:
+    num_workers: 0
+    sampler:
+      batch_size: 128 
+      shuffle: true
+      drop_last: True
+    dataset:
+      name: ImageNet 
+      dataroot: data/ILSVRC2012/train/
+      return_label: True
+      transforms:
+        - name: ToRGB
+        - name: RandomResizedCrop
+          size: 384 
+          scale: [0.75, 1.]
+          ratio: [1., 1.]
+          interpolation: 'bicubic'
+        - name: Transpose
+        - name: Normalize
+          mean: [127.5, 127.5, 127.5]
+          std: [127.5, 127.5, 127.5]
+
+lr_scheduler:
+  name: CosineWarmup 
+  learning_rate: 12.28
+  T_max: 93835
+  warmup_steps: 10000 
+  start_lr: 0.01228
+  end_lr: 12.28 
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.3
+
+
+log_config:
+    name: LogHook
+    interval: 10
