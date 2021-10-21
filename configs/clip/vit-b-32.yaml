@@ -18,6 +18,7 @@ model:
     qkv_bias: True
     pre_norm: True
     proj: True
+    patch_bias: False
   head:
     name: CLIPHead
 

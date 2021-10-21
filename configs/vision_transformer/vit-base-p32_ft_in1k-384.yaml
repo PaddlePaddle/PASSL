@@ -42,17 +42,20 @@ dataloader:
 
 lr_scheduler:
   name: CosineWarmup 
-  learning_rate: 12.28
+  learning_rate: 0.003 
   T_max: 93835
   warmup_steps: 10000 
-  start_lr: 0.01228
-  end_lr: 12.28 
+  start_lr: 0.00003
+  end_lr: 0.003 
 
 optimizer:
   name: AdamW
   beta1: 0.9
   beta2: 0.999
   weight_decay: 0.3
+  grad_clip:
+    name: global_norm
+    value: 1.0
 
 
 log_config:
