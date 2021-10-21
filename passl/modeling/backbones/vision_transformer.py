@@ -229,7 +229,7 @@ class Transformer(nn.Layer):
 class PatchEmbed(nn.Layer):
     """Image to Patch Embedding"""
 
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768, bias=True):
         super().__init__()
         img_size = (img_size, img_size)
         patch_size = (img_size, patch_size)
@@ -247,7 +247,7 @@ class PatchEmbed(nn.Layer):
             embed_dim,
             kernel_size=patch_size,
             stride=patch_size,
-            bias_attr=False,
+            bias_attr=bias,
         )
 
     def forward(self, x):
@@ -284,6 +284,7 @@ class VisionTransformer(nn.Layer):
         pre_norm=False,
         proj=False,
         output_cls_token=True,
+        patch_bias=True,
         epsilon=1e-5,
         **args
     ):
@@ -293,7 +294,7 @@ class VisionTransformer(nn.Layer):
         self.num_features = self.width = width
 
         self.patch_embed = PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=width
+            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=width, patch_bias=patch_bias
         )
         num_patches = self.patch_embed.num_patches
 
