@@ -8,9 +8,9 @@ model:
       img_size: 384 
       patch_size: 16 
       width: 768 
-      depth: 8 
-      num_heads: 8 
-      mlp_ratio: 3 
+      depth: 12 
+      num_heads: 12 
+      mlp_ratio: 4 
       qkv_bias: True 
   head:
     name: VisionTransformerClsHead
