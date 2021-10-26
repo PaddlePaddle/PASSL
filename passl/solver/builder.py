@@ -71,7 +71,7 @@ def build_optimizer(cfg, lr_scheduler, parameters=None):
         grad_clip_cfg = cfg_.pop('grad_clip')
         if grad_clip_cfg['name'] == 'global_norm':
             clip_norm = grad_clip_cfg['value']
-            grad_clip = paddle.nn.clip.GradientClipByGlobalNorm(clip_norm=clip_norm)
+            grad_clip = paddle.nn.clip.ClipGradByGlobalNorm(clip_norm=clip_norm)
     else:
         grad_clip = None
     if name == 'LarsMomentumOptimizer':

@@ -20,4 +20,5 @@ from .CLIPWrapper import CLIPWrapper
 from .simclr import SimCLR
 from .byol_clas import ByolClassification
 from .ViTWrapper import ViTWrapper 
+from .SwinWrapper import SwinWrapper 
 from .builder import build_model

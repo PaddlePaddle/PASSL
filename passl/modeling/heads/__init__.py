@@ -20,3 +20,4 @@ from .clip_head import CLIPHead
 from .builder import build_head
 from .simclr_contrastive_head import SimCLRContrastiveHead
 from .vision_transformer_head import VisionTransformerClsHead 
+from .swin_transformer_head import SwinTransformerClsHead 
