@@ -59,5 +59,3 @@ optimizer:
 log_config:
     name: LogHook
     interval: 10
-
-
