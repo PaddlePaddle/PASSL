@@ -1,0 +1,62 @@
+epochs: 300
+output_dir: output_dir
+
+model:
+  name: CaitWrapper
+  architecture:
+      name: Cait
+      img_size: 384
+      patch_size: 16
+      depth: 24
+      num_heads: 8
+      init_values: 1e-5
+      depth_token_only: 2
+  head:
+    name: CaitClsHead
+    num_classes: 1000
+    in_channels: 384
+
+dataloader:
+  train:
+    num_workers: 0
+    sampler:
+      batch_size: 128
+      shuffle: true
+      drop_last: True
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train/
+      return_label: True
+      transforms:
+        - name: ToRGB
+        - name: RandomResizedCrop
+          size: 384
+          scale: [0.75, 1.]
+          ratio: [1., 1.]
+          interpolation: 'bicubic'
+        - name: Transpose
+        - name: Normalize
+          mean: [127.5, 127.5, 127.5]
+          std: [127.5, 127.5, 127.5]
+
+lr_scheduler:
+  name: CosineWarmup
+  learning_rate: 0.003
+  T_max: 93835
+  warmup_steps: 10000
+  start_lr: 0.00003
+  end_lr: 0.003
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.3
+  grad_clip:
+    name: global_norm
+    value: 1.0
+
+
+log_config:
+    name: LogHook
+    interval: 10
