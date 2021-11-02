@@ -6,3 +6,4 @@ from .resnetsimclr import ResNetsimclr
 from .vision_transformer import VisionTransformer
 from .swin_transformer import SwinTransformer
 from .cait import Cait
+from .t2t_vit import T2TViT
