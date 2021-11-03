@@ -16,7 +16,7 @@ import argparse
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='PaddleGAN')
+    parser = argparse.ArgumentParser(description='PASSL')
     parser.add_argument(
         '-c', '--config-file', metavar="FILE", help='config file path')
     parser.add_argument(
