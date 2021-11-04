@@ -1,3 +1,9 @@
+# Copyright 2020 DeepMind Technologies Limited.
+#
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+#
 # copyright (c) 2019 PaddlePaddle Authors. All Rights Reserve.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
