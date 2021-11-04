@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#Taken and modified for DeepMind from:
+#Taken and modified for PASSL from:
 #    https://github.com/deepmind/deepmind-research/blob/master/byol/byol_experiment.py
 #
 
