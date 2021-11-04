@@ -2,14 +2,14 @@
 
 ## Introduction
 PASSL is a Paddle based vision library for state-of-the-art Self-Supervised Learning research with [PaddlePaddle](https://www.paddlepaddle.org.cn/). PASSL aims to accelerate research cycle in self-supervised learning: from designing a new self-supervised task to evaluating the learned representations.
-- **Reproducible implementation of SOTA in Self-Supervision**: Existing SOTA in Self-Supervision are implemented - [SimCLR](https://arxiv.org/abs/2002.05709), [MoCo(v1)](https://arxiv.org/abs/1911.05722),[MoCo(v2)](https://arxiv.org/abs/1911.05722), [MoCo-BYOL](), [CLIP](https://arxiv.org/abs/2103.00020). [BYOL](https://arxiv.org/abs/2006.07733) is coming soon. Also supports supervised trainings.
+- **Reproducible implementation of SOTA in Self-Supervision**: Existing SOTA in Self-Supervision are implemented - [SimCLR](https://arxiv.org/abs/2002.05709), [MoCo(v1)](https://arxiv.org/abs/1911.05722),[MoCo(v2)](https://arxiv.org/abs/1911.05722), [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md), [CLIP](https://arxiv.org/abs/2103.00020). [BYOL](https://arxiv.org/abs/2006.07733) is coming soon. Also supports supervised trainings.
 - **Modular**: Easy to build new tasks and reuse the existing components from other tasks (Trainer, models and heads, data transforms, etc.).
 
 ## Installation
 - See [INSTALL.md](https://github.com/PaddlePaddle/PASSL/blob/main/docs/INSTALL.md).
 
 ## Implemented Models
-Models are all trained with ResNet-50 backbone.
+Benchmark Linear Image Classification on ImageNet-1K
 |  | epochs |official results | passl results | Backbone| Model |
 | ---|--- | ----  | ---- | ----| ---- |
 | MoCo  | 200 |  60.6| 60.64| ResNet-50 | [download](https://passl.bj.bcebos.com/models/moco_v1_r50_e200_ckpt.pdparams)|
@@ -23,7 +23,7 @@ Please see [GETTING_STARTED.md](https://github.com/PaddlePaddle/PASSL/blob/main/
 
 ## Tutorials
 - [Train SimCLR model](docs/Train_SimCLR_model.md)
-- [Train MoCo(v1,v1) model](docs/Train_MoCo_model.md)
+- [Train MoCo(v1,v2) model](docs/Train_MoCo_model.md)
 - [Train MoCo-BYOL model](docs/Train_MoCo-BYOL_model.md)
 - [Train BYOL model](docs/Train_BYOL_model.md)
 - [Train CLIP model](docs/Train_CLIP_model.md)

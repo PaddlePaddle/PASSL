@@ -14,10 +14,12 @@
 
 import paddle
 import paddle.nn as nn
+import paddle.fluid.layers as layers
+
 
 from .builder import NECKS
 from paddle.vision.models.resnet import BasicBlock, BottleneckBlock
-from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters, xavier_init
+from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters, xavier_init,init_backbone_weight_simclr
 
 def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
     assert init_linear in ['normal', 'kaiming'], \

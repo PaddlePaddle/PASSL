@@ -1,10 +1,10 @@
-# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserve.
+# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#    http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .moco import MoCo
-from .clas import Classification
-from .BYOL import BYOL
-from .MoCoBYOL import MoCoBYOL
-from .CLIPWrapper import CLIPWrapper 
-from .simclr import SimCLR
-from .byol_clas import ByolClassification
-from .ViTWrapper import ViTWrapper 
-from .SwinWrapper import SwinWrapper 
-from .builder import build_model
+__version__ = '0.0.4'
+
+
+from .modeling.architectures import CLIPWrapper
+from .utils.tokenizer import bytes_to_unicode, get_pairs, basic_clean, whitespace_clean,\
+     SimpleTokenizer
+
+
+bytes_to_unicode = bytes_to_unicode
+get_pairs = get_pairs
+basic_clean = basic_clean
+whitespace_clean = whitespace_clean
+SimpleTokenizer = SimpleTokenizer

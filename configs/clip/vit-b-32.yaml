@@ -16,6 +16,9 @@ model:
     transformer_heads: 8
     transformer_layers: 12
     qkv_bias: True
+    pre_norm: True
+    proj: True
+    patch_bias: False
   head:
     name: CLIPHead
 
@@ -68,4 +71,4 @@ optimizer_config:
 
 log_config:
     name: LogHook
-    interval: 20
+    interval: 10

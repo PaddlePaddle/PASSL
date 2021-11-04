@@ -16,6 +16,8 @@
 - CUDA 9.2+ (If you build PyTorch from source, CUDA 9.0 is also compatible)
 - GCC 5+
 - Numpy
+- ftfy
+- regex 
 - boto3
 - [visualdl](https://github.com/PaddlePaddle/VisualDL)
 
@@ -32,6 +34,12 @@ b. Install Paddle following the [official instructions](https://www.paddlepaddle
 
 ```shell
 python -m pip install paddlepaddle-gpu -i https://mirror.baidu.com/pypi/simple
+```
+
+c. Install PASSL from pypi.
+
+```shell
+python -m pip install passl==0.0.4 -U -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 Note: Make sure that your compilation CUDA version and runtime CUDA version match.

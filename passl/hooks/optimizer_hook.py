@@ -40,3 +40,28 @@ class OptimizerHook(Hook):
 
         if 'loss' not in trainer.outputs:
             trainer.outputs['loss'] = loss
+
+
+@HOOKS.register()
+class OptimizerHooksimclr(Hook):
+    def train_iter_end(self, trainer):
+        if trainer.optimizer.type=='lars_momentum':
+            trainer.optimizer.clear_gradients()
+            loss = 0
+            for key, value in trainer.outputs.items():
+                if 'loss' in key:
+                    loss += value
+            loss.backward()
+            trainer.optimizer.minimize(loss)
+        else:
+            trainer.optimizer.clear_grad()
+            loss = 0
+            for key, value in trainer.outputs.items():
+                if 'loss' in key:
+                    loss += value
+            loss.backward()
+            trainer.optimizer.step()
+
+        if 'loss' not in trainer.outputs:
+            trainer.outputs['loss'] = loss
+

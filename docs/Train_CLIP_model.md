@@ -48,7 +48,7 @@ print("Paddle version:", paddle.__version__)
 Paddle version: 2.1.1
 ### Downloading the model
 
-```
+```python
 !wget https://passl.bj.bcebos.com/models/ViT-B-32.pdparams
 
 # Load Model
@@ -58,14 +58,14 @@ arch = {'name': 'CLIP', 'embed_dim':512,
         'vision_width': 768, 'vision_patch_size': 32,
         'context_length': 77, 'vocab_size': 49408,
         'transformer_width': 512, 'transformer_heads': 8,
-        'transformer_layers': 12,'qkv_bias': True}
-head = {'name': 'ClipCNHead'}
-model = CLIPWrapper(architectual=arch, head=head)
+        'transformer_layers': 12,'qkv_bias': True,'proj':True, 'pre_norm':True}
+head = {'name': 'CLIPHead'}
+model = CLIPWrapper(architecture=arch, head=head)
 ```
 ### Image Preprocessing
 
 We resize the input images and center-crop them to conform with the image resolution that the model expects. Before doing so, we will normalize the pixel intensity using the dataset mean and standard deviation.
-```
+```python
 # Data Preprocessing
 from paddle.vision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from passl.datasets.preprocess.transforms import ToRGB
@@ -80,7 +80,7 @@ image_std = paddle.to_tensor([0.26862954, 0.26130258, 0.27577711])
 ### Text Preprocessing
 
 We use a case-insensitive tokenizer. The tokenizer code is hidden in the second cell below
-```
+```python
 import gzip
 import html
 import os
@@ -214,7 +214,7 @@ class SimpleTokenizer(object):
 We are going to feed 8 example images and their textual descriptions to the model, and compare the similarity between the corresponding features.
 
 The tokenizer is case-insensitive, and we can freely give any suitable textual descriptions.
-```
+```python
 import os
 import skimage
 
@@ -258,12 +258,12 @@ for filename in [filename for filename in os.listdir(skimage.data_dir) if filena
 
 plt.tight_layout()
 ```
-<img src="docs/imgs/clip_demo1.png" width="900"/>
+<img src="imgs/clip_demo1.png" width="900"/>
 
 ### Building features
 
 We normalize the images, tokenize each text input, and run the forward pass of the model to get the image and text features.
-```
+```python
 image_input = paddle.to_tensor(np.stack(images))
 image_input -= paddle.to_tensor(np.array(image_mean).reshape(-1,1,1))
 image_input /= paddle.to_tensor(np.array(image_std).reshape(-1,1,1))
@@ -281,9 +281,9 @@ for i, tokens in enumerate(text_tokens):
 
 with paddle.no_grad():
     import numpy as np
-    image_input = paddle.to_tensor(np.load('image_input.npy'))
-    text_input = paddle.to_tensor(np.load('text_input.npy'))
-    state_dict = paddle.load("pretrain/ViT-B-32.pdparams")['state_dict']
+    image_input = paddle.to_tensor(image_input)
+    text_input = paddle.to_tensor(text_input)
+    state_dict = paddle.load("ViT-B-32.pdparams")['state_dict']
     model.set_state_dict(state_dict)
     image_features = model.model.encode_image(image_input)
     text_features = model.model.encode_text(text_input)
@@ -317,8 +317,8 @@ plt.title("Cosine similarity between text and image features", size=20)
 ```
 Text(0.5, 1.0, 'Cosine similarity between text and image features')
 
-<img src="docs/imgs/clip_demo2.png" width="900"/>
+<img src="imgs/clip_demo2.png" width="900"/>
 
 ## Reference
 <div id="refer-anchor-1"></div>
-- [1] [CLIP: Connecting Text and Images](https://openai.com/blog/clip/)
+- [1] CLPI: [Connecting Text and Images](https://openai.com/blog/clip/)

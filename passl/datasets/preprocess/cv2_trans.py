@@ -74,7 +74,7 @@ class ToCHW(object):
         return F.to_chw(img)
 
 
-class ToRGB(object):
+class ByolToRGB(object):
     def __call__(self, img):
         return F.to_rgb_bgr(img)
 

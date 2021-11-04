@@ -67,10 +67,25 @@ def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs, current_
 def build_optimizer(cfg, lr_scheduler, parameters=None):
     cfg_ = cfg.copy()
     name = cfg_.pop('name')
-    if name == 'LarsMomentumOptimizer':
-        return OPTIMIZERS.get(name)(lr_scheduler, parameter_list=parameters, **cfg_)
+    if 'grad_clip' in cfg_:
+        grad_clip_cfg = cfg_.pop('grad_clip')
+        if grad_clip_cfg['name'] == 'global_norm':
+            clip_norm = grad_clip_cfg['value']
+            grad_clip = paddle.nn.clip.ClipGradByGlobalNorm(clip_norm=clip_norm)
     else:
-        return OPTIMIZERS.get(name)(lr_scheduler, parameters=parameters, **cfg_)
+        grad_clip = None
+    if name == 'LarsMomentumOptimizer':
+        return OPTIMIZERS.get(name)(
+            lr_scheduler, 
+            parameter_list=parameters,
+            grad_clip=grad_clip,
+            **cfg_)
+    else:
+        return OPTIMIZERS.get(name)(
+            lr_scheduler,
+            parameters=parameters,
+            grad_clip=grad_clip,
+            **cfg_)
 
 
 class MultiStateDictMeta(object):
