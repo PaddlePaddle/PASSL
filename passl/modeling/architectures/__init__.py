@@ -16,9 +16,10 @@ from .moco import MoCo
 from .clas import Classification
 from .BYOL import BYOL
 from .MoCoBYOL import MoCoBYOL
-from .CLIPWrapper import CLIPWrapper 
+from .CLIPWrapper import CLIPWrapper
 from .simclr import SimCLR
 from .byol_clas import ByolClassification
-from .ViTWrapper import ViTWrapper 
-from .SwinWrapper import SwinWrapper 
+from .ViTWrapper import ViTWrapper
+from .SwinWrapper import SwinWrapper
 from .builder import build_model
+from .T2TViTWrapper import T2TViTWrapper
