@@ -381,7 +381,10 @@ class RelativePositionBias(nn.Layer):
 
 @BACKBONES.register()
 class Beit(nn.Layer):
-    """Beit Layer"""
+    """Beit Layer
+    This model is mainly used for fine tuning 22k to 1k
+    code base on https://github.com/microsoft/unilm/blob/master/beit/modeling_finetune.py
+    """
     def __init__(
         self,
         img_size=224,
