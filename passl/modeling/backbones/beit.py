@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Code was based on https://github.com/microsoft/unilm/tree/master/beit
+
 import copy
 import math
 from functools import partial
