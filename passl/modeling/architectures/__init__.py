@@ -23,3 +23,4 @@ from .ViTWrapper import ViTWrapper
 from .SwinWrapper import SwinWrapper
 from .builder import build_model
 from .T2TViTWrapper import T2TViTWrapper
+from .CaiTWrapper import CaiTWrapper
