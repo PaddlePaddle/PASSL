@@ -491,9 +491,6 @@ class BasicLayer(nn.Layer):
 
     def forward(self, x):
         for blk in self.blocks:
-            #if self.use_checkpoint:
-            #    x = checkpoint.checkpoint(blk, x)
-            #else:
             x = blk(x)
         if self.downsample is not None:
             x = self.downsample(x)
@@ -577,7 +574,7 @@ class PatchEmbed(nn.Layer):
         self.embed_dim = embed_dim
 
         self.proj = nn.Conv2D(
-            in_chans, embed_dim, kernel_size=patch_size, stride=patch_size, bias_attr=False)
+            in_chans, embed_dim, kernel_size=patch_size, stride=patch_size, bias_attr=True)
         if norm_layer is not None:
             self.norm = eval(norm_layer)(embed_dim)
         else:
