@@ -58,7 +58,7 @@ arch = {'name': 'CLIP', 'embed_dim':512,
         'vision_width': 768, 'vision_patch_size': 32,
         'context_length': 77, 'vocab_size': 49408,
         'transformer_width': 512, 'transformer_heads': 8,
-        'transformer_layers': 12,'qkv_bias': True,'proj':True, 'pre_norm':True}
+        'transformer_layers': 12,'qkv_bias': True}
 head = {'name': 'CLIPHead'}
 model = CLIPWrapper(architecture=arch, head=head)
 ```
