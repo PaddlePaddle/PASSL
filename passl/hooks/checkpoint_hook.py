@@ -101,7 +101,7 @@ class CheckpointHook(Hook):
                 'epoch': trainer.current_epoch + 1,
                 'state_dict': trainer.model.state_dict(),
                 'optimizer': optimizer.state_dict(),
-                'lr_sheduer': lr_scheduler.state_dict()
+                'lr_scheduler': lr_scheduler.state_dict()
             }, filepath)
         # in some environments, `os.symlink` is not supported, you may need to
         # set `create_symlink` to False
