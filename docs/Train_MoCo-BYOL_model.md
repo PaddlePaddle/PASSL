@@ -27,7 +27,7 @@ python tools/train.py -c configs/moco_byol/moco_byol_r50_IM.yaml
 #### multiple gpus
 
 ```
-python tools/train.py -c configs/moco_byol/moco_byol_r50_IM.yaml --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco_byol/moco_byol_r50_IM.yaml
 ```
 
 Pretraining models with 300 epochs can be found at [mocobyol_r50_ep300_ckpt.pdparams](https://passl.bj.bcebos.com/models/mocobyol_r50_ep300_ckpt.pdparams)
@@ -44,12 +44,12 @@ python tools/extract_weight.py  mocobyol_r50_ep300_ckpt.pdparams --output ${WEIG
 
 #### Train:
 ```
-python tools/train.py -c configs/moco_byol/moco_byol_50_IM_clas.yaml --pretrained ${WEIGHT_FILE} --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco_byol/moco_byol_50_IM_clas.yaml --pretrained ${WEIGHT_FILE}
 ```
 
 #### Evaluate:
 ```
-python tools/train.py -c configs/moco_byol/moco_byol_r50_IM_clas.yaml --load ${CLS_WEGHT_FILE} --evaluate-only --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco_byol/moco_byol_r50_IM_clas.yaml --load ${CLS_WEGHT_FILE} --evaluate-only
 ```
 
 The trained linear weights in conjuction with the backbone weights can be found at [MoCoBYOL](https://passl.bj.bcebos.com/models/mocobyol_r50_clas.pdparams)
