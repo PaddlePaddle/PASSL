@@ -29,7 +29,7 @@ python tools/train.py -c configs/moco/moco_v[1,2]_r50.yaml
 #### multiple gpus
 
 ```
-python tools/train.py -c configs/moco/moco_v[1,2]_r50.yaml --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_v[1,2]_r50.yaml
 ```
 
 Pretraining models with 200 epochs can be found at [MoCo v1](https://passl.bj.bcebos.com/models/moco_v1_r50_e200_ckpt.pdparams) and [MoCo v2](https://passl.bj.bcebos.com/models/moco_v2_r50_e200_ckpt.pdparams)
@@ -46,12 +46,12 @@ python tools/extract_weight.py ${CHECKPOINT} --output ${WEIGHT_FILE}
 
 #### Train:
 ```
-python tools/train.py -c configs/moco/moco_clas_r50.yaml --pretrained ${WEIGHT_FILE} --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_clas_r50.yaml --pretrained ${WEIGHT_FILE}
 ```
 
 #### Evaluate:
 ```
-python tools/train.py -c configs/moco/moco_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only
 ```
 
 The trained linear weights in conjuction with the backbone weights can be found at [MoCo v1 linear](https://passl.bj.bcebos.com/models/moco_v1_r50_clas.pdparams) and [MoCo v2 linear](https://passl.bj.bcebos.com/models/moco_v2_r50_clas.pdparams)

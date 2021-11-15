@@ -19,8 +19,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description='PASSL')
     parser.add_argument(
         '-c', '--config-file', metavar="FILE", help='config file path')
-    parser.add_argument(
-        '--num-gpus', type=int, default=1, help='number of gpus')
     # cuda setting
     parser.add_argument(
         '--no-cuda',
