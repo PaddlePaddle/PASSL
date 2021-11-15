@@ -23,7 +23,6 @@ from passl.utils.options import parse_args
 from passl.utils.config import get_config
 from passl.utils.setup import setup
 from passl.engine.trainer import Trainer
-from passl.engine.launch import launch
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -50,9 +49,4 @@ def main(args, cfg):
 if __name__ == '__main__':
     args = parse_args()
     cfg = get_config(args.config_file)
-
-    launch(
-        main,
-        args.num_gpus,
-        args=(args, cfg),
-    )
+    main(args, cfg)

@@ -13,15 +13,17 @@
 # limitations under the License.
 
 import logging
+import random
+import numpy as np
 from tqdm import tqdm
 from collections import OrderedDict
 
 import paddle
 import paddle.distributed as dist
+from paddle.distributed import fleet
 
 from ..hooks import build_hook, Hook
 from ..utils.misc import AverageMeter
-from ..modules import DistributedDataParallel
 from ..datasets.builder import build_dataloader
 from ..modeling.architectures import build_model
 from ..solver import build_lr_scheduler, build_lr_scheduler_simclr, build_optimizer, MultiStateDictMeta
@@ -82,6 +84,13 @@ class Trainer:
         self.local_rank = dist.get_rank()
         self.log_interval = cfg.log_config.interval
 
+        # set seed
+        seed = self.cfg.get('seed', False)
+        if seed:
+            paddle.seed(seed)
+            np.random.seed(seed)
+            random.seed(seed)
+
         self.start_epoch = 0
         self.current_epoch = 0
         self.current_iter = 0
@@ -99,10 +108,6 @@ class Trainer:
 
         # build model
         self.model = build_model(cfg.model)
-        # multiple gpus prepare
-        if dist.get_world_size() > 1:
-            paddle.distributed.init_parallel_env()
-            self.model = DistributedDataParallel(self.model)
 
         # build train dataloader
         self.train_dataloader = build_dataloader(cfg.dataloader.train)
@@ -131,7 +136,13 @@ class Trainer:
                                                    cfg.epochs, self.current_iter))
             else:
                 self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
-            self.optimizer.append(build_optimizer(cfg.optimizer, self.lr_scheduler[0], parameters))
+            optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler[0], parameters)
+            if dist.get_world_size() > 1:
+                fleet.init(is_collective=True)
+                optimizer = fleet.distributed_optimizer(optimizer)
+                self.model = fleet.distributed_model(self.model)
+                
+            self.optimizer.append(optimizer)
         else:
             visual_params = []
             textual_params = []
@@ -151,7 +162,13 @@ class Trainer:
             for _, value in parameters.items():
                 current_lr_scheduler = build_lr_scheduler(value[0], self.iters_per_epoch)
                 self.lr_scheduler.append(current_lr_scheduler)
-                self.optimizer.append(build_optimizer(cfg.optimizer, current_lr_scheduler, value[1]))
+                optimizer = build_optimizer(cfg.optimizer, current_lr_scheduler, value[1])
+                if dist.get_world_size() > 1:
+                    fleet.init(is_collective=True)
+                    optimizer = fleet.distributed_optimizer(optimizer)
+                    self.model = fleet.distributed_model(self.model)
+                
+                self.optimizer.append(optimizer)
 
 
         # build hooks

@@ -19,6 +19,8 @@ For installation instructions, please see [INSTALL.md](INSTALL.md).
         └── ILSVRC2012
             ├── train
             └── val
+        └── FOOD101
+            └── captions
     ```
 ## Train existing methods
 
@@ -27,7 +29,7 @@ For installation instructions, please see [INSTALL.md](INSTALL.md).
 ### Train with single/multiple GPUs
 
 ```shell
-python tools/train.py -c ${CONFIG_FILE} --num-gpus {GPUS} [optional arguments]
+python -m paddle.distributed.launch --gpus={GPU RANKS} tools/train.py -c ${CONFIG_FILE} [optional arguments]
 ```
 Optional arguments are:
 - `--resume ${CHECKPOINT_FILE}`: Resume from a previous checkpoint file.
@@ -36,7 +38,7 @@ Optional arguments are:
 An example:
 ```shell
 # checkpoints and logs saved in OUTPUTS=outputs/
-python tools/train.py -c configs/moco/moco_v2_r50.yaml --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_v2_r50.yaml
 ```
 
 ### ImageNet Linear Classification
@@ -52,9 +54,9 @@ Arguments:
 **Next**, train and test linear classification:
 ```shell
 # Train
-python tools/train.py -c ${CLS_CONFIG_FILE} --pretrained ${WEIGHT_FILE} --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c ${CLS_CONFIG_FILE} --pretrained ${WEIGHT_FILE}
 # Evaluation
-python tools/train.py -c configs/*clas_*.yaml --load ${CLS_WEIGHT_FILE} --evaluate-only --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/*clas_*.yaml --load ${CLS_WEIGHT_FILE} --evaluate-only
 ```
 Augments:
 - `CLS_CONFIG_FILE`: Use config files under "configs/benchmarks/\*_clas_\*/". Note that if you want to test benchmark MoCo v2, you have to use the config file named `configs/moco/*_clas_*.yaml`, e.g., `configs/moco/moco_clas_r50.yaml`.
