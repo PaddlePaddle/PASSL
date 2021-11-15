@@ -22,7 +22,7 @@ python tools/train.py -c configs/clip/vit-b-32.yaml
 #### multiple gpus
 
 ```
-python tools/train.py -c configs/clip/vit-b-32.yaml --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/clip/vit-b-32.yaml
 ```
 
 Note: The default learning rate in config files is for 8 GPUs. If using differnt number GPUs, the total batch size will change in proportion, you have to scale the learning rate following ```new_lr = old_lr * new_ngpus / old_ngpus```.
@@ -31,7 +31,7 @@ Note: The default learning rate in config files is for 8 GPUs. If using differnt
 Pretraining openai model can be found at [ViT-B-32.pdparams](https://passl.bj.bcebos.com/models/ViT-B-32.pdparams)
 ```
 
-python tools/train.py -c configs/clip/vit-b-32.yaml --num-gpus 8 --load ViT-B-32.pdparams
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/clip/vit-b-32.yaml --load ViT-B-32.pdparams
 ```
 
 
