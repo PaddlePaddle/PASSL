@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 class Hook:
     def run_begin(self, trainer):
         pass
@@ -59,7 +60,7 @@ class Hook:
         return (trainer.current_epoch + 1) % n == 0 if n > 0 else False
 
     def every_n_inner_iters(self, trainer, n):
-        return (trainer.inner_iter + 1) % n == 0 if n > 0 else False
+        return trainer.inner_iter % n == 0 if n > 0 else False
 
     def every_n_iters(self, trainer, n):
         return (trainer.iter + 1) % n == 0 if n > 0 else False

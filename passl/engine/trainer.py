@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import random
+import logging
 import numpy as np
 from tqdm import tqdm
 from collections import OrderedDict
@@ -85,7 +85,7 @@ class Trainer:
         self.log_interval = cfg.log_config.interval
 
         # set seed
-        seed = self.cfg.get('seed', False)
+        seed = self.cfg.get('seed', False) + dist.get_rank()
         if seed:
             paddle.seed(seed)
             np.random.seed(seed)
@@ -104,7 +104,7 @@ class Trainer:
         self.epochs = cfg.get('epochs', None)
         self.timestamp = cfg.timestamp
         self.logs = OrderedDict()
-    	# Ensure that the vdl log file can be closed normally
+        # Ensure that the vdl log file can be closed normally
 
         # build model
         self.model = build_model(cfg.model)
@@ -115,7 +115,7 @@ class Trainer:
 
         # use byol iters
         if self.use_byol_iters:
-            self.global_batch_size= cfg.global_batch_size
+            self.global_batch_size = cfg.global_batch_size
             self.byol_total_iters = self.epochs * cfg.total_images // self.global_batch_size
 
         # build optimizer
@@ -126,22 +126,27 @@ class Trainer:
             parameters = self.model.parameters()
             # build lr scheduler
             if self.use_byol_iters:
-                self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.byol_total_iters))
+                self.lr_scheduler.append(
+                    build_lr_scheduler(cfg.lr_scheduler, self.byol_total_iters))
             elif self.use_simclr_iters:
                 self.batch_size = cfg.dataloader.train.sampler.batch_size
-                self.global_batch_size= cfg.global_batch_size
+                self.global_batch_size = cfg.global_batch_size
                 self.epochs = cfg.epochs
-                self.lr_scheduler.append(build_lr_scheduler_simclr(cfg.lr_scheduler,
-                                                   self.iters_per_epoch, self.batch_size*8,
-                                                   cfg.epochs, self.current_iter))
+                self.lr_scheduler.append(
+                    build_lr_scheduler_simclr(cfg.lr_scheduler,
+                                              self.iters_per_epoch,
+                                              self.batch_size * 8, cfg.epochs,
+                                              self.current_iter))
             else:
-                self.lr_scheduler.append(build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
-            optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler[0], parameters)
+                self.lr_scheduler.append(
+                    build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
+            optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler[0],
+                                        parameters)
             if dist.get_world_size() > 1:
                 fleet.init(is_collective=True)
                 optimizer = fleet.distributed_optimizer(optimizer)
                 self.model = fleet.distributed_model(self.model)
-                
+
             self.optimizer.append(optimizer)
         else:
             visual_params = []
@@ -160,16 +165,17 @@ class Trainer:
             parameters['visual'] = [cfg.solver.visual_lr, visual_params]
             parameters['textual'] = [cfg.solver.textual_lr, textual_params]
             for _, value in parameters.items():
-                current_lr_scheduler = build_lr_scheduler(value[0], self.iters_per_epoch)
+                current_lr_scheduler = build_lr_scheduler(
+                    value[0], self.iters_per_epoch)
                 self.lr_scheduler.append(current_lr_scheduler)
-                optimizer = build_optimizer(cfg.optimizer, current_lr_scheduler, value[1])
+                optimizer = build_optimizer(cfg.optimizer, current_lr_scheduler,
+                                            value[1])
                 if dist.get_world_size() > 1:
                     fleet.init(is_collective=True)
                     optimizer = fleet.distributed_optimizer(optimizer)
                     self.model = fleet.distributed_model(self.model)
-                
-                self.optimizer.append(optimizer)
 
+                self.optimizer.append(optimizer)
 
         # build hooks
         self.hooks = []
@@ -192,12 +198,6 @@ class Trainer:
         else:
             self.add_hook(build_hook({'name': 'OptimizerHook'}))
 
-        lr_cfg = self.cfg.get('lr_config', None)
-        if lr_cfg is not None:
-            self.add_hook(build_hook(lr_cfg))
-        else:
-            self.add_hook(build_hook({'name': 'LRSchedulerHook'}))
-
         timer_cfg = self.cfg.get('timer_config', None)
         if timer_cfg is not None:
             self.add_hook(build_hook(timer_cfg))
@@ -214,6 +214,12 @@ class Trainer:
             self.add_hook(build_hook(log_cfg))
         else:
             self.add_hook(build_hook({'name': 'LogHook'}))
+
+        lr_cfg = self.cfg.get('lr_config', None)
+        if lr_cfg is not None:
+            self.add_hook(build_hook(lr_cfg))
+        else:
+            self.add_hook(build_hook({'name': 'LRSchedulerHook'}))
 
     def add_custom_hooks(self):
         custom_cfgs = self.cfg.get('custom_config', None)
@@ -246,18 +252,22 @@ class Trainer:
         while self.current_iter < (self.total_iters):
             if self.current_iter % self.iters_per_epoch == 0:
                 self.call_hook('train_epoch_begin')
+            self.inner_iter = self.current_iter % self.iters_per_epoch
             self.current_iter += 1
             self.current_epoch = iter_loader.epoch
-            self.inner_iter = self.current_iter % self.iters_per_epoch
 
             data = next(iter_loader)
 
             self.call_hook('train_iter_begin')
 
             if self.use_byol_iters:
-                self.outputs = self.model(*data, total_iters=self.byol_total_iters, current_iter=self.current_iter)
+                self.outputs = self.model(*data,
+                                          total_iters=self.byol_total_iters,
+                                          current_iter=self.current_iter)
             else:
-                self.outputs = self.model(*data, total_iters=self.total_iters, current_iter=self.current_iter)
+                self.outputs = self.model(*data,
+                                          total_iters=self.total_iters,
+                                          current_iter=self.current_iter)
             self.call_hook('train_iter_end')
 
             if self.current_iter % self.iters_per_epoch == 0:
@@ -351,7 +361,7 @@ class Trainer:
         self.model.set_state_dict(checkpoint['state_dict'])
         self.optimizer.set_state_dict(checkpoint['optimizer'])
         self.lr_scheduler.set_state_dict(checkpoint['lr_scheduler'])
-        
+
         self.logger.info(
             'Resume training from {} success!'.format(checkpoint_path))
 
