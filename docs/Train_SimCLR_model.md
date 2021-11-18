@@ -35,13 +35,13 @@ python3 tools/train.py -c configs/simclr/simclr_r18_cifar10.yaml
 ##### ImageNet
 
 ```
-python3 tools/train.py -c configs/simclr/simclr_r50_IM.yaml --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/simclr/simclr_r50_IM.yaml
 ```
 
 ##### Cifar10
 
 ```
-python3 tools/train.py -c configs/simclr/simclr_r50_IM.yaml --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/simclr/simclr_r50_IM.yaml
 ```
 
 
@@ -58,12 +58,12 @@ python tools/extract_weight.py ${CHECKPOINT} --output ${WEIGHT_FILE}
 
 #### Train:
 ```
-python tools/train.py -c configs/moco/moco_clas_r50.yaml --pretrained ${WEIGHT_FILE} --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_clas_r50.yaml --pretrained ${WEIGHT_FILE}
 ```
 
 #### Evaluate:
 ```
-python tools/train.py -c configs/moco/moco_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only --num-gpus 8
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only
 ```
 
 The trained linear weights in conjuction with the backbone weights can be found at [SimCLR linear](https://passl.bj.bcebos.com/models/simclr_r50_ep100_ckpt.pdparam).
