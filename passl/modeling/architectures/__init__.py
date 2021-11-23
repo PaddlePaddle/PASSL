@@ -28,3 +28,4 @@ from .BeitWrapper import BeitWrapper
 from .T2TViTWrapper import T2TViTWrapper
 from .CaiTWrapper import CaiTWrapper
 from .MlpMixerWrapper import MlpMixerWrapper
+from .CvTWrapper import CvTWrapper

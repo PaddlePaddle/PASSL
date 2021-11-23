@@ -23,7 +23,6 @@ from ..utils import AverageMeter
 @HOOKS.register()
 class LogHook(Hook):
     """Simple logger hook."""
-
     def __init__(self,
                  by_epoch=True,
                  interval=10,
@@ -67,8 +66,8 @@ class LogHook(Hook):
             if 'time' in log_dict.keys():
                 self.time_sec_tot += (log_dict['time'].sum)
                 time_sec_avg = log_dict['time'].avg
-                eta_sec = time_sec_avg * (
-                    trainer.total_iters - trainer.current_iter - 1)
+                eta_sec = time_sec_avg * (trainer.total_iters -
+                                          trainer.current_iter - 1)
                 eta_str = str(datetime.timedelta(seconds=int(eta_sec)))
                 log_str += f'eta: {eta_str}, '
                 log_str += f'time: {time_sec_avg:.3f}, ' \
@@ -111,9 +110,9 @@ class LogHook(Hook):
         log_dict['mode'] = mode
         log_dict['epoch'] = trainer.current_epoch + 1
         if self.by_epoch:
-            log_dict['iter'] = trainer.inner_iter + 1
+            log_dict['iter'] = trainer.inner_iter
         else:
-            log_dict['iter'] = trainer.current_iter + 1
+            log_dict['iter'] = trainer.current_iter
 
         cur_lr = trainer.lr_scheduler[0].get_lr()
         if isinstance(cur_lr, list):
