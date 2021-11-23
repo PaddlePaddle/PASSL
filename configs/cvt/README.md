@@ -18,11 +18,11 @@ The results are evaluated on ImageNet2012 validation set
 
 | Arch        | Weight                                                       | Top-1 Acc | Top-5 Acc | Crop ratio | # Params |
 | ----------- | ------------------------------------------------------------ | --------- | --------- | ---------- | -------- |
-| cvt_13_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cait/cait_s24_224.pdparams) | 83.45     | 96.57     | 0.875      | 46.8M    |
-| cvt_13_384  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cait/cait_x24_384.pdparams) | 84.06     | 96.89     | 1.0        | 26.5M    |
-| cvt_21_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cait/cait_s24_384.pdparams) | 85.05     | 97.34     | 0.875      | 46.8M    |
-| cvt_21_384  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cait/cait_s36_384.pdparams) | 85.45     | 97.48     | 1.0        | 68.1M    |
-| cvt_w24_384 | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cait/cait_m36_384.pdparams) | 86.06     | 97.73     | 1.0        | 270.7M   |
+| cvt_13_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_13_224_pt.pdparams) | 81.59     | 95.67     | 0.875      | 20.0M    |
+| cvt_13_384  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_13_384_ft.pdparams) | 82.90     | 96.92     | 1.0        | 20.0M    |
+| cvt_21_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_21_224_pt.pdparams) | 82.46     | 96.00     | 0.875      | 31.6M    |
+| cvt_21_384  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_21_384_ft.pdparams) | 84.63     | 97.54     | 1.0        | 31.6M    |
+| cvt_w24_384 | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_w24_384_ft.pdparams) | 87.39     | 98.37     | 1.0        | 277.3M   |
 
 Note: pretrain 1k is trained directly on the ImageNet-1k dataset
 
