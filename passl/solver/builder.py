@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..utils.registry import Registry, build_from_config
-import paddle
 import math
+import copy
+import paddle
+from paddle.nn.clip import ClipGradByGlobalNorm, ClipGradByNorm
+
+from ..utils.registry import Registry, build_from_config
+
 LRSCHEDULERS = Registry("LRSCHEDULER")
 OPTIMIZERS = Registry("OPTIMIZER")
 
@@ -28,7 +32,8 @@ def build_lr_scheduler(cfg, iters_per_epoch):
         cfg.milestones = [x * iters_per_epoch for x in cfg.milestones]
         return build_from_config(cfg, LRSCHEDULERS)
     elif cfg.name == 'LinearWarmup':
-        cfg.learning_rate = build_lr_scheduler(cfg.learning_rate, iters_per_epoch)
+        cfg.learning_rate = build_lr_scheduler(cfg.learning_rate,
+                                               iters_per_epoch)
         cfg.warmup_steps *= iters_per_epoch
         return build_from_config(cfg, LRSCHEDULERS)
     elif cfg.name == 'CosineWarmup' or cfg.name == 'ByolLRScheduler':
@@ -36,8 +41,10 @@ def build_lr_scheduler(cfg, iters_per_epoch):
     else:
         raise NotImplementedError
 
+
 # To create a registry
-def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs, current_iter):
+def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs,
+                              current_iter):
     # FIXME: if have a better way
 
     if cfg.name == 'CosineAnnealingDecay':
@@ -49,13 +56,14 @@ def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs, current_
         cfg.iters_per_epoch = iters_per_epoch
         cfg.epochs = epochs
         cfg.T_max = T_max
-    elif cfg.name == 'simclrCosineWarmup':   
+    elif cfg.name == 'simclrCosineWarmup':
         cfg.step_each_epoch = iters_per_epoch
         cfg.epochs = epochs
-        cfg.warmup_steps = int(round(cfg.warmup_epochs * cfg.total_images // batch_size))
+        cfg.warmup_steps = int(
+            round(cfg.warmup_epochs * cfg.total_images // batch_size))
         cfg.total_steps = cfg.total_images * epochs // batch_size + 1
         cfg.T_max = cfg.total_steps - cfg.warmup_steps
-        cfg.current_iter = current_iter 
+        cfg.current_iter = current_iter
         if cfg.learning_rate_scaling == 'linear':
             cfg.lr = cfg.end_lr * batch_size / 256.
         elif cfg.learning_rate_scaling == 'sqrt':
@@ -63,29 +71,68 @@ def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs, current_
     return build_from_config(cfg, LRSCHEDULERS)
 
 
+def build_clip_optimizer(cfg, lr_scheduler, parameters=None):
+    cfg = copy.deepcopy(cfg)
+    name = cfg.pop('name')
 
-def build_optimizer(cfg, lr_scheduler, parameters=None):
-    cfg_ = cfg.copy()
-    name = cfg_.pop('name')
-    if 'grad_clip' in cfg_:
-        grad_clip_cfg = cfg_.pop('grad_clip')
+    # step1 clip grad
+    if 'grad_clip' in cfg:
+        grad_clip_cfg = cfg.pop('grad_clip')
         if grad_clip_cfg['name'] == 'global_norm':
             clip_norm = grad_clip_cfg['value']
-            grad_clip = paddle.nn.clip.ClipGradByGlobalNorm(clip_norm=clip_norm)
+            cfg['grad_clip'] = ClipGradByGlobalNorm(clip_norm=clip_norm)
+        elif grad_clip_cfg['name'] == 'clip_norm':
+            clip_norm = grad_clip_cfg['value']
+            cfg['grad_clip'] = ClipGradByNorm(clip_norm=clip_norm)
+
+    # step2 Adapt Lars and Lamb optimizer parameter argument.
+    if 'Lars' in name or 'Lamb' in name:
+        cfg['parameter_list'] = parameters
     else:
-        grad_clip = None
-    if name == 'LarsMomentumOptimizer':
-        return OPTIMIZERS.get(name)(
-            lr_scheduler, 
-            parameter_list=parameters,
-            grad_clip=grad_clip,
-            **cfg_)
+        cfg['parameters'] = parameters
+    return OPTIMIZERS.get(name)(lr_scheduler, **cfg)
+
+
+def build_optimizer(cfg, lr_scheduler, model_list=None):
+    cfg = copy.deepcopy(cfg)
+    name = cfg.pop('name')
+
+    # step 1 clip grad
+    if 'grad_clip' in cfg:
+        grad_clip_cfg = cfg.pop('grad_clip')
+        if grad_clip_cfg['name'] == 'global_norm':
+            clip_norm = grad_clip_cfg['value']
+            cfg['grad_clip'] = ClipGradByGlobalNorm(clip_norm=clip_norm)
+        elif grad_clip_cfg['name'] == 'clip_norm':
+            clip_norm = grad_clip_cfg['value']
+            cfg['grad_clip'] = ClipGradByNorm(clip_norm=clip_norm)
+
+    # step 2 build multiple optimizer
+    if cfg.get('seperate', False):
+        return OPTIMIZERS.get(name)(lr_scheduler, **cfg)
+
+    parameters = sum([m.parameters()
+                      for m in model_list], []) if model_list else None
+
+    # step 3 Adapt Lars and Lamb optimizer parameter argument.
+    if 'Lars' in name or 'Lamb' in name:
+        cfg['parameter_list'] = parameters
     else:
-        return OPTIMIZERS.get(name)(
-            lr_scheduler,
-            parameters=parameters,
-            grad_clip=grad_clip,
-            **cfg_)
+        cfg['parameters'] = parameters
+
+    # step 4 exclude weight decay
+    def _apply_decay_param_fun(name):
+        return name not in exclude_from_weight_decay_list
+
+    if 'exclude_from_weight_decay' in cfg:
+        ex_decay_cfg = cfg.pop('exclude_from_weight_decay')
+        exclude_from_weight_decay_list = [
+            p.name for model in model_list for n, p in model.named_parameters()
+            if any(nd in n for nd in ex_decay_cfg)
+        ]
+        cfg['apply_decay_param_fun'] = _apply_decay_param_fun
+
+    return OPTIMIZERS.get(name)(lr_scheduler, **cfg)
 
 
 class MultiStateDictMeta(object):
@@ -94,28 +141,28 @@ class MultiStateDictMeta(object):
 
     def append(self, meta):
         self.metas.append(meta)
-    
+
     def __getitem__(self, idx):
         return self.metas[idx]
-    
+
     def state_dict(self):
         def convert(state_dict):
             model_dict = {}
 
             for k, v in state_dict.items():
-                if isinstance(
-                        v,
-                    (paddle.fluid.framework.Variable, paddle.fluid.core.VarBase)):
+                if isinstance(v, (paddle.fluid.framework.Variable,
+                                  paddle.fluid.core.VarBase)):
                     model_dict[k] = v.numpy()
                 else:
                     model_dict[k] = v
 
             return model_dict
+
         return [convert(mt.state_dict()) for mt in self.metas]
-    
+
     def set_state_dict(self, state_dicts):
         for i, state_dict in enumerate(state_dicts):
             self.metas[i].set_state_dict(state_dict)
-    
+
     def __len__(self):
         return len(self.metas)
