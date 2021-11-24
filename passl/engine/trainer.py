@@ -110,7 +110,8 @@ class Trainer:
         self.model = build_model(cfg.model)
 
         # build train dataloader
-        self.train_dataloader = build_dataloader(cfg.dataloader.train)
+        self.train_dataloader, self.mixup_fn = build_dataloader(
+            cfg.dataloader.train)
         self.iters_per_epoch = len(self.train_dataloader)
 
         # use byol iters
@@ -121,7 +122,7 @@ class Trainer:
         # build optimizer
         self.lr_scheduler = MultiStateDictMeta()
         self.optimizer = MultiStateDictMeta()
-        separete = cfg.get('separete', False)
+        separete = cfg.optimizer.get('seperate', False)
         if not separete:
             parameters = self.model.parameters()
             # build lr scheduler
@@ -141,7 +142,7 @@ class Trainer:
                 self.lr_scheduler.append(
                     build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
             optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler[0],
-                                        parameters)
+                                        [self.model])
             if dist.get_world_size() > 1:
                 fleet.init(is_collective=True)
                 optimizer = fleet.distributed_optimizer(optimizer)
@@ -263,11 +264,13 @@ class Trainer:
             if self.use_byol_iters:
                 self.outputs = self.model(*data,
                                           total_iters=self.byol_total_iters,
-                                          current_iter=self.current_iter)
+                                          current_iter=self.current_iter,
+                                          mixup_fn=self.mixup_fn)
             else:
                 self.outputs = self.model(*data,
                                           total_iters=self.total_iters,
-                                          current_iter=self.current_iter)
+                                          current_iter=self.current_iter,
+                                          mixup_fn=self.mixup_fn)
             self.call_hook('train_iter_end')
 
             if self.current_iter % self.iters_per_epoch == 0:
@@ -278,7 +281,8 @@ class Trainer:
 
     def val(self, **kargs):
         if not hasattr(self, 'val_dataloader'):
-            self.val_dataloader = build_dataloader(self.cfg.dataloader.val)
+            self.val_dataloader, mixup_fn = build_dataloader(
+                self.cfg.dataloader.val)
 
         self.logger.info(
             'start evaluate on epoch {} ..'.format(self.current_epoch + 1))
