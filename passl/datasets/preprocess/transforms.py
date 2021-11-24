@@ -17,11 +17,16 @@ from PIL import ImageFilter, Image, ImageOps
 import numpy as np
 
 import paddle
-
 import paddle.vision.transforms as PT
 import paddle.vision.transforms.functional as F
-from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize,ToCHW,ByolToRGB,ByolCenterCrop, ByolRandomCrop
+
+from .mixup import Mixup
 from .builder import TRANSFORMS, build_transform
+from .random_erasing import RandomErasing
+from .constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, DEFAULT_CROP_PCT
+from .auto_augment import rand_augment_transform, augment_and_mix_transform, auto_augment_transform
+from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize, \
+         ToCHW, ByolToRGB, ByolCenterCrop, ByolRandomCrop
 
 TRANSFORMS.register(PT.RandomResizedCrop)
 TRANSFORMS.register(PT.ColorJitter)
@@ -41,10 +46,13 @@ TRANSFORMS.register(ByolToRGB)
 TRANSFORMS.register(ByolRandomCrop)
 TRANSFORMS.register(ByolCenterCrop)
 
+TRANSFORMS.register(RandomErasing)
+TRANSFORMS.register(Mixup)
+
 
 @TRANSFORMS.register()
 class Clip():
-    def __init__(self,min_val=0.0,max_val=1.0):
+    def __init__(self, min_val=0.0, max_val=1.0):
         self.min_val = min_val
         self.max_val = max_val
 
@@ -56,7 +64,7 @@ class Clip():
         Returns:
             PIL Image: Cliped image.
         """
-        clip_img = img.clip(self.min_val,self.max_val)
+        clip_img = img.clip(self.min_val, self.max_val)
         return clip_img
 
 
@@ -73,7 +81,7 @@ class NormToOne():
         Returns:
             PIL Image: Randomly grayscaled image.
         """
-        norm_img = (img/255.).astype('float32')
+        norm_img = (img / 255.).astype('float32')
         return norm_img
 
 
@@ -85,7 +93,6 @@ class RandomApply():
         transforms (list or tuple): list of transformations
         p (float): probability
     """
-
     def __init__(self, transforms, p=0.5):
         _transforms = []
         if isinstance(transforms, (list, tuple)):
@@ -120,7 +127,6 @@ class RandomGrayscale(object):
         - If input image is 3 channel: grayscale version is 3 channel with r == g == b
 
     """
-
     def __init__(self, p=0.1):
         self.p = p
 
@@ -134,7 +140,7 @@ class RandomGrayscale(object):
         """
         num_output_channels = 1 if img.mode == 'L' else 3
 
-        if random.random()< self.p:
+        if random.random() < self.p:
             return F.to_grayscale(img, num_output_channels=num_output_channels)
         return img
 
@@ -142,7 +148,6 @@ class RandomGrayscale(object):
 @TRANSFORMS.register()
 class GaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
-
     def __init__(self, sigma=[.1, 2.], _PIL=False):
         self.sigma = sigma
         self.kernel_size = 23
@@ -150,14 +155,15 @@ class GaussianBlur(object):
 
     def __call__(self, x):
         sigma = np.random.uniform(self.sigma[0], self.sigma[1])
-        if self._PIL: 
+        if self._PIL:
             x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
             return x
-        else:  
+        else:
             import cv2
-            x = cv2.GaussianBlur(np.array(x), (self.kernel_size, self.kernel_size), sigma)
+            x = cv2.GaussianBlur(np.array(x),
+                                 (self.kernel_size, self.kernel_size), sigma)
             return Image.fromarray(x.astype(np.uint8))
-               
+
 
 @TRANSFORMS.register()
 class Solarization(object):
@@ -177,3 +183,50 @@ class ToRGB(object):
         if sample.mode != self.mode:
             return sample.convert(self.mode)
         return sample
+
+
+def _pil_interp(method):
+    if method == 'bicubic':
+        return Image.BICUBIC
+    elif method == 'lanczos':
+        return Image.LANCZOS
+    elif method == 'hamming':
+        return Image.HAMMING
+    else:
+        # default bilinear, do we want to allow nearest?
+        return Image.BILINEAR
+
+
+@TRANSFORMS.register()
+class AutoAugment(PT.BaseTransform):
+    def __init__(self,
+                 config_str,
+                 img_size,
+                 interpolation,
+                 mean=IMAGENET_DEFAULT_MEAN,
+                 std=IMAGENET_DEFAULT_STD,
+                 keys=None):
+        super(AutoAugment, self).__init__(keys)
+        assert isinstance(config_str, str)
+        if isinstance(img_size, tuple):
+            img_size_min = min(img_size)
+        else:
+            img_size_min = img_size
+        aa_params = dict(
+            translate_const=int(img_size_min * 0.45),
+            img_mean=tuple([min(255, round(255 * x)) for x in mean]),
+        )
+        if interpolation and interpolation != 'random':
+            aa_params['interpolation'] = _pil_interp(interpolation)
+        if config_str.startswith('rand'):
+            self.transform = rand_augment_transform(config_str, aa_params)
+        elif config_str.startswith('augmix'):
+            aa_params['translate_pct'] = 0.3
+            self.transform = augment_and_mix_transform(config_str, aa_params)
+        elif config_str == '':
+            self.transform = None
+        else:
+            self.transform = auto_augment_transform(config_str, aa_params)
+
+    def _apply_image(self, img):
+        return self.transform(img) if self.transform != None else img

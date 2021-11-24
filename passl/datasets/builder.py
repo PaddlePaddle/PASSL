@@ -16,6 +16,8 @@ import copy
 import paddle
 
 from ..utils.registry import Registry, build_from_config
+from .preprocess.builder import build_transforms
+from .preprocess.mixup import Mixup
 
 DATASETS = Registry("DATASET")
 
@@ -28,10 +30,27 @@ def build_dataloader(cfg):
     cfg_ = copy.deepcopy(cfg)
     dataset_cfg = cfg_.pop('dataset')
     sampler_cfg = cfg_.pop('sampler')
+
+    mixup_cfg = dataset_cfg.pop(
+        'batch_transforms') if 'batch_transforms' in dataset_cfg else None
+
     dataset = build_dataset(dataset_cfg)
 
     sampler = paddle.io.DistributedBatchSampler(dataset, **sampler_cfg)
 
     dataloader = paddle.io.DataLoader(dataset, batch_sampler=sampler, **cfg_)
 
-    return dataloader
+    #setup mixup / cutmix
+    mixup_fn = None
+    if mixup_cfg is not None:
+        mixup_cfg = mixup_cfg[0]
+        mixup_active = mixup_cfg['mixup_alpha'] > 0 or mixup_cfg[
+            'cutmix_alpha'] > 0. or mixup_cfg['cutmix_minmax'] != ''  # noqa
+        if mixup_active:
+            mixup_fn = Mixup(mixup_alpha=mixup_cfg['mixup_alpha'],
+                             cutmix_alpha=mixup_cfg['cutmix_alpha'],
+                             prob=mixup_cfg['prob'],
+                             switch_prob=mixup_cfg['switch_prob'],
+                             mode=mixup_cfg['mode'])
+
+    return dataloader, mixup_fn
