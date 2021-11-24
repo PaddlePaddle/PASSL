@@ -7,10 +7,10 @@ model:
   architecture:
       name: SwinTransformer
       embed_dim: 96
-      depths: [2, 2, 18, 2]
+      depths: [2, 2, 6, 2]
       num_heads: [3, 6, 12, 24]
       window_size: 7
-      drop_path_rate: 0.3
+      drop_path_rate: 0.2
   head:
     name: SwinTransformerClsHead
     with_avg_pool: True
