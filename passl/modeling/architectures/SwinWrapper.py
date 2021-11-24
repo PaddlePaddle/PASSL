@@ -25,10 +25,7 @@ from .builder import MODELS
 
 @MODELS.register()
 class SwinWrapper(nn.Layer):
-    def __init__(self,
-                 architecture=None,
-                 head=None
-                 ):
+    def __init__(self, architecture=None, head=None):
         """A wrapper for a ViT model as specified in the paper.
 
         Args:
@@ -36,25 +33,33 @@ class SwinWrapper(nn.Layer):
         """
         super().__init__()
 
-        self.backbone = build_backbone(architecture) 
+        self.backbone = build_backbone(architecture)
         self.automatic_optimization = False
         self.head = build_head(head)
 
     def backbone_forward(self, x):
         x = self.backbone(x)
         return x
-      
-    def train_iter(self, *inputs, **kwargs): 
+
+    def train_iter(self, *inputs, **kwargs):
         img, label = inputs
+        mixup_fn = kwargs['mixup_fn']
+        if mixup_fn is not None:
+            img, label = mixup_fn(img, label)
+
         x = self.backbone_forward(img)
-        if isinstance(x, tuple):
-            x = x[-1]
-        _, cls_token = x
-        outs = self.head(cls_token)
+        outs = self.head(x)
         loss_inputs = (outs, label)
         outputs = self.head.loss(*loss_inputs)
-        return outputs 
-        
+        return outputs
+
+    def test_iter(self, *inputs, **kwargs):
+        with paddle.no_grad():
+            img, label = inputs
+            x = self.backbone_forward(img)
+            outs = self.head(x)
+
+        return outs
 
     def forward(self, *inputs, mode='train', **kwargs):
         if mode == 'train':
@@ -66,11 +71,10 @@ class SwinWrapper(nn.Layer):
         else:
             raise Exception("No such mode: {}".format(mode))
 
-   
-    
     def validation_step(self, val_batch, idx):
         image, text = val_batch
         image_logits, text_logits = self.forward(image, text)
         ground_truth = paddle.arange(len(image_logits))
-        loss = (self.image_loss(image_logits, ground_truth) + self.text_loss(text_logits, ground_truth)).div(2)
+        loss = (self.image_loss(image_logits, ground_truth) +
+                self.text_loss(text_logits, ground_truth)).div(2)
         self.log('val_loss', loss)
