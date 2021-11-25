@@ -19,6 +19,8 @@
 #                         - nn.AvgPool
 #                         - nn.GELU
 #                         - nn.LayerNorm
+#                         - nn.Softmax
+#                         - nn.AdaptiveAvgPool
 #                         - coming soon ...
 #
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
@@ -34,6 +36,7 @@ def count_conv2d(m, x, y):
     kernel_ops = paddle.zeros(m.weight.shape[2:]).numel()
     bias_ops = 1 if m.bias is not None else 0
     total_ops = y.numel() * (x.shape[1] / m._groups * kernel_ops + bias_ops)
+
     m.flops += int(total_ops)
 
 
@@ -41,6 +44,7 @@ def count_linear(m, x, y):
     total_mul = m.weight.shape[0]
     num_elements = y.numel()
     total_ops = total_mul * num_elements
+
     m.flops += int(total_ops)
 
 
@@ -49,6 +53,7 @@ def count_bn(m, x, y):
     nelements = x.numel()
     if not m.training:
         total_ops = 2 * nelements
+
     m.flops += int(total_ops)
 
 
@@ -65,6 +70,7 @@ def count_gelu(m, x, y):
     x = x[0]
     num_elements = x.numel()
     total_ops = gelu_ops * num_elements
+
     m.flops += int(total_ops)
 
 
@@ -73,6 +79,30 @@ def count_ln(m, x, y):
     num_elements = x.numel()
     if not m.training:
         total_ops = 2 * num_elements
+
+    m.flops += int(total_ops)
+
+
+def count_adap_avgpool(m, x, y):
+    kernel = paddle.to_tensor([*(x[0].shape[2:])]) // paddle.to_tensor(
+        [*(y.shape[2:])])
+    total_add = paddle.prod(kernel)
+    num_elements = y.numel()
+    kernel_op = total_add + 1
+    total_ops = kernel_op * num_elements
+
+    m.flops += int(total_ops)
+
+
+def count_softmax(m, x, y):
+    x = x[0]
+    nfeatures = x.shape[m._axis]
+    batch_size = x.numel() // nfeatures
+    total_exp = nfeatures
+    total_add = nfeatures - 1
+    total_div = nfeatures
+    total_ops = batch_size * (total_exp + total_add + total_div)
+
     m.flops += int(total_ops)
 
 
@@ -103,4 +133,6 @@ register_hooks = {
     nn.AvgPool2D: count_avgpool,
     nn.GELU: count_gelu,
     nn.LayerNorm: count_ln,
+    nn.AdaptiveAvgPool1D: count_adap_avgpool,
+    nn.Softmax: count_softmax
 }
