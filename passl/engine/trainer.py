@@ -87,6 +87,7 @@ class Trainer:
         # set seed
         seed = self.cfg.get('seed', False)
         if seed:
+            seed += dist.get_rank()
             paddle.seed(seed)
             np.random.seed(seed)
             random.seed(seed)
