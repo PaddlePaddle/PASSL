@@ -13,6 +13,8 @@
 # limitations under the License.
 # Originally impl at https://github.com/zhunzhong07/Random-Erasing refer from timm:
 #    https://github.com/rwightman/pytorch-image-models/blob/master/timm/data/random_erasing.py
+# Copyright 2020 Ross Wightman
+# Copyright Zhun Zhong & Liang Zheng
 
 import random
 import math

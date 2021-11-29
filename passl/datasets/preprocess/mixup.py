@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Taken and modified for PASSL from timm:
+# code was heavily based on
 #   https://github.com/rwightman/pytorch-image-models/blob/master/timm/data/mixup.py
+# Copyright (c) 2020 Ross Wightman
 
 import numpy as np
 import paddle

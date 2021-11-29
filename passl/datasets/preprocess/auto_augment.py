@@ -17,6 +17,7 @@
 #    https://github.com/tensorflow/tpu/blob/master/models/official/efficientnet/autoaugment.py
 # AugMix adapted from:
 #    https://github.com/google-research/augmix
+# Copyright 2020 Ross Wightman
 
 import random
 import math
