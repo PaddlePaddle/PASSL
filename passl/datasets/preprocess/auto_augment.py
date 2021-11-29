@@ -1,5 +1,4 @@
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserve.
-# Copyright (c) 2020 Ross Wightman. All Rights Reserve.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# This code is mostly borrowed from timm AutoAugment:
+# Taken and modified for PASSL from timm:
 #   https://github.com/yang-ruixin/PyTorch-Image-Models-Multi-Label-Classification/blob/main/timm/data/auto_augment.py
 # AutoAugment and RandAug Implementation adapted from:
 #    https://github.com/tensorflow/tpu/blob/master/models/official/efficientnet/autoaugment.py
-#
 # AugMix adapted from:
 #    https://github.com/google-research/augmix
+# Copyright 2020 Ross Wightman
 
 import random
 import math
