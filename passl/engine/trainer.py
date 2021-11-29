@@ -85,7 +85,7 @@ class Trainer:
         self.log_interval = cfg.log_config.interval
 
         # set seed
-        seed = self.cfg.get('seed', False) + dist.get_rank()
+        seed = self.cfg.get('seed', False)
         if seed:
             paddle.seed(seed)
             np.random.seed(seed)
