@@ -47,12 +47,22 @@ python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c c
 
 
 Pretraining models with 200 epochs can be found at [SimCLR](https://passl.bj.bcebos.com/models/simclr_r50_ep100_ckpt.pdparam).
-Note: The default learning rate in config files is for 8 GPUs. If using differnt number GPUs, the total batch size will change in proportion, you have to scale the learning rate following ```new_lr = old_lr * new_ngpus / old_ngpus```. 
+Note: The default learning rate in config files is for 8 GPUs. If using differnt number GPUs, the total batch size will change in proportion, you have to scale the learning rate following ```new_lr = old_lr * new_ngpus / old_ngpus```.
 ### 2. Extract backbone weights
 
 ```
 python tools/extract_weight.py ${CHECKPOINT} --output ${WEIGHT_FILE}
 ```
+
+* Support PaddleClas
+
+Convert the format of the extracted weights to the corresponding format of paddleclas to facilitate training on paddleclas
+
+```
+python tools/passl2ppclas/convert.py --type res50 --checkpoint ${CHECKPOINT} --output ${WEIGHT_FILE}
+```
+
+> Note: It must be ensured that the weights are extracted
 
 ### 3. Evaluation on ImageNet Linear Classification
 

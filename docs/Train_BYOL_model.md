@@ -36,6 +36,16 @@ Note: The default learning rate in config files is for 32 GPUs. If using differn
 python tools/extract_weight.py ${CHECKPOINT} --output ${WEIGHT_FILE}
 ```
 
+* Support PaddleClas
+
+Convert the format of the extracted weights to the corresponding format of paddleclas to facilitate training on paddleclas
+
+```
+python tools/passl2ppclas/convert.py --type res50 --checkpoint ${CHECKPOINT} --output ${WEIGHT_FILE}
+```
+
+> Note: It must be ensured that the weights are extracted
+
 ### 3. Evaluation on ImageNet Linear Classification
 
 #### Train:
@@ -48,5 +58,5 @@ python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c c
 python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/byol/byol_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only
 ```
 
-The trained linear weights in conjuction with the backbone weights can be found at [BYOL linear](https://passl.bj.bcebos.com/models/byol_r50_clas.pdparams) 
+The trained linear weights in conjuction with the backbone weights can be found at [BYOL linear](https://passl.bj.bcebos.com/models/byol_r50_clas.pdparams)
 
