@@ -25,7 +25,7 @@ OPTIMIZERS = Registry("OPTIMIZER")
 
 def build_lr_scheduler(cfg, iters_per_epoch):
     # FIXME: if have a better way
-    if cfg.name == 'CosineAnnealingDecay':
+    if cfg.name == 'CosineAnnealingDecay' or cfg.name == 'ViTLRScheduler':
         cfg.T_max *= iters_per_epoch
         return build_from_config(cfg, LRSCHEDULERS)
     elif cfg.name == 'MultiStepDecay':

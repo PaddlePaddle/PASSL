@@ -19,7 +19,6 @@ import paddle.nn.functional as F
 import paddle.distributed as dist
 
 from ..backbones import build_backbone
-from ..heads import build_head
 from .builder import MODELS
 
 
@@ -27,7 +26,7 @@ from .builder import MODELS
 class ViTWrapper(nn.Layer):
     def __init__(self,
                  architecture=None,
-                 head=None
+                 label_smoothing=None
                  ):
         """A wrapper for a ViT model as specified in the paper.
 
@@ -36,25 +35,48 @@ class ViTWrapper(nn.Layer):
         """
         super().__init__()
 
-        self.backbone = build_backbone(architecture) 
+        self.backbone = build_backbone(architecture)
         self.automatic_optimization = False
-        self.head = build_head(head)
-
-    def backbone_forward(self, x):
-        x = self.backbone(x)
-        return x
-      
-    def train_iter(self, *inputs, **kwargs): 
-        img, label = inputs
-        x = self.backbone_forward(img)
-        if isinstance(x, tuple):
-            x = x[-1]
-        _, cls_token = x
-        outs = self.head(cls_token)
-        loss_inputs = (outs, label)
-        outputs = self.head.loss(*loss_inputs)
-        return outputs 
+        self.label_smoothing = label_smoothing
+        if self.label_smoothing is not None:
+            assert self.label_smoothing > 0 and self.label_smoothing < 1
         
+    def loss(self, x, label):
+        losses = dict()
+        
+        class_num = x.shape[-1]
+        if len(label.shape) == 1 or label.shape[-1] != class_num:
+            label = F.one_hot(label, class_num)
+            label = paddle.reshape(label, shape=[-1, class_num])
+        if self.label_smoothing is not None:
+            # vit style label smoothing
+            with paddle.no_grad(): 
+                label = label * (1.0 - self.label_smoothing) + self.label_smoothing
+                
+        loss = F.binary_cross_entropy_with_logits(x, label, reduction='none')
+        loss = paddle.sum(loss, axis=-1)
+        loss = loss.mean()
+
+        losses['loss'] = loss
+        losses['acc1'], losses['acc5'] = accuracy(x, label, topk=(1, 5))
+        return losses
+
+    def train_iter(self, *inputs, **kwargs):
+        img, label = inputs
+        mixup_fn = kwargs['mixup_fn']
+        if mixup_fn is not None:
+            img, label = mixup_fn(img, label)
+
+        outs = self.backbone(img)
+        outputs = self.loss(outs, label)
+        return outputs
+
+    def test_iter(self, *inputs, **kwargs):
+        with paddle.no_grad():
+            img, label = inputs
+            outs = self.backbone(img)
+
+        return outs
 
     def forward(self, *inputs, mode='train', **kwargs):
         if mode == 'train':
@@ -62,15 +84,25 @@ class ViTWrapper(nn.Layer):
         elif mode == 'test':
             return self.test_iter(*inputs, **kwargs)
         elif mode == 'extract':
-            return self.backbone(*inputs)
+            return self.backbone.forward_features(x)
         else:
             raise Exception("No such mode: {}".format(mode))
+        
+def accuracy(output, target, topk=(1, )):
+    """Computes the accuracy over the k top predictions for the specified values of k"""
+    with paddle.no_grad():
+        maxk = max(topk)
+        if target.dim() > 1:
+            target = target.argmax(axis=-1)
+        batch_size = target.shape[0]
 
-   
-    
-    def validation_step(self, val_batch, idx):
-        image, text = val_batch
-        image_logits, text_logits = self.forward(image, text)
-        ground_truth = paddle.arange(len(image_logits))
-        loss = (self.image_loss(image_logits, ground_truth) + self.text_loss(text_logits, ground_truth)).div(2)
-        self.log('val_loss', loss)
+        _, pred = output.topk(maxk, 1, True, True)
+        pred = pred.t()
+        correct = paddle.cast(pred == target.reshape([1, -1]).expand_as(pred),
+                              'float32')
+
+        res = []
+        for k in topk:
+            correct_k = correct[:k].reshape([-1]).sum(0, keepdim=True)
+            res.append(correct_k * 100.0 / batch_size)
+        return res
