@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import random
 from PIL import ImageFilter, Image, ImageOps
+import cv2
 import numpy as np
+from functools import partial
 
 import paddle
 import paddle.vision.transforms as PT
@@ -176,12 +179,20 @@ class Solarization(object):
 
 @TRANSFORMS.register()
 class ToRGB(object):
-    def __init__(self, mode='RGB'):
+    def __init__(self, mode='RGB', return_type='pil'):
         self.mode = mode
+        self.return_type = return_type
+        assert return_type in ['pil', 'numpy']
 
     def __call__(self, sample):
-        if sample.mode != self.mode:
-            return sample.convert(self.mode)
+        if isinstance(sample, Image.Image) and sample.mode != self.mode:
+            sample = sample.convert(self.mode)
+        if isinstance(sample, np.ndarray):
+            sample = sample[..., ::-1]
+        if self.return_type == 'numpy' and not isinstance(sample, np.ndarray):
+            sample = np.asarray(sample)
+        if self.return_type == 'pil' and not isinstance(sample, Image.Image):
+            sample = Image.fromarray(sample)
         return sample
 
 
@@ -230,3 +241,138 @@ class AutoAugment(PT.BaseTransform):
 
     def _apply_image(self, img):
         return self.transform(img) if self.transform != None else img
+    
+
+class UnifiedResize(object):
+    """
+        https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
+    """
+    def __init__(self, interpolation=None, backend="cv2"):
+        _cv2_interp_from_str = {
+            'nearest': cv2.INTER_NEAREST,
+            'bilinear': cv2.INTER_LINEAR,
+            'area': cv2.INTER_AREA,
+            'bicubic': cv2.INTER_CUBIC,
+            'lanczos': cv2.INTER_LANCZOS4
+        }
+        _pil_interp_from_str = {
+            'nearest': Image.NEAREST,
+            'bilinear': Image.BILINEAR,
+            'bicubic': Image.BICUBIC,
+            'box': Image.BOX,
+            'lanczos': Image.LANCZOS,
+            'hamming': Image.HAMMING
+        }
+
+        def _pil_resize(src, size, resample):
+            pil_img = Image.fromarray(src)
+            pil_img = pil_img.resize(size, resample)
+            return np.asarray(pil_img)
+
+        if backend.lower() == "cv2":
+            if isinstance(interpolation, str):
+                interpolation = _cv2_interp_from_str[interpolation.lower()]
+            # compatible with opencv < version 4.4.0
+            elif interpolation is None:
+                interpolation = cv2.INTER_LINEAR
+            self.resize_func = partial(cv2.resize, interpolation=interpolation)
+        elif backend.lower() == "pil":
+            if isinstance(interpolation, str):
+                interpolation = _pil_interp_from_str[interpolation.lower()]
+            self.resize_func = partial(_pil_resize, resample=interpolation)
+        else:
+            logger.warning(
+                f"The backend of Resize only support \"cv2\" or \"PIL\". \"f{backend}\" is unavailable. Use \"cv2\" instead."
+            )
+            self.resize_func = cv2.resize
+
+    def __call__(self, src, size):
+        return self.resize_func(src, size)
+    
+@TRANSFORMS.register()
+class RandCropImage(object):
+    """ random crop image
+        https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
+    """
+
+    def __init__(self,
+                 size,
+                 scale=None,
+                 ratio=None,
+                 interpolation=None,
+                 backend="cv2"):
+        if type(size) is int:
+            self.size = (size, size)  # (h, w)
+        else:
+            self.size = size
+
+        self.scale = [0.08, 1.0] if scale is None else scale
+        self.ratio = [3. / 4., 4. / 3.] if ratio is None else ratio
+
+        self._resize_func = UnifiedResize(
+            interpolation=interpolation, backend=backend)
+
+    def __call__(self, img):
+        size = self.size
+        scale = self.scale
+        ratio = self.ratio
+
+        aspect_ratio = math.sqrt(random.uniform(*ratio))
+        w = 1. * aspect_ratio
+        h = 1. / aspect_ratio
+
+        img_h, img_w = img.shape[:2]
+
+        bound = min((float(img_w) / img_h) / (w**2),
+                    (float(img_h) / img_w) / (h**2))
+        scale_max = min(scale[1], bound)
+        scale_min = min(scale[0], bound)
+
+        target_area = img_w * img_h * random.uniform(scale_min, scale_max)
+        target_size = math.sqrt(target_area)
+        w = int(target_size * w)
+        h = int(target_size * h)
+
+        i = random.randint(0, img_w - w)
+        j = random.randint(0, img_h - h)
+
+        img = img[j:j + h, i:i + w, :]
+
+        return self._resize_func(img, size)
+   
+@TRANSFORMS.register()
+class ResizeImage(object):
+    """ resize image
+        https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
+    """
+
+    def __init__(self,
+                 size=None,
+                 resize_short=None,
+                 interpolation=None,
+                 backend="cv2"):
+        if resize_short is not None and resize_short > 0:
+            self.resize_short = resize_short
+            self.w = None
+            self.h = None
+        elif size is not None:
+            self.resize_short = None
+            self.w = size if type(size) is int else size[0]
+            self.h = size if type(size) is int else size[1]
+        else:
+            raise OperatorParamError("invalid params for ReisizeImage for '\
+                'both 'size' and 'resize_short' are None")
+
+        self._resize_func = UnifiedResize(
+            interpolation=interpolation, backend=backend)
+
+    def __call__(self, img):
+        img_h, img_w = img.shape[:2]
+        if self.resize_short is not None:
+            percent = float(self.resize_short) / min(img_w, img_h)
+            w = int(round(img_w * percent))
+            h = int(round(img_h * percent))
+        else:
+            w = self.w
+            h = self.h
+        return self._resize_func(img, (w, h))
