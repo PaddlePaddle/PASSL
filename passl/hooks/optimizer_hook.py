@@ -22,21 +22,30 @@ class OptimizerHook(Hook):
         self.priority = priority
         
     def train_iter_end(self, trainer):
-        for i_opt in range(len(trainer.optimizer)):
-            if 'lars' in trainer.optimizer[i_opt].type:
-                trainer.optimizer[i_opt].clear_gradients()
-            else:
-                trainer.optimizer[i_opt].clear_grad()
+        if 'Lars' in trainer.cfg['optimizer']['name']:
+            trainer.optimizer.clear_gradients()
+        else:
+            trainer.optimizer.clear_grad()
 
         loss = 0
         loss = trainer.outputs['loss']
-        loss.backward()
         
-        for i_opt in range(len(trainer.optimizer)):
-            if 'lars' in trainer.optimizer[0].type:
-                trainer.optimizer[i_opt].minimize(loss)
+        if trainer.use_amp:
+            scaled_loss = trainer.scaler.scale(loss)
+            scaled_loss.backward()
+            sharding_stage = trainer.sharding_stage if trainer.sharding_stage is not None else False
+            if sharding_stage == 2:
+                trainer.scaler.step(trainer.optimizer)
+                trainer.scaler.update()
             else:
-                trainer.optimizer[i_opt].step()
+                trainer.scaler.minimize(trainer.optimizer, scaled_loss)
+
+        else:
+            loss.backward()
+            if 'lars' in trainer.optimizer.type:
+                trainer.optimizer.minimize(loss)
+            else:
+                trainer.optimizer.step()
 
         if 'loss' not in trainer.outputs:
             trainer.outputs['loss'] = loss

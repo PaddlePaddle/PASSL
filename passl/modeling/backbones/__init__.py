@@ -1,7 +1,7 @@
 from .resnet import ResNet
 from .clip import CLIP
 from .builder import build_backbone
-from .resnetcifar import ResNet
+from .resnetcifar import ResNet as ResNetCifar
 from .resnetsimclr import ResNetsimclr
 from .vision_transformer import VisionTransformer
 from .vit import GoogleVisionTransformer
