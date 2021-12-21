@@ -376,3 +376,65 @@ class ResizeImage(object):
             w = self.w
             h = self.h
         return self._resize_func(img, (w, h))
+
+
+@TRANSFORMS.register()
+class NormalizeImage(PT.Normalize):
+    """NormalizeImage normalize input value to 0 ~ 1 in order to avoid overflow.
+    ``output[channel] = (input[channel] / 255. - mean[channel]) / std[channel]``
+
+    Args:
+        scale (float): Normalize input value to [0, 1].
+        mean (int|float|list|tuple): Sequence of means for each channel.
+        std (int|float|list|tuple): Sequence of standard deviations for each channel.
+        data_format (str, optional): Data format of img, should be 'HWC' or 
+            'CHW'. Default: 'CHW'.
+        to_rgb (bool, optional): Whether to convert to rgb. Default: False.
+        keys (list[str]|tuple[str], optional): Same as ``BaseTransform``. Default: None.
+
+    Shape:
+        - img(PIL.Image|np.ndarray|Paddle.Tensor): The input image with shape (H x W x C).
+        - output(PIL.Image|np.ndarray|Paddle.Tensor): A normalized array or tensor.
+
+    Returns:
+        A callable object of Normalize.
+
+    Examples:
+    
+        .. code-block:: python
+
+            import numpy as np
+            from PIL import Image
+            from paddle.vision.transforms import Normalize
+
+            normalize = NormalizeImage(scale=1./255.,
+                                  mean=[127.5, 127.5, 127.5], 
+                                  std=[127.5, 127.5, 127.5],
+                                  data_format='HWC')
+
+            fake_img = Image.fromarray((np.random.rand(300, 320, 3) * 255.).astype(np.uint8))
+
+            fake_img = normalize(fake_img)
+            print(fake_img.shape)
+            print(fake_img.max, fake_img.max)
+    
+    """
+
+    def __init__(self,
+                 scale=None,
+                 mean=0.0,
+                 std=1.0,
+                 data_format='CHW',
+                 to_rgb=False,
+                 dtype='float32',
+                 keys=None):
+        super(NormalizeImage, self).__init__(mean=mean, std=std, keys=keys)
+        self.scale = eval(scale)
+        self.dtype = dtype 
+
+    def _apply_image(self, img):
+        if self.scale is not None:
+            img = img * self.scale
+        img = F.normalize(img, self.mean, self.std, self.data_format,
+                           self.to_rgb)
+        return img.astype(self.dtype)

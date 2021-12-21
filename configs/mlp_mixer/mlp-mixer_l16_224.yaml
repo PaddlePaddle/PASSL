@@ -33,9 +33,10 @@ dataloader:
           ratio: [1., 1.]
           interpolation: 'bicubic'
         - name: Transpose
-        - name: Normalize
-          mean: [127.5, 127.5, 127.5]
-          std: [127.5, 127.5, 127.5]
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
 
 lr_scheduler:
   name: CosineWarmup
