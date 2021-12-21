@@ -2,26 +2,26 @@ epochs: 300
 output_dir: output_dir
 
 model:
-    name: BeitWrapper
-    architecture:
-        name: Beit
-        img_size: 224
-        embed_dim: 768
-        patch_size: 16
-        depth: 12
-        num_heads: 12
-        mlp_ratio: 4
-        use_abs_pos_emb: False
-        use_rel_pos_bias: True
-        init_values: 0.1
+  name: BeitWrapper
+  architecture:
+      name: Beit
+      img_size: 224
+      embed_dim: 768
+      patch_size: 16
+      depth: 12
+      num_heads: 12
+      mlp_ratio: 4
+      use_abs_pos_emb: False
+      use_rel_pos_bias: True
+      init_values: 0.1
     head:
-        name: BeitClsHead
-        num_classes: 1000
-        in_channels: 768
+      name: BeitClsHead
+      num_classes: 1000
+      in_channels: 768
 
 dataloader:
   train:
-    num_workers: 0
+    num_workers: 8
     sampler:
       batch_size: 128
       shuffle: true
@@ -38,9 +38,10 @@ dataloader:
           ratio: [1., 1.]
           interpolation: 'bicubic'
         - name: Transpose
-        - name: Normalize
-          mean: [127.5, 127.5, 127.5]
-          std: [127.5, 127.5, 127.5]
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
 
 lr_scheduler:
   name: CosineWarmup
@@ -63,3 +64,6 @@ optimizer:
 log_config:
     name: LogHook
     interval: 10
+
+custom_config:
+  - name: EvaluateHook

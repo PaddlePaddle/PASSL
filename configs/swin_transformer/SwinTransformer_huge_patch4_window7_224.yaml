@@ -1,27 +1,51 @@
 epochs: 300
 output_dir: output_dir
-seed: 0
+seed: 16
+use_amp: True 
+
+AMP:
+   level: 'O1'
+   save_dtype: 'float32'
+   master_weight: True
+   optimizers: None
+   scale_loss: 32768.0
+   auto_cast:
+     enable: True
+     custom_black_list: ["reduce_mean", "reduce_sum",
+                         "c_softmax_with_cross_entropy", "elementwise_div"]
+     level: 'O1'
+
+hybrid:
+   dp_degree: 8
+   mp_degree: 1
+   pp_degree: 1
+
+sharding:
+   sharding_stage: 2  # 2 or 'dp'
+   offload: False 
+   accumulate_grad: False 
 
 model:
   name: SwinWrapper
   architecture:
       name: SwinTransformer
-      embed_dim: 96
-      depths: [2, 2, 6, 2]
-      num_heads: [3, 6, 12, 24]
+      embed_dim: 354
+      depths: [2, 2, 18, 2]
+      num_heads: [6, 12, 24, 48]
       window_size: 7
-      drop_path_rate: 0.2
+      drop_path_rate: 0.0
+      version: 2
   head:
     name: SwinTransformerClsHead
     with_avg_pool: True
     num_classes: 1000
-    in_channels: 768
+    in_channels: 2832
 
 dataloader:
   train:
     num_workers: 8
     sampler:
-      batch_size: 128
+      batch_size: 8
       shuffle: true
       drop_last: True
     dataset:
@@ -57,7 +81,7 @@ dataloader:
   val:
     num_workers: 8
     sampler:
-      batch_size: 128
+      batch_size: 64 
       shuffle: false
       drop_last: false
     dataset:
@@ -71,7 +95,7 @@ dataloader:
         - name: CenterCrop
           size: 224
         - name: Transpose
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
@@ -92,6 +116,7 @@ optimizer:
   beta1: 0.9
   beta2: 0.999
   weight_decay: 0.05
+  multi_precision: True
   epsilon: 1e-8
   exclude_from_weight_decay: ["absolute_pos_embed","relative_position_bias_table",".bias","norm"]
   grad_clip:
@@ -107,7 +132,7 @@ checkpoint:
   name: CheckpointHook
   by_epoch: true
   interval: 1
-  max_keep_ckpts: 50
+  max_keep_ckpts: 20
 
 custom_config:
   - name: EvaluateHook

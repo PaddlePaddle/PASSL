@@ -70,9 +70,10 @@ dataloader:
           - name: Solarization
           p: 0.0
         - name: Transpose
-        - name: Normalize
-          mean: [123.675, 116.28, 103.53]
-          std: [58.395, 57.12, 57.375]
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
       view_trans2:
         - name: RandomHorizontalFlip
         - name: RandomApply
@@ -96,9 +97,10 @@ dataloader:
           - name: Solarization
           p: 0.5
         - name: Transpose
-        - name: Normalize
-          mean: [123.675, 116.28, 103.53]
-          std: [58.395, 57.12, 57.375]
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
 
 lr_scheduler:
   name: CosineWarmup
@@ -119,4 +121,4 @@ optimizer:
 
 log_config:
     name: LogHook
-    interval: 100
+    interval: 10
