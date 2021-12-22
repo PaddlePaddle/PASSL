@@ -242,11 +242,13 @@ class SwinTransformerBlock(nn.Layer):
                  drop=0.,
                  attn_drop=0.,
                  drop_path=0.,
+                 version=1,
                  act_layer=nn.GELU,
                  norm_layer=nn.LayerNorm,
                  epsilon=1e-5):
         super().__init__()
         self.dim = dim
+        self.version = version 
         self.input_resolution = input_resolution
         self.num_heads = num_heads 
         self.window_size = window_size 
@@ -309,7 +311,8 @@ class SwinTransformerBlock(nn.Layer):
         assert L == H * W, "input feature has wrong size"
 
         shortcut = x
-        x = self.norm1(x)
+        if self.version == 1:
+            x = self.norm1(x)
         x = x.reshape([B, H, W, C])
 
         # cyclic shift
@@ -329,7 +332,8 @@ class SwinTransformerBlock(nn.Layer):
         # W-MSA/SW-MSA
         attn_windows = self.attn(
             x_windows, mask=self.attn_mask)  # nW*B, window_size*window_size, C
-
+        if self.version == 2:
+            attn_windows = self.norm1(attn_windows)
         # merge windows
         attn_windows = attn_windows.reshape(
             [-1, self.window_size, self.window_size, C])
@@ -348,7 +352,10 @@ class SwinTransformerBlock(nn.Layer):
 
         # FFN
         x = shortcut + self.drop_path(x)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        if self.version == 1:
+            x = x + self.drop_path(self.mlp(self.norm2(x)))
+        else:
+            x = x + self.drop_path(self.norm2(self.mlp(x)))
 
         return x
 
@@ -457,7 +464,8 @@ class BasicLayer(nn.Layer):
                  drop_path=0.,
                  norm_layer='nn.LayerNorm',
                  downsample=None,
-                 use_checkpoint=False):
+                 use_checkpoint=False,
+                 version=1):
 
         super().__init__()
         self.dim = dim
@@ -477,6 +485,7 @@ class BasicLayer(nn.Layer):
                 qk_scale=qk_scale,
                 drop=drop,
                 attn_drop=attn_drop,
+                version=version,
                 drop_path=drop_path[i]
                 if isinstance(drop_path, list) else drop_path,
                 norm_layer=norm_layer) for i in range(depth)
@@ -647,11 +656,13 @@ class SwinTransformer(nn.Layer):
                  ape=False,
                  patch_norm=True,
                  use_checkpoint=False,
+                 version=1,
                  epsilon=1e-5,
                  **kwargs):
         super(SwinTransformer, self).__init__()
 
         self.num_classes = num_classes
+        self.version = version 
         self.num_layers = len(depths)
         self.embed_dim = embed_dim 
         self.ape = ape 
@@ -702,7 +713,8 @@ class SwinTransformer(nn.Layer):
                 norm_layer=norm_layer,
                 downsample=PatchMerging
                 if (i_layer < self.num_layers - 1) else None,
-                use_checkpoint=use_checkpoint)
+                use_checkpoint=use_checkpoint,
+                version=self.version)
             self.layers.append(layer)
 
         self.norm = eval(norm_layer)(self.num_features, epsilon=epsilon)

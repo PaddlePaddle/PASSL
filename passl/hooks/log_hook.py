@@ -114,7 +114,7 @@ class LogHook(Hook):
         else:
             log_dict['iter'] = trainer.current_iter
 
-        cur_lr = trainer.lr_scheduler[0].get_lr()
+        cur_lr = trainer.lr_scheduler.get_lr()
         if isinstance(cur_lr, list):
             log_dict['lr'] = cur_lr[0]
         elif isinstance(cur_lr, dict):

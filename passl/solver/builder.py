@@ -107,30 +107,27 @@ def build_optimizer(cfg, lr_scheduler, model_list=None):
             clip_norm = grad_clip_cfg['value']
             cfg['grad_clip'] = ClipGradByNorm(clip_norm=clip_norm)
 
-    # step 2 build multiple optimizer
-    if cfg.get('seperate', False):
-        return OPTIMIZERS.get(name)(lr_scheduler, **cfg)
 
     parameters = sum([m.parameters()
                       for m in model_list], []) if model_list else None
 
-    # step 3 Adapt Lars and Lamb optimizer parameter argument.
+    # step 2 Adapt Lars and Lamb optimizer parameter argument.
     if 'Lars' in name or 'Lamb' in name:
         cfg['parameter_list'] = parameters
     else:
         cfg['parameters'] = parameters
 
-    # step 4 exclude weight decay
-    def _apply_decay_param_fun(name):
-        return name not in exclude_from_weight_decay_list
+        # exclude weight decay
+        def _apply_decay_param_fun(name):
+            return name not in exclude_from_weight_decay_list
 
-    if 'exclude_from_weight_decay' in cfg:
-        ex_decay_cfg = cfg.pop('exclude_from_weight_decay')
-        exclude_from_weight_decay_list = [
-            p.name for model in model_list for n, p in model.named_parameters()
-            if any(nd in n for nd in ex_decay_cfg)
-        ]
-        cfg['apply_decay_param_fun'] = _apply_decay_param_fun
+        if 'exclude_from_weight_decay' in cfg:
+            ex_decay_cfg = cfg.pop('exclude_from_weight_decay')
+            exclude_from_weight_decay_list = [
+                p.name for model in model_list for n, p in model.named_parameters()
+                if any(nd in n for nd in ex_decay_cfg)
+            ]
+            cfg['apply_decay_param_fun'] = _apply_decay_param_fun
 
     return OPTIMIZERS.get(name)(lr_scheduler, **cfg)
 
