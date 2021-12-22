@@ -22,5 +22,4 @@ class LRSchedulerHook(Hook):
         self.priority = priority
 
     def train_iter_end(self, trainer):
-        for i in range(len(trainer.lr_scheduler)):
-            trainer.lr_scheduler[i].step()
+        trainer.lr_scheduler.step()

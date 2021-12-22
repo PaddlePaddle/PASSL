@@ -4,7 +4,7 @@ output_dir: output_dir
 model:
   name: SimCLR
   backbone:
-    name: ResNet
+    name: ResNetCifar
     depth: 18
     frozen_stages: 4
   neck:

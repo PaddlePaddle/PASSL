@@ -1,7 +1,3 @@
-#   Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserve.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
@@ -21,6 +17,10 @@ from collections import OrderedDict
 import paddle
 import paddle.distributed as dist
 from paddle.distributed import fleet
+from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
+from paddle.distributed.fleet.meta_parallel.sharding.sharding_utils import ShardingScaler
+from paddle.distributed.fleet.meta_parallel.sharding.sharding_stage2 import ShardingStage2
+from paddle.distributed.fleet.meta_optimizers.dygraph_optimizer.sharding_optimizer_stage2 import ShardingOptimizerStage2
 
 from ..hooks import build_hook, Hook
 from ..utils.misc import AverageMeter
@@ -28,6 +28,16 @@ from ..datasets.builder import build_dataloader
 from ..modeling.architectures import build_model
 from ..solver import build_lr_scheduler, build_lr_scheduler_simclr, build_optimizer, MultiStateDictMeta
 
+def set_hyrbid_parallel_seed(basic_seed, dp_rank, mp_rank, pp_rank, device="cuda"):
+    if not basic_seed:
+        return
+    assert device != "cpu"
+    # local_seed/ global_seed is used to control dropout in ModelParallel
+    local_seed = basic_seed + 123 + mp_rank * 10 + pp_rank * 1000
+    global_seed = basic_seed + dp_rank
+    tracker = get_rng_state_tracker()
+    tracker.add('global_seed', global_seed)
+    tracker.add('local_seed', local_seed)
 
 class IterLoader:
     def __init__(self, dataloader, epoch=0):
@@ -81,13 +91,13 @@ class Trainer:
         self.cfg = cfg
         self.output_dir = cfg.output_dir
 
-        self.local_rank = dist.get_rank()
+        dp_rank = dist.get_rank()
         self.log_interval = cfg.log_config.interval
 
         # set seed
-        seed = self.cfg.get('seed', False)
+        seed = cfg.get('seed', False)
         if seed:
-            seed += dist.get_rank()
+            seed += dp_rank
             paddle.seed(seed)
             np.random.seed(seed)
             random.seed(seed)
@@ -120,64 +130,64 @@ class Trainer:
             self.global_batch_size = cfg.global_batch_size
             self.byol_total_iters = self.epochs * cfg.total_images // self.global_batch_size
 
-        # build optimizer
-        self.lr_scheduler = MultiStateDictMeta()
-        self.optimizer = MultiStateDictMeta()
-        separete = cfg.optimizer.get('seperate', False)
-        if not separete:
-            parameters = self.model.parameters()
-            # build lr scheduler
-            if self.use_byol_iters:
-                self.lr_scheduler.append(
-                    build_lr_scheduler(cfg.lr_scheduler, self.byol_total_iters))
-            elif self.use_simclr_iters:
-                self.batch_size = cfg.dataloader.train.sampler.batch_size
-                self.global_batch_size = cfg.global_batch_size
-                self.epochs = cfg.epochs
-                self.lr_scheduler.append(
-                    build_lr_scheduler_simclr(cfg.lr_scheduler,
-                                              self.iters_per_epoch,
-                                              self.batch_size * 8, cfg.epochs,
-                                              self.current_iter))
-            else:
-                self.lr_scheduler.append(
-                    build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch))
-            optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler[0],
-                                        [self.model])
-            if dist.get_world_size() > 1:
-                fleet.init(is_collective=True)
-                optimizer = fleet.distributed_optimizer(optimizer)
-                self.model = fleet.distributed_model(self.model)
-
-            self.optimizer.append(optimizer)
+        if self.use_byol_iters:
+            self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler, self.byol_total_iters)
+        elif self.use_simclr_iters:
+            self.batch_size = cfg.dataloader.train.sampler.batch_size
+            self.global_batch_size = cfg.global_batch_size
+            self.epochs = cfg.epochs
+            self.lr_scheduler = build_lr_scheduler_simclr(cfg.lr_scheduler,
+                                          self.iters_per_epoch,
+                                          self.batch_size * 8, cfg.epochs,
+                                          self.current_iter)
         else:
-            visual_params = []
-            textual_params = []
-            other_params = []
-            #for name, param in self.model._layers.model.named_parameters():
-            for name, param in self.model.named_parameters():
-                if 'visual.' in name:
-                    visual_params.append(param)
-                elif 'textual.' in name:
-                    textual_params.append(param)
-                else:
-                    other_params.append(param)
-            parameters = dict()
-            parameters['lr'] = [cfg.solver.lr, other_params]
-            parameters['visual'] = [cfg.solver.visual_lr, visual_params]
-            parameters['textual'] = [cfg.solver.textual_lr, textual_params]
-            for _, value in parameters.items():
-                current_lr_scheduler = build_lr_scheduler(
-                    value[0], self.iters_per_epoch)
-                self.lr_scheduler.append(current_lr_scheduler)
-                optimizer = build_optimizer(cfg.optimizer, current_lr_scheduler,
-                                            value[1])
-                if dist.get_world_size() > 1:
-                    fleet.init(is_collective=True)
-                    optimizer = fleet.distributed_optimizer(optimizer)
-                    self.model = fleet.distributed_model(self.model)
+            self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler, self.iters_per_epoch)
+        self.optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler, [self.model])
 
-                self.optimizer.append(optimizer)
+        # distributed settings 
+        if dist.get_world_size() > 1:
+            strategy = fleet.DistributedStrategy()
+            ## Hybrid Parallel Training
+            strategy.hybrid_configs = cfg.pop('hybrid') if 'hybrid' in cfg else {}
+            fleet.init(is_collective=True, strategy=strategy)
+            hcg = fleet.get_hybrid_communicate_group()
+            mp_rank = hcg.get_model_parallel_rank()
+            pp_rank = hcg.get_stage_id()
+            dp_rank = hcg.get_data_parallel_rank()
+            set_hyrbid_parallel_seed(seed, 0, mp_rank, pp_rank)
+
+        # amp training
+        self.use_amp = cfg.get('use_amp', False) #if 'use_amp' in cfg else False
+        if self.use_amp:
+            amp_cfg = cfg.pop('AMP')
+            self.auto_cast = amp_cfg.pop('auto_cast')
+            scale_loss = amp_cfg.pop('scale_loss')
+            self.scaler = paddle.amp.GradScaler(init_loss_scaling=scale_loss)
+            amp_cfg['models'] = self.model
+            self.model = paddle.amp.decorate(**amp_cfg)  # decorate for level O2
+
+        # ZeRO 
+        self.sharding_strategies = cfg.get('sharding', False)
+        if self.sharding_strategies:
+            self.sharding_stage = self.sharding_strategies['sharding_stage']
+            accumulate_grad = self.sharding_strategies['accumulate_grad']
+            offload = self.sharding_strategies['offload']
+            if self.sharding_stage == 2:
+                self.optimizer = ShardingOptimizerStage2(
+                                params=self.model.parameters(),
+                                optim=self.optimizer,
+                                offload=offload)
+                self.model = ShardingStage2(
+                                 self.model,
+                                 self.optimizer,
+                                 accumulate_grads=accumulate_grad)
+                self.scaler = ShardingScaler(self.scaler)
+            elif sharding_stage == 'dp' and dist.get_world_size() > 1:
+                self.model = fleet.distributed_model(self.model)
+            else:
+                raise NotImplementedError()
+
+
 
         # build hooks
         self.hooks = []
@@ -262,16 +272,33 @@ class Trainer:
 
             self.call_hook('train_iter_begin')
 
-            if self.use_byol_iters:
-                self.outputs = self.model(*data,
-                                          total_iters=self.byol_total_iters,
-                                          current_iter=self.current_iter,
-                                          mixup_fn=self.mixup_fn)
+            if self.use_amp:
+                with paddle.amp.auto_cast(**self.auto_cast):
+                    if self.use_byol_iters:
+                        self.outputs = self.model(
+                            *data,
+                            total_iters=self.byol_total_iters,
+                            current_iter=self.current_iter,
+                            mixup_fn=self.mixup_fn)
+                    else:
+                        self.outputs = self.model(
+                            *data,
+                            total_iters=self.total_iters,
+                            current_iter=self.current_iter,
+                            mixup_fn=self.mixup_fn)
             else:
-                self.outputs = self.model(*data,
-                                          total_iters=self.total_iters,
-                                          current_iter=self.current_iter,
-                                          mixup_fn=self.mixup_fn)
+                if self.use_byol_iters:
+                    self.outputs = self.model(
+                        *data,
+                        total_iters=self.byol_total_iters,
+                        current_iter=self.current_iter,
+                        mixup_fn=self.mixup_fn)
+                else:
+                    self.outputs = self.model(
+                        *data,
+                        total_iters=self.total_iters,
+                        current_iter=self.current_iter,
+                        mixup_fn=self.mixup_fn)
             self.call_hook('train_iter_end')
 
             if self.current_iter % self.iters_per_epoch == 0:
@@ -313,7 +340,11 @@ class Trainer:
                 raise TypeError('unknown type of data')
 
             labels = data[-1]
-            pred = model(*data, mode='test')
+            if self.use_amp:
+                with paddle.amp.auto_cast(**self.auto_cast):
+                    pred = model(*data, mode='test')
+            else:
+                pred = model(*data, mode='test')
 
             current_samples = batch_size * world_size
             accum_samples += current_samples
