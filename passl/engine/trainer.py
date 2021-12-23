@@ -182,7 +182,7 @@ class Trainer:
                                  self.optimizer,
                                  accumulate_grads=accumulate_grad)
                 self.scaler = ShardingScaler(self.scaler)
-            elif sharding_stage == 'dp' and dist.get_world_size() > 1:
+            elif self.sharding_stage == 'dp' and dist.get_world_size() > 1:
                 self.model = fleet.distributed_model(self.model)
             else:
                 raise NotImplementedError()

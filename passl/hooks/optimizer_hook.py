@@ -22,6 +22,8 @@ class OptimizerHook(Hook):
         self.priority = priority
         
     def train_iter_end(self, trainer):
+        print('trainer.optimizer.type:')
+        print(trainer.optimizer.type)
         if 'Lars' in trainer.cfg['optimizer']['name']:
             trainer.optimizer.clear_gradients()
         else:
@@ -33,12 +35,8 @@ class OptimizerHook(Hook):
         if trainer.use_amp:
             scaled_loss = trainer.scaler.scale(loss)
             scaled_loss.backward()
-            sharding_stage = trainer.sharding_stage if trainer.sharding_stage is not None else False
-            if sharding_stage == 2:
-                trainer.scaler.step(trainer.optimizer)
-                trainer.scaler.update()
-            else:
-                trainer.scaler.minimize(trainer.optimizer, scaled_loss)
+            trainer.scaler.step(trainer.optimizer)
+            trainer.scaler.update()
 
         else:
             loss.backward()
