@@ -8,6 +8,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import random
 import logging
 import numpy as np
@@ -119,6 +120,11 @@ class Trainer:
 
         # build model
         self.model = build_model(cfg.model)
+        
+        n_parameters = sum(p.numel() for p in self.model.parameters() if not p.stop_gradient).item()
+        i = int(math.log(n_parameters, 10) // 3)
+        size_unit = ['', 'K', 'M', 'B', 'T', 'Q']
+        self.logger.info("Number of Parameters is {:.2f}{}.".format(n_parameters / math.pow(1000, i), size_unit[i]))
 
         # build train dataloader
         self.train_dataloader, self.mixup_fn = build_dataloader(

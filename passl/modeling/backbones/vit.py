@@ -519,6 +519,8 @@ def ViT_huge_patch14_224(pretrained=False,
         depth=32,
         num_heads=16,
         mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
         **kwargs)
     if not pretrained:
         assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
@@ -535,6 +537,60 @@ def ViT_huge_patch14_384(pretrained=False,
         depth=32,
         num_heads=16,
         mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+
+def ViT_g_patch14_224(pretrained=False,
+                      **kwargs):
+    model = GoogleVisionTransformer(
+        img_size=224,
+        patch_size=14,
+        embed_dim=1408,
+        depth=40,
+        num_heads=16,
+        mlp_ratio=4.364,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+def ViT_G_patch14_224(pretrained=False,
+                      **kwargs):
+    model = GoogleVisionTransformer(
+        img_size=224,
+        patch_size=14,
+        embed_dim=1664,
+        depth=48,
+        num_heads=16,
+        mlp_ratio=4.9231,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+def ViT_6B_patch14_224(pretrained=False,
+                      **kwargs):
+    model = GoogleVisionTransformer(
+        img_size=224,
+        patch_size=14,
+        embed_dim=2320,
+        depth=80,
+        num_heads=16,
+        mlp_ratio=4.955,
+        qkv_bias=True,
+        epsilon=1e-6,
         **kwargs)
     if not pretrained:
         assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
