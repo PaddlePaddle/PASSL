@@ -38,7 +38,7 @@ AMP:
 
 dataloader:
   train:
-    num_workers: 0
+    num_workers: 8
     sampler:
       batch_size: 16 
       shuffle: True
