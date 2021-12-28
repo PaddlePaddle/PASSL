@@ -36,7 +36,7 @@ def build_lr_scheduler(cfg, iters_per_epoch):
                                                iters_per_epoch)
         cfg.warmup_steps *= iters_per_epoch
         return build_from_config(cfg, LRSCHEDULERS)
-    elif cfg.name == 'CosineWarmup' or cfg.name == 'ByolLRScheduler':
+    elif cfg.name == 'CosineWarmup' or cfg.name == 'ByolLRScheduler' or cfg.name == 'TimmCosine':
         return build_from_config(cfg, LRSCHEDULERS)
     else:
         raise NotImplementedError
