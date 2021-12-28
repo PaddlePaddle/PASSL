@@ -14,16 +14,11 @@ AMP:
      custom_black_list: ["reduce_mean", "reduce_sum",
                          "c_softmax_with_cross_entropy", "elementwise_div"]
      level: 'O1'
-
-hybrid:
-   dp_degree: 8
-   mp_degree: 1
-   pp_degree: 1
-
 sharding:
    sharding_stage: 2  # 2 or 'dp'
    offload: False 
-   accumulate_grad: False 
+
+accumulate_grad_steps: 2 
 
 model:
   name: SwinWrapper

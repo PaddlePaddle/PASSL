@@ -113,6 +113,8 @@ class Trainer:
         use_simclr_iters = cfg.get('use_simclr_iters', False)
         self.use_simclr_iters = use_simclr_iters
         self.epochs = cfg.get('epochs', None)
+        self.accumulate_grad_steps = cfg.get('accumulate_grad_steps', 1)
+        self.accumulate_grads = True if self.accumulate_grad_steps > 1 else False
         self.timestamp = cfg.timestamp
         self.logs = OrderedDict()
         # Ensure that the vdl log file can be closed normally
@@ -147,7 +149,7 @@ class Trainer:
         # distributed settings 
         if dist.get_world_size() > 1:
             strategy = fleet.DistributedStrategy()
-            ## Hybrid Parallel Training
+            # Hybrid Parallel Training
             strategy.hybrid_configs = cfg.pop('hybrid') if 'hybrid' in cfg else {}
             fleet.init(is_collective=True, strategy=strategy)
             hcg = fleet.get_hybrid_communicate_group()
@@ -157,7 +159,7 @@ class Trainer:
             set_hyrbid_parallel_seed(seed, 0, mp_rank, pp_rank)
 
         # amp training
-        self.use_amp = cfg.get('use_amp', False) #if 'use_amp' in cfg else False
+        self.use_amp = cfg.get('use_amp', False)
         if self.use_amp:
             amp_cfg = cfg.pop('AMP')
             self.auto_cast = amp_cfg.pop('auto_cast')
@@ -170,22 +172,24 @@ class Trainer:
         self.sharding_strategies = cfg.get('sharding', False)
         if self.sharding_strategies:
             self.sharding_stage = self.sharding_strategies['sharding_stage']
-            accumulate_grad = self.sharding_strategies['accumulate_grad']
             offload = self.sharding_strategies['offload']
+            # Note: Only support partition optimizer stages and gradient now!
             if self.sharding_stage == 2:
+                # Partition Optimizer
                 self.optimizer = ShardingOptimizerStage2(
                                 params=self.model.parameters(),
                                 optim=self.optimizer,
                                 offload=offload)
+                # Partition Gradients 
                 self.model = ShardingStage2(
                                  self.model,
                                  self.optimizer,
-                                 accumulate_grads=accumulate_grad)
+                                 accumulate_grads=self.accumulate_grads)
                 self.scaler = ShardingScaler(self.scaler)
-            elif self.sharding_stage == 'dp' and dist.get_world_size() > 1:
-                self.model = fleet.distributed_model(self.model)
             else:
                 raise NotImplementedError()
+        elif dist.get_world_size() > 1:
+            self.model = fleet.distributed_model(self.model)
 
 
 
@@ -374,7 +378,7 @@ class Trainer:
                     outs[k] = AverageMeter(k, ':6.3f')
                 outs[k].update(float(v), current_samples)
 
-        log_str = f'Validate Epoch [{self.current_epoch + 1}] '
+        log_str = f'Validate Epoch [{self.current_epoch + 1}]'
         log_items = []
         for name, val in outs.items():
             if isinstance(val, AverageMeter):
