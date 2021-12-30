@@ -208,11 +208,19 @@ class TimmCosine(LRScheduler):
         self.last_epoch = last_epoch
         self.warmup_start_lr = warmup_start_lr
         
-        super(TimmCosine, self).__init__(learning_rate, last_epoch, verbose)   
+        if not isinstance(learning_rate, (float, int)):
+            raise TypeError(
+                "The type of learning rate must be float, but received {}".
+                format(type(learning_rate)))
+        self.base_lr = float(learning_rate)
+        self.last_lr = float(learning_rate)
+        self.last_epoch = last_epoch
+        self.verbose = verbose
+        self._var_name = None  
 
     def get_lr(self):
         if self.last_epoch < self.warmup_steps:
-            return float(self.last_epoch) * (self.learning_rate - self.warmup_start_lr) / float(self.warmup_steps) + self.warmup_start_lr
+            return float(max(0, self.last_epoch)) * (self.learning_rate - self.warmup_start_lr) / float(self.warmup_steps) + self.warmup_start_lr
         
         cur_steps = self.last_epoch - (self.T_max * (self.last_epoch // self.T_max))
         return self.eta_min + 0.5 * (self.base_lr - self.eta_min) * (1 + math.cos(math.pi * cur_steps / self.T_max))
