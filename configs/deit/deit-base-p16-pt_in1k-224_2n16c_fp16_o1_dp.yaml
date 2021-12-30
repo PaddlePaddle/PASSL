@@ -56,13 +56,13 @@ dataloader:
           img_size: 224   
         - name: Normalize
           data_format: 'HWC'
-          mean: [127.5, 127.5, 127.5]
-          std: [127.5, 127.5, 127.5]   
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
+        - name: Transpose
         - name: RandomErasing
           prob: 0.25
           mode: 'pixel'
           max_count: 1
-        - name: Transpose
       batch_transforms:
         - name: Mixup
           mixup_alpha: 0.8
@@ -94,8 +94,8 @@ dataloader:
           size: 224
         - name: Normalize
           data_format: 'HWC'
-          mean: [127.5, 127.5, 127.5]
-          std: [127.5, 127.5, 127.5] 
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
         - name: Transpose
 
 lr_config:

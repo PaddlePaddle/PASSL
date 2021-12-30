@@ -243,6 +243,7 @@ class AutoAugment(PT.BaseTransform):
         if self.transform != None:
             is_pil = isinstance(img, Image.Image)
             if not is_pil:
+                img = np.ascontiguousarray(img)
                 img = Image.fromarray(img)
             img = self.transform(img)
             if not is_pil:
