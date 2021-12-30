@@ -240,7 +240,14 @@ class AutoAugment(PT.BaseTransform):
             self.transform = auto_augment_transform(config_str, aa_params)
 
     def _apply_image(self, img):
-        return self.transform(img) if self.transform != None else img
+        if self.transform != None:
+            is_pil = isinstance(img, Image.Image)
+            if not is_pil:
+                img = Image.fromarray(img)
+            img = self.transform(img)
+            if not is_pil:
+                img = np.asarray(img)
+        return img
     
 
 class UnifiedResize(object):
