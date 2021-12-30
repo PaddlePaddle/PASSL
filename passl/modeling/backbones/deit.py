@@ -12,43 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Code was based on:
-# (1) https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
-# (2) https://github.com/google-research/vision_transformer/blob/main/vit_jax/models.py#L208
-
-
-from collections.abc import Callable
+# Code was based on https://github.com/facebookresearch/deit
 
 import os
+from collections.abc import Callable
 import numpy as np
 import paddle
 import paddle.nn as nn
-from paddle.nn.initializer import Constant, Normal, XavierUniform
+from paddle.nn.initializer import Constant, Normal
+from ...modules.init import trunc_normal_
 
 from .builder import BACKBONES
 
-__all__ = ['ViT_base_patch16_224',
-           'ViT_base_patch16_384',
-           'ViT_base_patch32_224',
-           'ViT_base_patch32_384',
-           'ViT_large_patch16_224',
-           'ViT_large_patch16_384',
-           'ViT_large_patch32_224',
-           'ViT_large_patch32_384',
-           'ViT_huge_patch14_224',
-           'ViT_huge_patch14_384',
-          ]
+__all__ = [
+    "DeiT_tiny_patch16_224",
+    "DeiT_small_patch16_224",
+    "DeiT_base_patch16_224",
+    "DeiT_tiny_distilled_patch16_224",
+    "DeiT_small_distilled_patch16_224",
+    "DeiT_base_distilled_patch16_224",
+    "DeiT_base_patch16_384",
+    "DeiT_base_distilled_patch16_384",
+    "DeiTVisionTransformer",
+    "DistilledVisionTransformer",
+]
 
-mlp_bias_normal_ = Normal(std=1e-6)
-pos_normal_ = Normal(std=0.02)
-xavier_uniform_ = XavierUniform()
 zeros_ = Constant(value=0.)
-minus_tens_ = Constant(value=-10.)
 ones_ = Constant(value=1.)
+
 
 def to_2tuple(x):
     return tuple([x] * 2)
-
 
 def drop_path(x, drop_prob=0., training=False):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
@@ -99,13 +93,6 @@ class Mlp(nn.Layer):
         self.act = act_layer()
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
-        
-        self.apply(self._init_weights)
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            xavier_uniform_(m.weight)
-            mlp_bias_normal_(m.bias)
 
     def forward(self, x):
         x = self.fc1(x)
@@ -133,13 +120,6 @@ class Attention(nn.Layer):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
-        
-        self.apply(self._init_weights)
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            xavier_uniform_(m.weight)
-            zeros_(m.bias)
 
     def forward(self, x):
         # B= paddle.shape(x)[0]
@@ -232,8 +212,9 @@ class PatchEmbed(nn.Layer):
         x = self.proj(x).flatten(2).transpose((0, 2, 1))
         return x
 
+    
 @BACKBONES.register()
-class GoogleVisionTransformer(nn.Layer):
+class DeiTVisionTransformer(nn.Layer):
     """ Vision Transformer with support for patch input
     """
 
@@ -253,11 +234,9 @@ class GoogleVisionTransformer(nn.Layer):
                  drop_path_rate=0.,
                  norm_layer='nn.LayerNorm',
                  epsilon=1e-5,
-                 representation_size=None,
                  **kwargs):
         super().__init__()
         self.class_num = class_num
-        self.representation_size = representation_size
 
         self.num_features = self.embed_dim = embed_dim
 
@@ -295,25 +274,19 @@ class GoogleVisionTransformer(nn.Layer):
         self.norm = eval(norm_layer)(embed_dim, epsilon=epsilon)
 
         # Classifier head
-        if self.representation_size is not None:
-            self.head0 = nn.Linear(embed_dim, representation_size)
-            self.tanh = nn.Tanh()
-            self.head = nn.Linear(representation_size, class_num) if class_num > 0 else Identity()
-            xavier_uniform_(self.head0.weight)
-            zeros_(self.head0.bias)
-            xavier_uniform_(self.head.weight)
-            minus_tens_(self.head.bias)
-        else:
-            self.head = nn.Linear(embed_dim, class_num) if class_num > 0 else Identity()
-            zeros_(self.head.weight)
-            zeros_(self.head.bias)
+        self.head = nn.Linear(embed_dim,
+                              class_num) if class_num > 0 else Identity()
 
-        pos_normal_(self.pos_embed)
-        zeros_(self.cls_token)
+        trunc_normal_(self.pos_embed, std=.02)
+        trunc_normal_(self.cls_token, std=.02)
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
-        if isinstance(m, nn.LayerNorm):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                zeros_(m.bias)
+        elif isinstance(m, nn.LayerNorm):
             zeros_(m.bias)
             ones_(m.weight)
 
@@ -332,11 +305,77 @@ class GoogleVisionTransformer(nn.Layer):
 
     def forward(self, x):
         x = self.forward_features(x)
-        if self.representation_size is not None:
-            x = self.tanh(self.head0(x))
         x = self.head(x)
         return x
 
+
+@BACKBONES.register()
+class DistilledVisionTransformer(DeiTVisionTransformer):
+    def __init__(self,
+                 img_size=224,
+                 patch_size=16,
+                 class_num=1000,
+                 embed_dim=768,
+                 depth=12,
+                 num_heads=12,
+                 mlp_ratio=4,
+                 qkv_bias=False,
+                 norm_layer='nn.LayerNorm',
+                 epsilon=1e-5,
+                 **kwargs):
+        super().__init__(
+            img_size=img_size,
+            patch_size=patch_size,
+            class_num=class_num,
+            embed_dim=embed_dim,
+            depth=depth,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            qkv_bias=qkv_bias,
+            norm_layer=norm_layer,
+            epsilon=epsilon,
+            **kwargs)
+        self.pos_embed = self.create_parameter(
+            shape=(1, self.patch_embed.num_patches + 2, self.embed_dim),
+            default_initializer=zeros_)
+        self.add_parameter("pos_embed", self.pos_embed)
+
+        self.dist_token = self.create_parameter(
+            shape=(1, 1, self.embed_dim), default_initializer=zeros_)
+        self.add_parameter("cls_token", self.cls_token)
+
+        self.head_dist = nn.Linear(
+            self.embed_dim,
+            self.class_num) if self.class_num > 0 else Identity()
+
+        trunc_normal_(self.dist_token)
+        trunc_normal_(self.pos_embed)
+        self.head_dist.apply(self._init_weights)
+
+    def forward_features(self, x):
+        B = paddle.shape(x)[0]
+        x = self.patch_embed(x)
+
+        cls_tokens = self.cls_token.expand((B, -1, -1))
+        dist_token = self.dist_token.expand((B, -1, -1))
+        x = paddle.concat((cls_tokens, dist_token, x), axis=1)
+
+        x = x + self.pos_embed
+        x = self.pos_drop(x)
+
+        for blk in self.blocks:
+            x = blk(x)
+
+        x = self.norm(x)
+        return x[:, 0], x[:, 1]
+
+    def forward(self, x):
+        x, x_dist = self.forward_features(x)
+        x = self.head(x)
+        x_dist = self.head_dist(x_dist)
+        return (x + x_dist) / 2
+
+        
 def _load_pretrained(path, model, finetune=False):
     if not (os.path.isdir(path) or os.path.exists(path + '.pdparams')):
         raise ValueError("Model pretrain path {} does not "
@@ -348,7 +387,7 @@ def _load_pretrained(path, model, finetune=False):
         model.set_dict(param_state_dict)
         return
         
-    for k in ['head0.weight', 'head0.bias', 'head.weight', 'head.bias']:
+    for k in ['head.weight', 'head.bias']:
         if k in param_state_dict and param_state_dict[k].shape != state_dict[k].shape:
             print(f"Removing key {k} from pretrained checkpoint")
             del param_state_dict[k] 
@@ -376,9 +415,41 @@ def _load_pretrained(path, model, finetune=False):
     model.set_dict(param_state_dict)    
     return
 
-def ViT_base_patch16_224(pretrained=False,
-                         **kwargs):
-    model = GoogleVisionTransformer(
+
+def DeiT_tiny_patch16_224(pretrained=False, use_ssld=False, **kwargs):
+    model = DeiTVisionTransformer(
+        patch_size=16,
+        embed_dim=192,
+        depth=12,
+        num_heads=3,
+        mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+
+def DeiT_small_patch16_224(pretrained=False, use_ssld=False, **kwargs):
+    model = DeiTVisionTransformer(
+        patch_size=16,
+        embed_dim=384,
+        depth=12,
+        num_heads=6,
+        mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+
+def DeiT_base_patch16_224(pretrained=False, use_ssld=False, **kwargs):
+    model = DeiTVisionTransformer(
         patch_size=16,
         embed_dim=768,
         depth=12,
@@ -392,9 +463,61 @@ def ViT_base_patch16_224(pretrained=False,
         _load_pretrained(pretrained, model, kwargs.get('finetune', False))
     return model
 
-def ViT_base_patch16_384(pretrained=False,
-                         **kwargs):
-    model = GoogleVisionTransformer(
+
+def DeiT_tiny_distilled_patch16_224(pretrained=False, use_ssld=False,
+                                    **kwargs):
+    model = DistilledVisionTransformer(
+        patch_size=16,
+        embed_dim=192,
+        depth=12,
+        num_heads=3,
+        mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+
+def DeiT_small_distilled_patch16_224(pretrained=False,
+                                     use_ssld=False,
+                                     **kwargs):
+    model = DistilledVisionTransformer(
+        patch_size=16,
+        embed_dim=384,
+        depth=12,
+        num_heads=6,
+        mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+
+def DeiT_base_distilled_patch16_224(pretrained=False, use_ssld=False,
+                                    **kwargs):
+    model = DistilledVisionTransformer(
+        patch_size=16,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        mlp_ratio=4,
+        qkv_bias=True,
+        epsilon=1e-6,
+        **kwargs)
+    if not pretrained:
+        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
+        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
+    return model
+
+
+def DeiT_base_patch16_384(pretrained=False, use_ssld=False, **kwargs):
+    model = DeiTVisionTransformer(
         img_size=384,
         patch_size=16,
         embed_dim=768,
@@ -409,186 +532,16 @@ def ViT_base_patch16_384(pretrained=False,
         _load_pretrained(pretrained, model, kwargs.get('finetune', False))
     return model
 
-def ViT_base_patch32_224(pretrained=False,
-                         **kwargs):
-    model = GoogleVisionTransformer(
-        patch_size=32,
+
+def DeiT_base_distilled_patch16_384(pretrained=False,
+                                    **kwargs):
+    model = DistilledVisionTransformer(
+        img_size=384,
+        patch_size=16,
         embed_dim=768,
         depth=12,
         num_heads=12,
         mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-def ViT_base_patch32_384(pretrained=False,
-                         **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=384,
-        patch_size=32,
-        embed_dim=768,
-        depth=12,
-        num_heads=12,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-def ViT_large_patch16_224(pretrained=False,
-                          **kwargs):
-    model = GoogleVisionTransformer(
-        patch_size=16,
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-
-def ViT_large_patch16_384(pretrained=False,
-                          **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=384,
-        patch_size=16,
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-def ViT_large_patch32_224(pretrained=False,
-                          **kwargs):
-    model = GoogleVisionTransformer(
-        patch_size=32,
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-
-def ViT_large_patch32_384(pretrained=False,
-                          **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=384,
-        patch_size=32,
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-
-def ViT_huge_patch14_224(pretrained=False,
-                         **kwargs):
-    model = GoogleVisionTransformer(
-        patch_size=14,
-        embed_dim=1280,
-        depth=32,
-        num_heads=16,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-
-def ViT_huge_patch14_384(pretrained=False,
-                         **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=384,
-        patch_size=14,
-        embed_dim=1280,
-        depth=32,
-        num_heads=16,
-        mlp_ratio=4,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-
-def ViT_g_patch14_224(pretrained=False,
-                      **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=224,
-        patch_size=14,
-        embed_dim=1408,
-        depth=40,
-        num_heads=16,
-        mlp_ratio=4.364,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-def ViT_G_patch14_224(pretrained=False,
-                      **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=224,
-        patch_size=14,
-        embed_dim=1664,
-        depth=48,
-        num_heads=16,
-        mlp_ratio=4.9231,
-        qkv_bias=True,
-        epsilon=1e-6,
-        **kwargs)
-    if not pretrained:
-        assert isinstance(pretrained, str), "pretrained type is not available. Please use `string`."
-        _load_pretrained(pretrained, model, kwargs.get('finetune', False))
-    return model
-
-def ViT_6B_patch14_224(pretrained=False,
-                      **kwargs):
-    model = GoogleVisionTransformer(
-        img_size=224,
-        patch_size=14,
-        embed_dim=2320,
-        depth=80,
-        num_heads=16,
-        mlp_ratio=4.955,
         qkv_bias=True,
         epsilon=1e-6,
         **kwargs)

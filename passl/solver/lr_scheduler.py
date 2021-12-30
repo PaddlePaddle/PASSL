@@ -184,6 +184,46 @@ class ViTLRScheduler(LRScheduler):
             lr = lr * min(1.0, self.last_epoch / self.warmup_steps)
             
         return lr
+    
+@LRSCHEDULERS.register()
+class TimmCosine(LRScheduler):    
+    def __init__(self,
+                 learning_rate,
+                 T_max,
+                 eta_min=0.0,
+                 warmup_epoch=0,
+                 warmup_start_lr=0.0,
+                 verbose=False,
+                 last_epoch=-1,
+                 **kwargs):
+        if warmup_epoch >= T_max:
+            warmup_epoch = T_max
+            
+        self.learning_rate = learning_rate
+
+        self.T_max = T_max
+        self.warmup_steps = warmup_epoch
+        
+        self.eta_min = eta_min
+        self.last_epoch = last_epoch
+        self.warmup_start_lr = warmup_start_lr
+        
+        if not isinstance(learning_rate, (float, int)):
+            raise TypeError(
+                "The type of learning rate must be float, but received {}".
+                format(type(learning_rate)))
+        self.base_lr = float(learning_rate)
+        self.last_lr = float(learning_rate)
+        self.last_epoch = last_epoch
+        self.verbose = verbose
+        self._var_name = None  
+
+    def get_lr(self):
+        if self.last_epoch < self.warmup_steps:
+            return float(max(0, self.last_epoch)) * (self.learning_rate - self.warmup_start_lr) / float(self.warmup_steps) + self.warmup_start_lr
+        
+        cur_steps = self.last_epoch - (self.T_max * (self.last_epoch // self.T_max))
+        return self.eta_min + 0.5 * (self.base_lr - self.eta_min) * (1 + math.cos(math.pi * cur_steps / self.T_max))
 
 
 
