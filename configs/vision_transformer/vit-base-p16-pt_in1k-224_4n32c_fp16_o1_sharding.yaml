@@ -1,0 +1,117 @@
+epochs: 300 
+output_dir: output_dir
+seed: 2021
+
+use_amp: True
+AMP:
+   level: 'O1'
+   save_dtype: 'float32'
+   optimizers: None
+   scale_loss: 32768.0
+   auto_cast:
+     enable: True
+     custom_black_list: ["reduce_mean", "reduce_sum",
+                         "sigmoid_cross_entropy_with_logits", "elementwise_div"]
+     level: 'O1'
+
+sharding:
+   sharding_stage: 2
+   offload: False
+   accumulate_grad: False
+
+model:
+  name: ViTWrapper
+  architecture:
+      name: GoogleVisionTransformer 
+      img_size: 224 
+      patch_size: 16 
+      embed_dim: 768 
+      depth: 12 
+      num_heads: 12
+      mlp_ratio: 4 
+      qkv_bias: True 
+      epsilon: 1e-6
+      class_num: 1000
+      drop_rate: 0.1
+      representation_size: 768
+  label_smoothing: 0.0001
+
+dataloader:
+  train:
+    num_workers: 8
+    sampler:
+      batch_size: 128 
+      shuffle: True
+      drop_last: True
+    dataset:
+      name: ImageNet 
+      dataroot: data/ILSVRC2012/train/
+      return_label: True
+      transforms:
+        - name: ToRGB
+          return_type: numpy
+        - name: RandCropImage
+          size: 224
+          scale: [0.05, 1.0]
+          interpolation: bicubic
+          backend: pil
+        - name: RandomHorizontalFlip
+        - name: Normalize
+          data_format: 'HWC'
+          mean: [127.5, 127.5, 127.5]
+          std: [127.5, 127.5, 127.5] 
+        - name: Transpose
+  val:
+    num_workers: 8
+    sampler:
+      batch_size: 256
+      shuffle: False
+      drop_last: False
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/val
+      return_label: True
+      transforms:
+        - name: ToRGB
+          return_type: numpy
+        - name: ResizeImage
+          resize_short: 256
+          interpolation: 'bicubic'
+          backend: pil
+        - name: CenterCrop
+          size: 224
+        - name: Normalize
+          data_format: 'HWC'
+          mean: [127.5, 127.5, 127.5]
+          std: [127.5, 127.5, 127.5] 
+        - name: Transpose
+
+lr_scheduler:
+  name: ViTLRScheduler 
+  learning_rate: 3e-3
+  decay_type: cosine
+  warmup_steps: 10000
+  T_max: 300
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.3
+  grad_clip:
+    name: global_norm
+    value: 1.0
+
+
+log_config:
+    name: LogHook
+    interval: 10
+
+checkpoint:
+  name: CheckpointHook
+  by_epoch: true
+  interval: 1
+  max_keep_ckpts: 5
+
+custom_config:
+  - name: EvaluateHook
