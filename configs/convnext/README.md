@@ -17,16 +17,10 @@ For details see [A ConvNet for the 2020s](https://arxiv.org/pdf/2201.03545.pdf) 
 
 The results are evaluated on ImageNet2012 validation set
 
-| Arch            | Weight                                                       | Top-1 Acc | Top-5 Acc | Crop ratio | # Params | FLOPs |
-| --------------- | ------------------------------------------------------------ | --------- | --------- | ---------- | -------- | ----- |
-| ConvNeXt-T_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_13_224_pt.pdparams) | 81.59     | 95.67     | 0.875      | 20.0M    | -     |
-| ConvNeXt-S_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_13_224_pt.pdparams) | 82.90     | 96.92     | 1.0        | 20.0M    | -     |
-| ConvNeXt-B_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_21_224_pt.pdparams) | 82.46     | 96.00     | 0.875      | 31.6M    | -     |
-| ConvNeXt-B_384  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_21_384_ft.pdparams) | 84.63     | 97.54     | 1.0        | 31.6M    | -     |
-| ConvNeXt-L_224  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_w24_384_ft.pdparams) | 87.39     | 98.37     | 1.0        | 277.3M   | -     |
-| ConvNeXt-L_384  | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_w24_384_ft.pdparams) | -         | -         | -          | -        | -     |
-| ConvNeXt-XL_224 | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_w24_384_ft.pdparams) | -         | -         | -          | -        | -     |
-| ConvNeXt-XL_384 | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/cvt/cvt_w24_384_ft.pdparams) | -         | -         | -          | -        | -     |
+| Arch               | Weight                                                       | Top-1 Acc | Top-5 Acc | Crop ratio | # Params | FLOPs |
+| ------------------ | ------------------------------------------------------------ | --------- | --------- | ---------- | -------- | ----- |
+| ConvNeXt_tiny_224  | [pretrain 1k](https://passl.bj.bcebos.com/models/convnext_small_1k_224.pdparams) | 82.1      | 95.67     | 0.875      | 28M      | -     |
+| ConvNeXt_small_224 | [pretrain 1k](https://passl.bj.bcebos.com/models/convnext_small_1k_224.pdparams) | 83.1      | 96.92     | 0.875      | 50M      | -     |
 
 Note: pretrain 1k is trained directly on the ImageNet-1k dataset
 
@@ -55,7 +49,7 @@ class Model(paddle.nn.Layer):
         return x
 
 
-cfg_file = "configs/convnext/convnext_tiny.yaml"
+cfg_file = "configs/convnext/convnext_tiny_224.yaml"
 m = Model(cfg_file)
 
 
