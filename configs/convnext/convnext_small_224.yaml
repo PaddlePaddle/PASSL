@@ -37,21 +37,22 @@ dataloader:
           std: [0.229, 0.224, 0.225]
 
 lr_scheduler:
-  name: CosineWarmup
-  learning_rate: 0.003
-  T_max: 93835
-  warmup_steps: 10000
-  start_lr: 0.00003
-  end_lr: 0.003
+  name: LinearWarmup
+  learning_rate:
+    name: CosineAnnealingDecay
+    learning_rate: 0.001  # 8 gpus
+    T_max: 300
+    eta_min: 1e-5
+  warmup_steps: 20
+  start_lr: 1e-6
+  end_lr: 0.001
 
 optimizer:
   name: AdamW
   beta1: 0.9
   beta2: 0.999
-  weight_decay: 0.3
-  grad_clip:
-    name: global_norm
-    value: 1.0
+  weight_decay: 0.05
+
 
 
 log_config:

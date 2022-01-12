@@ -19,8 +19,8 @@ The results are evaluated on ImageNet2012 validation set
 
 | Arch               | Weight                                                       | Top-1 Acc | Top-5 Acc | Crop ratio | # Params | FLOPs |
 | ------------------ | ------------------------------------------------------------ | --------- | --------- | ---------- | -------- | ----- |
-| ConvNeXt_tiny_224  | [pretrain 1k](https://passl.bj.bcebos.com/models/convnext_small_1k_224.pdparams) | 82.1      | 95.67     | 0.875      | 28M      | -     |
-| ConvNeXt_small_224 | [pretrain 1k](https://passl.bj.bcebos.com/models/convnext_small_1k_224.pdparams) | 83.1      | 96.92     | 0.875      | 50M      | -     |
+| ConvNeXt_tiny_224  | [pretrain 1k](https://passl.bj.bcebos.com/models/convnext_small_1k_224.pdparams) | 82.07     | 95.86     | 0.875      | 28.6M    | 4.5G  |
+| ConvNeXt_small_224 | [pretrain 1k](https://passl.bj.bcebos.com/models/convnext_small_1k_224.pdparams) | 83.15     | 96.43     | 0.875      | 50.2M    | 8.7G  |
 
 Note: pretrain 1k is trained directly on the ImageNet-1k dataset
 
