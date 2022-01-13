@@ -12,3 +12,4 @@ from .cait import Cait
 from .mlp_mixer import MlpMixer
 from .cvt import CvT
 from .deit import DeiTVisionTransformer, DistilledVisionTransformer
+from .convnext import ConvNeXt
