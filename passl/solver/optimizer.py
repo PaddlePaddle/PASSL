@@ -14,6 +14,7 @@
 
 import copy
 import paddle
+from paddle.fluid import framework
 
 from .builder import OPTIMIZERS
 
@@ -23,3 +24,54 @@ OPTIMIZERS.register(paddle.optimizer.SGD)
 OPTIMIZERS.register(paddle.optimizer.Momentum)
 OPTIMIZERS.register(paddle.fluid.optimizer.LarsMomentum)
 OPTIMIZERS.register(paddle.optimizer.RMSProp)
+
+@OPTIMIZERS.register()
+class PixProLarsMomentum(paddle.fluid.optimizer.LarsMomentum):
+    def _append_optimize_op(self, block, param_and_grad):
+        assert isinstance(block, framework.Block)
+        _lars_weight_decay = self._lars_weight_decay
+        param_name = param_and_grad[0].name
+        if len(param_and_grad[0].shape) == 1:
+            _lars_weight_decay = 0.0
+
+        velocity_acc = self._get_accumulator(self._velocity_acc_str,
+                                             param_and_grad[0])
+        lr = self._create_param_lr(param_and_grad)
+
+        find_master = self._multi_precision and param_and_grad[
+            0].dtype == core.VarDesc.VarType.FP16
+        master_weight = (self._master_weights[param_and_grad[0].name]
+                         if find_master else None)
+
+        attrs = {
+            "mu": self._momentum,
+            "lars_coeff": self._lars_coeff,
+            "lars_weight_decay": [_lars_weight_decay],
+            "multi_precision": find_master,
+            "epsilon": self._epsilon,
+            "rescale_grad": self._rescale_grad
+        }
+
+        inputs = {
+            "Param": param_and_grad[0],
+            "Grad": param_and_grad[1],
+            "Velocity": velocity_acc,
+            "LearningRate": lr
+        }
+
+        outputs = {"ParamOut": param_and_grad[0], "VelocityOut": velocity_acc}
+
+        if find_master:
+            inputs["MasterParam"] = master_weight
+            outputs["MasterParamOut"] = master_weight
+
+        # create the momentum optimize op
+        momentum_op = block.append_op(
+            type=self.type if _lars_weight_decay != 0.0 else 'momentum',
+            inputs=inputs,
+            outputs=outputs,
+            attrs=attrs,
+            stop_gradient=True)
+
+        return momentum_op
+

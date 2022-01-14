@@ -16,6 +16,7 @@ import paddle
 from .folder import DatasetFolder
 
 from .preprocess import build_transforms
+from .preprocess import build_transform
 from .builder import DATASETS
 from ..utils.misc import accuracy
 
@@ -78,6 +79,101 @@ class ImageNet(DatasetFolder):
         eval_res['acc1'], eval_res['acc5'] = accuracy(preds, labels, topk)
 
         return eval_res
+
+
+class PixProTransformCompose(object):
+    """Composes several transforms together.
+
+    Args:
+        transforms (list of ``Transform`` objects): list of transforms to compose.
+
+    Example:
+        >>> transforms.Compose([
+        >>>     transforms.CenterCrop(10),
+        >>>     transforms.ToTensor(),
+        >>> ])
+    """
+
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, img):
+        coord = None
+        for t in self.transforms:
+            if 'RandomResizedCropCoord' in t.__class__.__name__:
+                img, coord = t(img)
+            elif 'FlipCoord' in t.__class__.__name__:
+                img, coord = t(img, coord)
+            else:
+                img = t(img)
+        return img, coord
+
+    def __repr__(self):
+        format_string = self.__class__.__name__ + '('
+        for t in self.transforms:
+            format_string += '\n'
+            format_string += '    {0}'.format(t)
+        format_string += '\n)'
+        return format_string
+
+
+@DATASETS.register()
+class ImageNetCoord(DatasetFolder):
+    def __init__(self,
+                 dataroot,
+                 return_label,
+                 return_two_sample=False,
+                 view_trans1=None,
+                 view_trans2=None,
+                 ):
+        super(ImageNetCoord, self).__init__(dataroot)
+
+        self.return_label = return_label
+        self.return_two_sample = return_two_sample
+        if self.return_two_sample:
+            transforms1 = []
+            for cfg in view_trans1:
+                transforms1.append(build_transform(cfg))
+            transforms2 = []
+            for cfg in view_trans2:
+                transforms2.append(build_transform(cfg))
+            self.view_transform1 = PixProTransformCompose(transforms1)
+            self.view_transform2 = PixProTransformCompose(transforms2)
+
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (sample, target) where target is class_index of the target class.
+        """
+        path, target = self.samples[index]
+        sample = self.loader(path)
+        if self.return_two_sample:
+            sample1, coord1 = self.view_transform1(sample)
+            sample2, coord2 = self.view_transform2(sample)
+            if self.return_label:
+                return sample1, sample2, coord1, coord2, target
+            else:
+                return sample1, sample2, coord1, coord2
+
+        if self.transform is not None:
+            sample = self.transform(sample)
+
+        if self.return_label:
+            return sample, target
+
+        return sample
+
+    def evaluate(self, preds, labels, topk=(1, 5)):
+
+        eval_res = {}
+        eval_res['acc1'], eval_res['acc5'] = accuracy(preds, labels, topk)
+
+        return eval_res
+
 
 @DATASETS.register()
 class ImageNet100(ImageNet):

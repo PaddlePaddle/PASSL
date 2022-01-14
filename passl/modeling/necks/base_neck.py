@@ -255,6 +255,35 @@ class NonLinearNeckfc3(nn.Layer):
 
 
 
+@NECKS.register()
+class MLP2d(nn.Layer):
+    """The non-linear neck in pixpro.
+    """
+    def __init__(self, 
+                 in_channels, 
+                 hid_channels=4096, 
+                 out_channels=256):
+        super(MLP2d, self).__init__()
+
+        self.linear1 = nn.Conv2D(in_channels, hid_channels, kernel_size=1, stride=1, padding=0, bias_attr=True)
+        self.bn1 = nn.BatchNorm2D(hid_channels)
+        self.relu1 = nn.ReLU()
+        self.linear2 = nn.Conv2D(hid_channels, out_channels, kernel_size=1, stride=1, padding=0, bias_attr=True)
+        self.init_parameters()
+
+    def init_parameters(self, init_linear='kaiming'):
+        _init_parameters(self, init_linear)
+        return
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+        x = self.linear2(x)
+
+        return x
+
+
 
 
 
