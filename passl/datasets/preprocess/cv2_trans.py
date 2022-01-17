@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from __future__ import absolute_import
 import math
 import cv2
@@ -27,7 +26,6 @@ from paddle.vision.transforms.transforms import _get_image_size
 
 from . import cv2_func as F
 
-
 _cv2_str_to_interpolation = {
     'nearest': cv2.INTER_NEAREST,
     'linear': cv2.INTER_LINEAR,
@@ -38,6 +36,7 @@ _cv2_str_to_interpolation = {
 
 
 class Compose(object):
+
     def __init__(self, trans):
         self.trans = trans
 
@@ -48,6 +47,7 @@ class Compose(object):
 
 
 class ByolNormalize(object):
+
     def __init__(self, mean=None, std=None):
         if mean is None or std is None:
             self.mean = None
@@ -64,6 +64,7 @@ class ByolNormalize(object):
 
 class Resize(object):
     """ size, int or (h, w)"""
+
     def __init__(self, size, interpolation='linear'):
         assert isinstance(size, int) or len(size) == 2
         self.size = size
@@ -72,17 +73,21 @@ class Resize(object):
     def __call__(self, img):
         return F.resize(img, self.size, self.interpolation)
 
+
 class ToCHW(object):
+
     def __call__(self, img):
         return F.to_chw(img)
 
 
 class ByolToRGB(object):
+
     def __call__(self, img):
         return F.to_rgb_bgr(img)
 
 
 class Lambda(object):
+
     def __init__(self, lambd):
         assert isinstance(lambd, types.LambdaType)
         self.lambd = lambd
@@ -92,6 +97,7 @@ class Lambda(object):
 
 
 class RandomTransforms(object):
+
     def __init__(self, trans):
         assert isinstance(trans, (list, tuple))
         self.trans = trans
@@ -101,6 +107,7 @@ class RandomTransforms(object):
 
 
 class RandomApply(RandomTransforms):
+
     def __init__(self, trans, p=0.5):
         super(RandomApply, self).__init__(trans)
         self.p = p
@@ -114,6 +121,7 @@ class RandomApply(RandomTransforms):
 
 
 class ByolRandomHorizontalFlip(object):
+
     def __init__(self, p=0.5):
         self.p = p
 
@@ -124,6 +132,7 @@ class ByolRandomHorizontalFlip(object):
 
 
 class ByolRandomVerticalFlip(object):
+
     def __init__(self, p=0.5):
         self.p = p
 
@@ -134,10 +143,11 @@ class ByolRandomVerticalFlip(object):
 
 
 class ByolRandomResizedCrop(object):
+
     def __init__(self,
                  size,
                  scale=(0.08, 1.0),
-                 ratio=(3./4., 4./3.),
+                 ratio=(3. / 4., 4. / 3.),
                  interpolation='linear'):
         if type(size) is int:
             self.size = (size, size)
@@ -148,13 +158,14 @@ class ByolRandomResizedCrop(object):
         self.interpolation = _cv2_str_to_interpolation[interpolation]
 
     def __call__(self, img):
-        return F.random_crop_with_resize(
-            img, self.size, self.scale, self.ratio, self.interpolation)
+        return F.random_crop_with_resize(img, self.size, self.scale, self.ratio,
+                                         self.interpolation)
 
 
 class ByolColorJitter(object):
+
     def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
-        self.brightness = [- brightness, brightness]
+        self.brightness = [-brightness, brightness]
         self.contrast = [1 - contrast, 1 + contrast]
         self.saturation = [1 - saturation, 1 + saturation]
         self.hue = [-hue, hue]
@@ -168,9 +179,12 @@ class ByolColorJitter(object):
         saturation_factor = np.random.uniform(saturation[0], saturation[1])
         hue_factor = np.random.uniform(hue[0], hue[1])
 
-        transforms.append(Lambda(lambda img: F.adjust_brightness(img, brightness_factor)))
-        transforms.append(Lambda(lambda img: F.adjust_contrast(img, contrast_factor)))
-        transforms.append(Lambda(lambda img: F.adjust_saturation(img, saturation_factor)))
+        transforms.append(
+            Lambda(lambda img: F.adjust_brightness(img, brightness_factor)))
+        transforms.append(
+            Lambda(lambda img: F.adjust_contrast(img, contrast_factor)))
+        transforms.append(
+            Lambda(lambda img: F.adjust_saturation(img, saturation_factor)))
         transforms.append(Lambda(lambda img: F.adjust_hue(img, hue_factor)))
 
         random.shuffle(transforms)
@@ -184,6 +198,7 @@ class ByolColorJitter(object):
 
 
 class ByolRandomGrayscale(object):
+
     def __init__(self, p=0.1):
         self.p = p
 
@@ -192,24 +207,29 @@ class ByolRandomGrayscale(object):
             return F.to_grayscale(img)
         return img
 
+
 class ByolCenterCrop(object):
+
     def __init__(self):
         pass
-    
-    def __call__(self,img):
+
+    def __call__(self, img):
         image_width, image_height = img.size
-        padded_center_crop_size = int((224 / (224 + 32)) *np.minimum(image_height, image_width))
+        padded_center_crop_size = int(
+            (224 / (224 + 32)) * np.minimum(image_height, image_width))
         return CenterCrop(size=padded_center_crop_size)(img)
 
+
 class ByolRandomCrop(object):
+
     def __init__(self):
         pass
 
-    def decode_and_random_crop(self,img):
+    def decode_and_random_crop(self, img):
         """Make a random crop of 224."""
         img_size = img.size
         area = img_size[1] * img_size[0]
-        target_area = np.random.uniform( 0.08, 1.0) * area
+        target_area = np.random.uniform(0.08, 1.0) * area
 
         log_ratio = (math.log(3 / 4), math.log(4 / 3))
         aspect_ratio = math.exp(np.random.uniform(*log_ratio))
@@ -220,11 +240,11 @@ class ByolRandomCrop(object):
         w = np.minimum(w, img_size[0])
         h = np.minimum(h, img_size[1])
 
-        offset_w = int(np.random.uniform(0,img_size[0] - w + 1))
-        offset_h = int(np.random.uniform(0,img_size[1] - h + 1))
-        return img.crop([offset_w,offset_h, w + offset_w, h + offset_h])
+        offset_w = int(np.random.uniform(0, img_size[0] - w + 1))
+        offset_h = int(np.random.uniform(0, img_size[1] - h + 1))
+        return img.crop([offset_w, offset_h, w + offset_w, h + offset_h])
 
-    def __call__(self,img):
+    def __call__(self, img):
         return self.decode_and_random_crop(img)
 
 
@@ -256,7 +276,6 @@ class RandomHorizontalFlipCoord(object):
     def __repr__(self):
         return self.__class__.__name__ + '(p={})'.format(self.p)
 
-    
 
 class RandomResizedCropCoord(object):
     """Crop the given PIL Image to random size and aspect ratio.
@@ -268,18 +287,20 @@ class RandomResizedCropCoord(object):
 
     Args:
         size: expected output size of each edge
-        scale: range of size of the origin size cropped
-        ratio: range of aspect ratio of the origin aspect ratio cropped
+        scale(float): range of size of the origin size cropped
+        ratio(float): range of aspect ratio of the origin aspect ratio cropped
         interpolation: Default: PIL.Image.BILINEAR
     """
 
-    def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation='bilinear'):
+    def __init__(self,
+                 size,
+                 scale=(0.08, 1.0),
+                 ratio=(3. / 4., 4. / 3.),
+                 interpolation='bilinear'):
         if isinstance(size, (tuple, list)):
             self.size = size
         else:
             self.size = (size, size)
-        if (scale[0] > scale[1]) or (ratio[0] > ratio[1]):
-            warnings.warn("range should be of kind (min, max)")
 
         self.interpolation = interpolation
         self.scale = scale
@@ -300,7 +321,7 @@ class RandomResizedCropCoord(object):
         """
         width, height = _get_image_size(img)
         area = height * width
-        
+
         for attempt in range(0):
             target_area = random.uniform(*scale) * area
             log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
@@ -313,7 +334,7 @@ class RandomResizedCropCoord(object):
                 i = random.randint(0, height - h)
                 j = random.randint(0, width - w)
                 return i, j, h, w, height, width
-        
+
         # Fallback to central crop
         in_ratio = float(width) / float(height)
         if (in_ratio < min(ratio)):
@@ -338,8 +359,11 @@ class RandomResizedCropCoord(object):
             PIL Image: Randomly cropped and resized image.
         """
         i, j, h, w, height, width = self.get_params(img, self.scale, self.ratio)
-        coord = paddle.to_tensor([float(j) / (width - 1), float(i) / (height - 1),
-                              float(j + w - 1) / (width - 1), float(i + h - 1) / (height - 1)])
+        coord = paddle.to_tensor([
+            float(j) / (width - 1),
+            float(i) / (height - 1),
+            float(j + w - 1) / (width - 1),
+            float(i + h - 1) / (height - 1)
+        ])
         cropped_img = crop(img, i, j, h, w)
         return resize(cropped_img, self.size, self.interpolation), coord
-        

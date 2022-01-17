@@ -16,10 +16,10 @@ import paddle
 import paddle.nn as nn
 import paddle.fluid.layers as layers
 
-
 from .builder import NECKS
 from paddle.vision.models.resnet import BasicBlock, BottleneckBlock
-from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters, xavier_init,init_backbone_weight_simclr
+from ...modules.init import init_backbone_weight, normal_init, kaiming_init, constant_, reset_parameters, xavier_init, init_backbone_weight_simclr
+
 
 def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
     assert init_linear in ['normal', 'kaiming'], \
@@ -45,6 +45,7 @@ def _init_parameters(module, init_linear='normal', std=0.01, bias=0.):
 class LinearNeck(nn.Layer):
     """Linear neck: fc only.
     """
+
     def __init__(self, in_channels, out_channels, with_avg_pool=True):
         super(LinearNeck, self).__init__()
         self.with_avg_pool = with_avg_pool
@@ -68,6 +69,7 @@ class LinearNeck(nn.Layer):
 class NonLinearNeckV1(nn.Layer):
     """The non-linear neck in MoCo v2: fc-relu-fc.
     """
+
     def __init__(self,
                  in_channels,
                  hid_channels,
@@ -110,23 +112,20 @@ class NonLinearNeckV2(nn.Layer):
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
 
-        self.mlp = nn.Sequential(
-            nn.Linear(in_channels, hid_channels), 
-            nn.BatchNorm1D(hid_channels),
-            nn.ReLU(),
-            nn.Linear(hid_channels, out_channels))
+        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels),
+                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, out_channels))
 
         # init_backbone_weight(self.mlp)
         # self.init_parameters()
-        
+
     def init_parameters(self, init_linear='kaiming'):
         # _init_parameters(self, init_linear)
         for m in self.sublayers():
             if isinstance(m, nn.Linear):
                 xavier_init(m, distribution='uniform')
-            elif isinstance(
-                m,
-                (nn.BatchNorm1D, nn.BatchNorm2D, nn.GroupNorm, nn.SyncBatchNorm)):
+            elif isinstance(m, (nn.BatchNorm1D, nn.BatchNorm2D, nn.GroupNorm,
+                                nn.SyncBatchNorm)):
                 if m.weight is not None:
                     constant_(m.weight, 1)
                 if m.bias is not None:
@@ -141,10 +140,8 @@ class NonLinearNeckV2(nn.Layer):
 @NECKS.register()
 class NonLinearNeckV3(nn.Layer):
     """MLP"""
-    def __init__(self,
-                 in_channels,
-                 hid_channels,
-                 out_channels):
+
+    def __init__(self, in_channels, hid_channels, out_channels):
         super(NonLinearNeckV3, self).__init__()
 
         self.l1 = nn.Linear(in_channels, hid_channels)
@@ -157,9 +154,8 @@ class NonLinearNeckV3(nn.Layer):
         for m in self.sublayers():
             if isinstance(m, nn.Linear):
                 xavier_init(m, distribution='uniform')
-            elif isinstance(
-                m,
-                (nn.BatchNorm1D, nn.BatchNorm2D, nn.GroupNorm, nn.SyncBatchNorm)):
+            elif isinstance(m, (nn.BatchNorm1D, nn.BatchNorm2D, nn.GroupNorm,
+                                nn.SyncBatchNorm)):
                 if m.weight is not None:
                     constant_(m.weight, 1)
                 if m.bias is not None:
@@ -180,23 +176,22 @@ class ConvNonLinearNeck(nn.Layer):
     The Convolutioanl Neck proposed by F.
     """
 
-    def __init__(self, 
-                in_channels, 
-                hid_channels, 
-                out_channels,
-                with_avg_pool=True):
+    def __init__(self,
+                 in_channels,
+                 hid_channels,
+                 out_channels,
+                 with_avg_pool=True):
         super(ConvNonLinearNeck, self).__init__()
         self.with_avg_pool = with_avg_pool
         assert with_avg_pool, 'The with_avg_pool must be set to True in ConvNonLinearNeck!'
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
 
-        self.conv = BottleneckBlock(in_channels, in_channels//4)
+        self.conv = BottleneckBlock(in_channels, in_channels // 4)
 
-        self.mlp = nn.Sequential(
-            nn.Linear(in_channels, hid_channels), 
-            nn.ReLU(),
-            nn.Linear(hid_channels, out_channels))
+        self.mlp = nn.Sequential(nn.Linear(in_channels,
+                                           hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, out_channels))
 
         init_backbone_weight(self.mlp)
 
@@ -210,12 +205,11 @@ class ConvNonLinearNeck(nn.Layer):
         return self.mlp(x.reshape([x.shape[0], -1]))
 
 
-
-
 @NECKS.register()
 class NonLinearNeckfc3(nn.Layer):
     """The non-linear neck in MoCo v2: fc-relu-fc-relu-fc.
     """
+
     def __init__(self,
                  in_channels,
                  hid_channels,
@@ -225,50 +219,47 @@ class NonLinearNeckfc3(nn.Layer):
         self.with_avg_pool = with_avg_pool
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
-        self.mlp = nn.Sequential(nn.Linear(in_channels,
-                                           hid_channels), 
-                                 
-                                 nn.BatchNorm1D(hid_channels),
-                                 nn.ReLU(),
-                                 nn.Linear(hid_channels,
-                                           hid_channels), 
-                                 
-                                 nn.BatchNorm1D(hid_channels),
-                                 nn.ReLU(),
-                                 nn.Linear(hid_channels,
-                                           out_channels), 
-                                 nn.BatchNorm1D(out_channels)
-                                 )
-                                 
+        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels),
+                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, hid_channels),
+                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, out_channels),
+                                 nn.BatchNorm1D(out_channels))
 
         init_backbone_weight_simclr(self.mlp)
-
 
     def init_parameters(self, init_linear='normal'):
         _init_parameters(self, init_linear)
 
     def forward(self, x):
-        x = layers.squeeze(x, axes = [])
+        x = layers.squeeze(x, axes=[])
         hidden = self.mlp(x)
         hidden = layers.l2_normalize(hidden, -1)
         return hidden
-
 
 
 @NECKS.register()
 class MLP2d(nn.Layer):
     """The non-linear neck in pixpro.
     """
-    def __init__(self, 
-                 in_channels, 
-                 hid_channels=4096, 
-                 out_channels=256):
+
+    def __init__(self, in_channels, hid_channels=4096, out_channels=256):
         super(MLP2d, self).__init__()
 
-        self.linear1 = nn.Conv2D(in_channels, hid_channels, kernel_size=1, stride=1, padding=0, bias_attr=True)
+        self.linear1 = nn.Conv2D(in_channels,
+                                 hid_channels,
+                                 kernel_size=1,
+                                 stride=1,
+                                 padding=0,
+                                 bias_attr=True)
         self.bn1 = nn.BatchNorm2D(hid_channels)
         self.relu1 = nn.ReLU()
-        self.linear2 = nn.Conv2D(hid_channels, out_channels, kernel_size=1, stride=1, padding=0, bias_attr=True)
+        self.linear2 = nn.Conv2D(hid_channels,
+                                 out_channels,
+                                 kernel_size=1,
+                                 stride=1,
+                                 padding=0,
+                                 bias_attr=True)
         self.init_parameters()
 
     def init_parameters(self, init_linear='kaiming'):
@@ -282,8 +273,3 @@ class MLP2d(nn.Layer):
         x = self.linear2(x)
 
         return x
-
-
-
-
-

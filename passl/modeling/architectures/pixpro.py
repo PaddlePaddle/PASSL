@@ -24,14 +24,6 @@ from ..necks import build_neck
 from ..heads import build_head
 
 
-class Identity(nn.Layer):
-    def __init__(self):
-        super(Identity, self).__init__()
-
-    def forward(self, input: paddle.Tensor) -> paddle.Tensor:
-        return input
-
-
 def regression_loss(q, k, coord_q, coord_k, pos_ratio=0.5):
     """ q, k: N * C * H * W
         coord_q, coord_k: N * 4 (x_upper_left, y_upper_left, x_lower_right, y_lower_right)
@@ -43,8 +35,16 @@ def regression_loss(q, k, coord_q, coord_k, pos_ratio=0.5):
 
     # generate center_coord, width, height
     # [1, 7, 7]
-    x_array = paddle.arange(0., float(W), dtype=coord_q.dtype, device=coord_q.device).reshape([1, 1, -1]).repeat(1, H, 1)
-    y_array = paddle.arange(0., float(H), dtype=coord_q.dtype, device=coord_q.device).reshape([1, -1, 1]).repeat(1, 1, W)
+    x_array = paddle.arange(0.,
+                            float(W),
+                            dtype=coord_q.dtype,
+                            device=coord_q.device).reshape([1, 1, -1
+                                                            ]).repeat(1, H, 1)
+    y_array = paddle.arange(0.,
+                            float(H),
+                            dtype=coord_q.dtype,
+                            device=coord_q.device).reshape([1, -1,
+                                                            1]).repeat(1, 1, W)
     # [bs, 1, 1]
     q_bin_width = ((coord_q[:, 2] - coord_q[:, 0]) / W).reshape([-1, 1, 1])
     q_bin_height = ((coord_q[:, 3] - coord_q[:, 1]) / H).reshape([-1, 1, 1])
@@ -57,8 +57,8 @@ def regression_loss(q, k, coord_q, coord_k, pos_ratio=0.5):
     k_start_y = coord_k[:, 1].reshape([-1, 1, 1])
 
     # [bs, 1, 1]
-    q_bin_diag = paddle.sqrt(q_bin_width ** 2 + q_bin_height ** 2)
-    k_bin_diag = paddle.sqrt(k_bin_width ** 2 + k_bin_height ** 2)
+    q_bin_diag = paddle.sqrt(q_bin_width**2 + q_bin_height**2)
+    k_bin_diag = paddle.sqrt(k_bin_width**2 + k_bin_height**2)
     max_bin_diag = paddle.max(q_bin_diag, k_bin_diag)
 
     # [bs, 7, 7]
@@ -68,20 +68,25 @@ def regression_loss(q, k, coord_q, coord_k, pos_ratio=0.5):
     center_k_y = (y_array + 0.5) * k_bin_height + k_start_y
 
     # [bs, 49, 49]
-    dist_center = paddle.sqrt((center_q_x.reshape([-1, H * W, 1]) - center_k_x.reshape([-1, 1, H * W])) ** 2
-                             + (center_q_y.reshape([-1, H * W, 1]) - center_k_y.reshape([-1, 1, H * W])) ** 2) / max_bin_diag
+    dist_center = paddle.sqrt(
+        (center_q_x.reshape([-1, H * W, 1]) -
+         center_k_x.reshape([-1, 1, H * W]))**2 +
+        (center_q_y.reshape([-1, H * W, 1]) -
+         center_k_y.reshape([-1, 1, H * W]))**2) / max_bin_diag
     pos_mask = (dist_center < pos_ratio).float().detach()
 
     # [bs, 49, 49]
     logit = paddle.bmm(q.transpose([0, 2, 1]), k)
 
-    loss = (logit * pos_mask).sum(-1).sum(-1) / (pos_mask.sum(-1).sum(-1) + 1e-6)
+    loss = (logit * pos_mask).sum(-1).sum(-1) / (pos_mask.sum(-1).sum(-1) +
+                                                 1e-6)
 
     return -2 * loss.mean()
 
 
 @MODELS.register()
 class PixPro(nn.Layer):
+
     def __init__(self,
                  backbone,
                  neck=None,
@@ -97,14 +102,13 @@ class PixPro(nn.Layer):
                  batch_size=128,
                  epochs=100,
                  start_epoch=1,
-                 gpu_num=8
-                 ):
+                 gpu_num=8):
         super(PixPro, self).__init__()
 
         # parse arguments
-        self.pixpro_p               = pixpro_p
-        self.pixpro_momentum        = pixpro_momentum
-        self.pixpro_clamp_value     = pixpro_clamp_value
+        self.pixpro_p = pixpro_p
+        self.pixpro_momentum = pixpro_momentum
+        self.pixpro_clamp_value = pixpro_clamp_value
         self.pixpro_transform_layer = pixpro_transform_layer
         self.pixpro_ins_loss_weight = pixpro_ins_loss_weight
 
@@ -114,29 +118,41 @@ class PixPro(nn.Layer):
         self.head = build_head(head)
 
         # create the encoder_k
-        self.backbone_k =  build_backbone(backbone)
+        self.backbone_k = build_backbone(backbone)
         self.neck_k = build_neck(neck)
-        
-        for param_q, param_k in zip(self.backbone.parameters(), self.backbone_k.parameters()):
+
+        for param_q, param_k in zip(self.backbone.parameters(),
+                                    self.backbone_k.parameters()):
             param_k.set_value(param_q)  # initialize
             param_k.stop_gradient = True  # not update by gradient
 
-        for param_q, param_k in zip(self.neck.parameters(), self.neck_k.parameters()):
+        for param_q, param_k in zip(self.neck.parameters(),
+                                    self.neck_k.parameters()):
             param_k.set_value(param_q)  # initialize
             param_k.stop_gradient = True  # not update by gradient
-        
+
         if use_synch_bn:
-            self.backbone = nn.SyncBatchNorm.convert_sync_batchnorm(self.backbone)
-            self.backbone_k = nn.SyncBatchNorm.convert_sync_batchnorm(self.backbone_k)
+            self.backbone = nn.SyncBatchNorm.convert_sync_batchnorm(
+                self.backbone)
+            self.backbone_k = nn.SyncBatchNorm.convert_sync_batchnorm(
+                self.backbone_k)
             self.neck = nn.SyncBatchNorm.convert_sync_batchnorm(self.neck)
             self.neck_k = nn.SyncBatchNorm.convert_sync_batchnorm(self.neck_k)
-            
+
         self.K = int(num_instances * 1. / gpu_num / batch_size * epochs)
-        self.k = int(num_instances * 1. / gpu_num / batch_size * (start_epoch - 1))
+        self.k = int(num_instances * 1. / gpu_num / batch_size *
+                     (start_epoch - 1))
         if self.pixpro_transform_layer == 0:
-            self.value_transform = Identity()
+            self.value_transform = paddle.nn.Identity()
         elif self.pixpro_transform_layer == 1:
-            self.value_transform = nn.Conv2D(256, 256, kernel_size=1, stride=1, padding=0, bias_attr=True, weight_attr=nn.initializer.KaimingUniform())
+            self.value_transform = nn.Conv2D(
+                256,
+                256,
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias_attr=True,
+                weight_attr=nn.initializer.KaimingUniform())
         elif self.pixpro_transform_layer == 2:
             self.value_transform = MLP2d(in_dim=256, inner_dim=256, out_dim=256)
         else:
@@ -147,14 +163,18 @@ class PixPro(nn.Layer):
             self.neck_instance_k = build_neck(neck)
             self.predictor = build_neck(predictor)
 
-            for param_q, param_k in zip(self.neck_instance.parameters(), self.neck_instance_k.parameters()):
+            for param_q, param_k in zip(self.neck_instance.parameters(),
+                                        self.neck_instance_k.parameters()):
                 param_k.set_value(param_q)
                 param_k.stop_gradient = True
 
             if use_synch_bn:
-                self.neck_instance = nn.SyncBatchNorm.convert_sync_batchnorm(self.neck_instance)
-                self.neck_instance_k = nn.SyncBatchNorm.convert_sync_batchnorm(self.neck_instance_k)
-                self.predictor = nn.SyncBatchNorm.convert_sync_batchnorm(self.predictor)
+                self.neck_instance = nn.SyncBatchNorm.convert_sync_batchnorm(
+                    self.neck_instance)
+                self.neck_instance_k = nn.SyncBatchNorm.convert_sync_batchnorm(
+                    self.neck_instance_k)
+                self.predictor = nn.SyncBatchNorm.convert_sync_batchnorm(
+                    self.predictor)
 
             self.avgpool = nn.AvgPool2D(7, stride=1)
 
@@ -163,19 +183,26 @@ class PixPro(nn.Layer):
         """
         Momentum update of the key encoder
         """
-        _contrast_momentum = 1. - (1. - self.pixpro_momentum) * (np.cos(np.pi * self.k / self.K) + 1) / 2.
+        _contrast_momentum = 1. - (1. - self.pixpro_momentum) * (
+            np.cos(np.pi * self.k / self.K) + 1) / 2.
         self.k = self.k + 1
-        for param_q, param_k in zip(self.backbone.parameters(), self.backbone_k.parameters()):
-            paddle.assign((param_k * _contrast_momentum + param_q * (1. - _contrast_momentum)), param_k)
+        for param_q, param_k in zip(self.backbone.parameters(),
+                                    self.backbone_k.parameters()):
+            paddle.assign((param_k * _contrast_momentum + param_q *
+                           (1. - _contrast_momentum)), param_k)
             param_k.stop_gradient = True
 
-        for param_q, param_k in zip(self.neck.parameters(), self.neck_k.parameters()):
-            paddle.assign((param_k * _contrast_momentum + param_q * (1. - _contrast_momentum)), param_k)
-            param_k.stop_gradient = True    
+        for param_q, param_k in zip(self.neck.parameters(),
+                                    self.neck_k.parameters()):
+            paddle.assign((param_k * _contrast_momentum + param_q *
+                           (1. - _contrast_momentum)), param_k)
+            param_k.stop_gradient = True
 
         if self.pixpro_ins_loss_weight > 0.:
-            for param_q, param_k in zip(self.neck_instance.parameters(), self.neck_instance_k.parameters()):
-                paddle.assign((param_k * _contrast_momentum + param_q * (1. - _contrast_momentum)), param_k)
+            for param_q, param_k in zip(self.neck_instance.parameters(),
+                                        self.neck_instance_k.parameters()):
+                paddle.assign((param_k * _contrast_momentum + param_q *
+                               (1. - _contrast_momentum)), param_k)
                 param_k.stop_gradient = True
 
     def featprop(self, feat):
@@ -194,14 +221,12 @@ class PixPro(nn.Layer):
         attention = paddle.clip(attention, min=self.pixpro_clamp_value)
         if self.pixpro_p < 1.:
             attention = attention + 1e-6
-        attention = attention ** self.pixpro_p
+        attention = attention**self.pixpro_p
 
         # [N, C, H * W]
         feat = paddle.bmm(feat_value, attention.transpose([0, 2, 1]))
 
         return feat.reshape([N, C, H, W])
-
-    
 
     def train_iter(self, im_1, im_2, coord1, coord2, **kwargs):
         """
@@ -214,23 +239,29 @@ class PixPro(nn.Layer):
         # compute query features
         feat_1 = self.backbone(im_1)  # queries: NxC
         feat_2 = self.backbone(im_2)
-        
+
         pred_1 = self.neck(feat_1)
         pred_2 = self.neck(feat_2)
-        
+
         pred_1 = self.featprop(pred_1)
         pred_1 = nn.functional.normalize(pred_1, axis=1)
         pred_2 = self.featprop(pred_2)
         pred_2 = nn.functional.normalize(pred_2, axis=1)
-        
+
         if self.pixpro_ins_loss_weight > 0.:
             proj_instance_1 = self.neck_instance(feat_1)
             proj_instance_2 = self.neck_instance(feat_2)
             pred_instance_1 = self.predictor(proj_instance_1)
-            pred_instance_1 = nn.functional.normalize(self.avgpool(pred_instance_1).reshape([pred_instance_1.shape[0], -1]), axis=1)
+            pred_instance_1 = nn.functional.normalize(
+                self.avgpool(pred_instance_1).reshape(
+                    [pred_instance_1.shape[0], -1]),
+                axis=1)
 
             pred_instance_2 = self.predictor(proj_instance_2)
-            pred_instance_2 = nn.functional.normalize(self.avgpool(pred_instance_2).reshape([pred_instance_2.shape[0], -1]), axis=1)
+            pred_instance_2 = nn.functional.normalize(
+                self.avgpool(pred_instance_2).reshape(
+                    [pred_instance_2.shape[0], -1]),
+                axis=1)
 
         # compute key features
         with paddle.no_grad():  # no gradient to keys
@@ -240,18 +271,22 @@ class PixPro(nn.Layer):
             proj_1_ng = self.neck_k(feat_1_ng)
             feat_2_ng = self.backbone_k(im_2)
             proj_2_ng = self.neck_k(feat_2_ng)
-            
+
             proj_1_ng = nn.functional.normalize(proj_1_ng, axis=1)
             proj_2_ng = nn.functional.normalize(proj_2_ng, axis=1)
 
             if self.pixpro_ins_loss_weight > 0.:
                 proj_instance_1_ng = self.neck_instance_k(feat_1_ng)
                 proj_instance_2_ng = self.neck_instance_k(feat_2_ng)
-                
-                proj_instance_1_ng = nn.functional.normalize(self.avgpool(proj_instance_1_ng).reshape([proj_instance_1_ng.shape[0], -1]),
-                                                 axis=1)
-                proj_instance_2_ng = nn.functional.normalize(self.avgpool(proj_instance_2_ng).reshape([proj_instance_2_ng.shape[0], -1]),
-                                                 axis=1)
+
+                proj_instance_1_ng = nn.functional.normalize(
+                    self.avgpool(proj_instance_1_ng).reshape(
+                        [proj_instance_1_ng.shape[0], -1]),
+                    axis=1)
+                proj_instance_2_ng = nn.functional.normalize(
+                    self.avgpool(proj_instance_2_ng).reshape(
+                        [proj_instance_2_ng.shape[0], -1]),
+                    axis=1)
         q = [pred_1, proj_2_ng, coord1, coord2]
         k = [pred_2, proj_1_ng, coord2, coord1]
 
