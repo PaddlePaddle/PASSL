@@ -29,7 +29,8 @@ from .random_erasing import RandomErasing
 from .constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, DEFAULT_CROP_PCT
 from .auto_augment import rand_augment_transform, augment_and_mix_transform, auto_augment_transform
 from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize, \
-         ToCHW, ByolToRGB, ByolCenterCrop, ByolRandomCrop, RandomResizedCropCoord, RandomHorizontalFlipCoord
+         ToCHW, ByolToRGB, ByolCenterCrop, ByolRandomCrop
+from .img_pil_pixpro_transformer import RandomResizedCropCoord, RandomHorizontalFlipCoord
 
 TRANSFORMS.register(PT.RandomResizedCrop)
 TRANSFORMS.register(PT.ColorJitter)
