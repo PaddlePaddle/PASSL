@@ -22,19 +22,14 @@ model:
   head:
     name: PixProHead
     pos_ratio: 0.7
-  use_synch_bn: False
-  num_instances: 1281167
-  batch_size: 64
-  epochs: 100
-  start_epoch: 1
-  gpu_num: 8
+  use_synch_bn: True
   pixpro_ins_loss_weight: 0.
 
 dataloader:
   train:
     num_workers: 4
     sampler:
-      batch_size: 2
+      batch_size: 64
       shuffle: True
       drop_last: True
     dataset:
@@ -109,11 +104,12 @@ lr_scheduler:
 
 
 optimizer:
-  name: PixProLarsMomentum
+  name: LarsMomentumOptimizer
   momentum: 0.9
   lars_weight_decay: 1.0e-5
   epsilon: 1e-8
   lars_coeff: 0.001
+  exclude_from_weight_decay: ['batch_norm', '.b_0']
 
 log_config:
     name: LogHook

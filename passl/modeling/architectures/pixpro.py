@@ -97,12 +97,7 @@ class PixPro(nn.Layer):
                  pixpro_clamp_value=0.,
                  pixpro_transform_layer=1,
                  pixpro_ins_loss_weight=1,
-                 use_synch_bn=True,
-                 num_instances=1281167,
-                 batch_size=128,
-                 epochs=100,
-                 start_epoch=1,
-                 gpu_num=8):
+                 use_synch_bn=True):
         super(PixPro, self).__init__()
 
         # parse arguments
@@ -111,7 +106,7 @@ class PixPro(nn.Layer):
         self.pixpro_clamp_value = pixpro_clamp_value
         self.pixpro_transform_layer = pixpro_transform_layer
         self.pixpro_ins_loss_weight = pixpro_ins_loss_weight
-
+        
         # create the encoder
         self.backbone = build_backbone(backbone)
         self.neck = build_neck(neck)
@@ -139,9 +134,6 @@ class PixPro(nn.Layer):
             self.neck = nn.SyncBatchNorm.convert_sync_batchnorm(self.neck)
             self.neck_k = nn.SyncBatchNorm.convert_sync_batchnorm(self.neck_k)
 
-        self.K = int(num_instances * 1. / gpu_num / batch_size * epochs)
-        self.k = int(num_instances * 1. / gpu_num / batch_size *
-                     (start_epoch - 1))
         if self.pixpro_transform_layer == 0:
             self.value_transform = paddle.nn.Identity()
         elif self.pixpro_transform_layer == 1:
@@ -185,7 +177,6 @@ class PixPro(nn.Layer):
         """
         _contrast_momentum = 1. - (1. - self.pixpro_momentum) * (
             np.cos(np.pi * self.k / self.K) + 1) / 2.
-        self.k = self.k + 1
         for param_q, param_k in zip(self.backbone.parameters(),
                                     self.backbone_k.parameters()):
             paddle.assign((param_k * _contrast_momentum + param_q *
@@ -236,6 +227,9 @@ class PixPro(nn.Layer):
         Output:
             logits, targets
         """
+        self.k = kwargs['current_iter']
+        self.K = kwargs['total_iters']
+        
         # compute query features
         feat_1 = self.backbone(im_1)  # queries: NxC
         feat_2 = self.backbone(im_2)
