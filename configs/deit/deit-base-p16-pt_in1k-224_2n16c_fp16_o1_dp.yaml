@@ -1,6 +1,5 @@
 epochs: 300 
 output_dir: output_dir
-seed: 2021
 
 use_amp: True
 AMP:
@@ -11,7 +10,7 @@ AMP:
    auto_cast:
      enable: True
      custom_black_list: ["reduce_mean", "reduce_sum",
-                         "sigmoid_cross_entropy_with_logits", "elementwise_div"]
+                         "log_softmax", "elementwise_div"]
      level: 'O1'
 
 model:
@@ -47,6 +46,7 @@ dataloader:
           return_type: numpy
         - name: RandCropImage
           size: 224
+          scale: [0.05, 1.0]
           interpolation: bicubic
           backend: pil
         - name: RandomHorizontalFlip
@@ -72,7 +72,7 @@ dataloader:
           cutmix_alpha: 1.0
           label_smoothing: 0.1
           num_classes: 1000
-          
+
   val:
     num_workers: 8
     sampler:
