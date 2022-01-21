@@ -40,6 +40,16 @@ Note: The default learning rate in config files is for 8 GPUs. If using differnt
 python tools/extract_weight.py  mocobyol_r50_ep300_ckpt.pdparams --output ${WEIGHT_FILE}
 ```
 
+* Support PaddleClas
+
+Convert the format of the extracted weights to the corresponding format of paddleclas to facilitate training on paddleclas
+
+```
+python tools/passl2ppclas/convert.py --type res50 --checkpoint ${CHECKPOINT} --output ${WEIGHT_FILE}
+```
+
+> Note: It must be ensured that the weights are extracted
+
 ### 3. Evaluation on ImageNet Linear Classification
 
 #### Train:
