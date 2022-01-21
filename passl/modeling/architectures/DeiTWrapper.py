@@ -26,7 +26,6 @@ from .builder import MODELS
 class DeiTWrapper(nn.Layer):
     def __init__(self,
                  architecture=None,
-                 label_smoothing=None
                  ):
         """A wrapper for a DeiT model as specified in the paper.
 
@@ -37,30 +36,11 @@ class DeiTWrapper(nn.Layer):
 
         self.backbone = build_backbone(architecture)
         self.automatic_optimization = False
-        self.label_smoothing = label_smoothing
-        if self.label_smoothing is not None:
-            assert self.label_smoothing > 0 and self.label_smoothing < 1
         
     def loss(self, x, label):
         losses = dict()
-        
-        class_num = x.shape[-1]
-        if len(label.shape) == 1 or label.shape[-1] != class_num:
-            label = F.one_hot(label, class_num)
-            label = paddle.reshape(label, shape=[-1, class_num])
-        if self.label_smoothing is not None:
-            label = F.label_smooth(label, epsilon=self.label_smoothing)
-            label = paddle.reshape(label, shape=[-1, class_num])
-                
-        if label.shape[-1] == x.shape[-1]:
-            loss = -label * F.log_softmax(x, axis=-1)
-        else:
-            loss = F.cross_entropy(x, label=label, soft_label=False, reduction='none')
-            
-        loss = paddle.sum(loss, axis=-1)
-        loss = loss.mean()
 
-        losses['loss'] = loss
+        losses['loss'] = paddle.sum(-label * F.log_softmax(x, axis=-1), axis=-1).mean()
         losses['acc1'], losses['acc5'] = accuracy(x, label, topk=(1, 5))
         return losses
 
