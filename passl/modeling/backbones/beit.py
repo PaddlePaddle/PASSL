@@ -47,6 +47,7 @@ def drop_path(x, drop_prob=0.0, training=False):
 class DropPath(nn.Layer):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
@@ -60,6 +61,7 @@ class Mlp(nn.Layer):
     MLP using nn.Linear and activation is GELU, dropout is applied.
     Ops: fc1 -> act -> dropout -> fc2 -> dropout
     """
+
     def __init__(
         self,
         in_features,
@@ -89,6 +91,7 @@ class PatchEmbed(nn.Layer):
     """2D Image to Patch Embedding
     Apply patch embeddings on input images. Embeddings is implemented using a Conv2D op.
     """
+
     def __init__(
         self,
         img_size=224,
@@ -131,6 +134,7 @@ class Identity(nn.Layer):
     The output of this layer is the input without any change.
     Use this layer to avoid if condition in some forward methods
     """
+
     def __init__(self):
         super().__init__()
 
@@ -140,6 +144,7 @@ class Identity(nn.Layer):
 
 class Attention(nn.Layer):
     """Attention Layer"""
+
     def __init__(
         self,
         dim,
@@ -233,7 +238,6 @@ class Attention(nn.Layer):
 
         qkv = qkv.reshape([B, N, 3, self.num_heads,
                            -1]).transpose([2, 0, 3, 1, 4])
-        # make torchscript happy (cannot use tensor as tuple)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         q = q * self.scale
@@ -265,6 +269,7 @@ class Attention(nn.Layer):
 
 
 class Block(nn.Layer):
+
     def __init__(
         self,
         dim,
@@ -329,6 +334,7 @@ class Block(nn.Layer):
 
 
 class RelativePositionBias(nn.Layer):
+
     def __init__(self, window_size, num_heads):
         super().__init__()
         self.window_size = window_size
@@ -385,6 +391,7 @@ class Beit(nn.Layer):
     This model is mainly used for fine tuning 22k to 1k
     code base on https://github.com/microsoft/unilm/blob/master/beit/modeling_finetune.py
     """
+
     def __init__(
         self,
         img_size=224,
@@ -466,6 +473,7 @@ class Beit(nn.Layer):
         self.fix_init_weight()
 
     def fix_init_weight(self):
+
         def rescale(param, layer_id):
             param.set_value(
                 param.divide(paddle.to_tensor(math.sqrt(2.0 * layer_id))))
