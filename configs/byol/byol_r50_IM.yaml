@@ -33,7 +33,7 @@ model:
 
 dataloader:
   train:
-    num_workers: 6
+    num_workers: 8
     sampler:
       batch_size: 128
       shuffle: True
@@ -48,7 +48,7 @@ dataloader:
           size: 224
           scale: [0.08, 1.]
           interpolation: bicubic
-        - name: ByolNormalize 
+        - name: ByolNormalize
         - name: Clip
       view_trans1:
         - name: ByolRandomHorizontalFlip
@@ -79,13 +79,13 @@ dataloader:
 
 
 lr_scheduler:
-  name: ByolLRScheduler
-  total_image: 1281167
-  total_batch: 4096
-  total_steps: 300
-  warmup_steps: 10
+  name: CosineWarmup
+  learning_rate: 4.8
+  T_max: 93835
+  warmup_steps: 3127
   start_lr: 0.0001
   end_lr: 4.8
+
 
 optimizer:
   name: LarsMomentumOptimizer
@@ -98,6 +98,3 @@ optimizer:
 log_config:
     name: LogHook
     interval: 10
-
-custom_config:
-  - name: BYOLHook
