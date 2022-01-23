@@ -107,7 +107,6 @@ def build_optimizer(cfg, lr_scheduler, model_list=None):
             clip_norm = grad_clip_cfg['value']
             cfg['grad_clip'] = ClipGradByNorm(clip_norm=clip_norm)
 
-
     parameters = sum([m.parameters()
                       for m in model_list], []) if model_list else None
 
@@ -124,42 +123,10 @@ def build_optimizer(cfg, lr_scheduler, model_list=None):
         if 'exclude_from_weight_decay' in cfg:
             ex_decay_cfg = cfg.pop('exclude_from_weight_decay')
             exclude_from_weight_decay_list = [
-                p.name for model in model_list for n, p in model.named_parameters()
+                p.name for model in model_list
+                for n, p in model.named_parameters()
                 if any(nd in n for nd in ex_decay_cfg)
             ]
             cfg['apply_decay_param_fun'] = _apply_decay_param_fun
 
     return OPTIMIZERS.get(name)(lr_scheduler, **cfg)
-
-
-class MultiStateDictMeta(object):
-    def __init__(self):
-        self.metas = []
-
-    def append(self, meta):
-        self.metas.append(meta)
-
-    def __getitem__(self, idx):
-        return self.metas[idx]
-
-    def state_dict(self):
-        def convert(state_dict):
-            model_dict = {}
-
-            for k, v in state_dict.items():
-                if isinstance(v, (paddle.fluid.framework.Variable,
-                                  paddle.fluid.core.VarBase)):
-                    model_dict[k] = v.numpy()
-                else:
-                    model_dict[k] = v
-
-            return model_dict
-
-        return [convert(mt.state_dict()) for mt in self.metas]
-
-    def set_state_dict(self, state_dicts):
-        for i, state_dict in enumerate(state_dicts):
-            self.metas[i].set_state_dict(state_dict)
-
-    def __len__(self):
-        return len(self.metas)

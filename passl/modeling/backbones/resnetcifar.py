@@ -58,62 +58,61 @@ class BasicBlock(nn.Layer):
             raise NotImplementedError(
                 "Dilation > 1 not supported in BasicBlock")
 
-        # print('inplanes',inplanes)
-        # print('planes',planes)
         self.conv1 = nn.Conv2D(
             in_channels=inplanes,
             out_channels=planes,
             kernel_size=3,
             stride=stride,
             padding=1,
-            weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
+            weight_attr=paddle.ParamAttr(
+                initializer=paddle.nn.initializer.XavierNormal(fan_in=None,
+                                                               fan_out=0)),
             bias_attr=False,
             data_format='NCHW')
-    
+
         self.bn1 = norm_layer(
             num_features=planes,
-            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
+            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=1.0)),
+            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=0.0)),
             data_format='NCHW')
 
         self.relu = nn.ReLU()
-        
+
         self.conv2 = nn.Conv2D(
-            planes, 
-            planes, 
-            3, 
-            padding=1, 
-            weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
+            planes,
+            planes,
+            3,
+            padding=1,
+            weight_attr=paddle.ParamAttr(
+                initializer=paddle.nn.initializer.XavierNormal(fan_in=None,
+                                                               fan_out=0)),
             bias_attr=False)
         self.bn2 = norm_layer(
             num_features=planes,
-            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
+            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=1.0)),
+            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=0.0)),
             data_format='NCHW')
-        # print('bn2',self.bn2)
         self.downsample = downsample
-        # print('downsample',self.downsample)
         self.stride = stride
-        # print('stride',self.stride)
 
     def forward(self, x):
         identity = x
-        
+
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-       
 
         if self.downsample is not None:
             identity = self.downsample(x)
-            # downsample 判断第1个block的第一个conv
-            # print('identity',identity)
 
         out += identity
         out = self.relu(out)
-        # print('basicblock_out', out)
 
         return out
 
@@ -137,15 +136,19 @@ class BottleneckBlock(nn.Layer):
         width = int(planes * (base_width / 64.)) * groups
 
         self.conv1 = nn.Conv2D(
-            inplanes, 
-            width, 
-            1, 
-            weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
+            inplanes,
+            width,
+            1,
+            weight_attr=paddle.ParamAttr(
+                initializer=paddle.nn.initializer.XavierNormal(fan_in=None,
+                                                               fan_out=0)),
             bias_attr=False)
         self.bn1 = norm_layer(
             num_features=width,
-            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
+            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=1.0)),
+            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=0.0)),
             data_format='NCHW')
 
         self.conv2 = nn.Conv2D(
@@ -156,24 +159,32 @@ class BottleneckBlock(nn.Layer):
             stride=stride,
             groups=groups,
             dilation=dilation,
-            weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
+            weight_attr=paddle.ParamAttr(
+                initializer=paddle.nn.initializer.XavierNormal(fan_in=None,
+                                                               fan_out=0)),
             bias_attr=False)
         self.bn2 = norm_layer(
             num_features=width,
-            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
+            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=1.0)),
+            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=0.0)),
             data_format='NCHW')
 
         self.conv3 = nn.Conv2D(
-            width, 
-            planes * self.expansion, 
-            1, 
-            weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
+            width,
+            planes * self.expansion,
+            1,
+            weight_attr=paddle.ParamAttr(
+                initializer=paddle.nn.initializer.XavierNormal(fan_in=None,
+                                                               fan_out=0)),
             bias_attr=False)
         self.bn3 = norm_layer(
             num_features=planes * self.expansion,
-            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
+            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=1.0)),
+            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=0.0)),
             data_format='NCHW')
         self.relu = nn.ReLU()
         self.downsample = downsample
@@ -209,7 +220,7 @@ class ResNet(nn.Layer):
     Args:
         Block (BasicBlock|BottleneckBlock): block module of model.
         depth (int): layers of resnet, default: 50.
-        num_classes (int): output dim of last fc layer. If num_classes <=0, last fc layer 
+        num_classes (int): output dim of last fc layer. If num_classes <=0, last fc layer
                             will not be defined. Default: 1000.
         with_pool (bool): use pool before the last fc layer or not. Default: True.
 
@@ -248,14 +259,17 @@ class ResNet(nn.Layer):
             kernel_size=7,
             stride=2,
             padding=3,
-            weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
+            weight_attr=paddle.ParamAttr(
+                initializer=paddle.nn.initializer.XavierNormal(fan_in=None,
+                                                               fan_out=0)),
             bias_attr=False)
 
-       
         self.bn1 = self._norm_layer(
             num_features=self.inplanes,
-            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
+            weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=1.0)),
+            bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(
+                value=0.0)),
             data_format='NCHW')
         self.relu = nn.ReLU()
         # self.maxpool = nn.MaxPool2D(kernel_size=3, stride=2, padding=1)
@@ -264,9 +278,8 @@ class ResNet(nn.Layer):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         if with_pool:
-            self.avgpool = nn.AdaptiveAvgPool2D(output_size=1,data_format='NCHW')
-           
-       
+            self.avgpool = nn.AdaptiveAvgPool2D(output_size=1,
+                                                data_format='NCHW')
 
         if num_classes > 0:
             self.fc = nn.Linear(512 * block.expansion, num_classes)
@@ -280,37 +293,21 @@ class ResNet(nn.Layer):
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2D(
-                    self.inplanes,
-                    planes * block.expansion,
-                    1,
-                    stride=stride,
-                    weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
-                    bias_attr=False),
-                norm_layer(
-                    num_features=planes * block.expansion,
-                    weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-                    bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
-                    data_format='NCHW'), 
+                nn.Conv2D(self.inplanes,
+                          planes * block.expansion,
+                          1,
+                          stride=stride,
+                          weight_attr=paddle.ParamAttr(
+                              initializer=paddle.nn.initializer.XavierNormal(
+                                  fan_in=None, fan_out=0)),
+                          bias_attr=False),
+                norm_layer(num_features=planes * block.expansion,
+                           weight_attr=paddle.ParamAttr(
+                               initializer=nn.initializer.Constant(value=1.0)),
+                           bias_attr=paddle.ParamAttr(
+                               initializer=nn.initializer.Constant(value=0.0)),
+                           data_format='NCHW'),
             )
-        # cifar r18
-
-        # for i in range(0, blocks):
-        #     if i == 0 and planes == 64:
-        #         downsample = nn.Sequential(
-        #             nn.Conv2D(
-        #                 64,
-        #                 64,
-        #                 1,
-        #                 stride=1,
-        #                 weight_attr=paddle.ParamAttr(initializer=paddle.nn.initializer.XavierNormal(fan_in=None, fan_out=0)),
-        #                 bias_attr=False),
-        #             norm_layer(
-        #                 num_features=planes * block.expansion,
-        #                 weight_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=1.0)),
-        #                 bias_attr=paddle.ParamAttr(initializer=nn.initializer.Constant(value=0.0)),
-        #                 data_format='NCHW'), 
-        #         )
         layers = []
         layers.append(
             block(self.inplanes, planes, stride, downsample, 1, 64,
@@ -318,7 +315,7 @@ class ResNet(nn.Layer):
         self.inplanes = planes * block.expansion
         for u in range(1, blocks):
             layers.append(block(self.inplanes, planes, norm_layer=norm_layer))
-       
+
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -330,17 +327,8 @@ class ResNet(nn.Layer):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        
-
         if self.with_pool:
             x = self.avgpool(x)
-        
-        # print('after_pool_x',x)
-
-        # if self.num_classes > 0:
-        #     x = paddle.flatten(x, 1)
-        #     x = self.fc(x)
-        # print('after flatten:x',x)
 
         return x
 
@@ -361,7 +349,7 @@ def _resnet(arch, Block, depth, pretrained, **kwargs):
 
 def resnet18(pretrained=False, **kwargs):
     """ResNet 18-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
 
@@ -381,10 +369,10 @@ def resnet18(pretrained=False, **kwargs):
 
 def resnet34(pretrained=False, **kwargs):
     """ResNet 34-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
-    
+
     Examples:
         .. code-block:: python
 
@@ -401,7 +389,7 @@ def resnet34(pretrained=False, **kwargs):
 
 def resnet50(pretrained=False, **kwargs):
     """ResNet 50-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
 
@@ -421,7 +409,7 @@ def resnet50(pretrained=False, **kwargs):
 
 def resnet101(pretrained=False, **kwargs):
     """ResNet 101-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
 
@@ -441,7 +429,7 @@ def resnet101(pretrained=False, **kwargs):
 
 def resnet152(pretrained=False, **kwargs):
     """ResNet 152-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
 
@@ -457,4 +445,3 @@ def resnet152(pretrained=False, **kwargs):
             # model = resnet152(pretrained=True)
     """
     return _resnet('resnet152', BottleneckBlock, 152, pretrained, **kwargs)
-

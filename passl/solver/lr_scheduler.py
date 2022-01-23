@@ -16,16 +16,17 @@ import math
 import paddle
 import numpy as np
 
-from paddle.optimizer.lr import MultiStepDecay, LRScheduler
-from paddle.optimizer.lr import CosineAnnealingDecay
 from paddle.optimizer.lr import LinearWarmup
+from paddle.optimizer.lr import CosineAnnealingDecay
+from paddle.optimizer.lr import MultiStepDecay, LRScheduler
 from .builder import LRSCHEDULERS, build_lr_scheduler, build_lr_scheduler_simclr
-from .byol_lr_scheduler import ByolLRScheduler 
+from .byol_lr_scheduler import ByolLRScheduler
 
+LRSCHEDULERS.register(CosineAnnealingDecay)
 LRSCHEDULERS.register(LinearWarmup)
 LRSCHEDULERS.register(MultiStepDecay)
-LRSCHEDULERS.register(CosineAnnealingDecay)
 LRSCHEDULERS.register(ByolLRScheduler)
+
 
 class Cosine(LRScheduler):
     """
@@ -36,7 +37,6 @@ class Cosine(LRScheduler):
         step_each_epoch(int): steps each epoch
         epochs(int): total training epochs
     """
-
     def __init__(self,
                  learning_rate,
                  T_max,
@@ -52,20 +52,21 @@ class Cosine(LRScheduler):
         self.eta_min = eta_min
         self.last_epoch = last_epoch
 
-
     def get_lr(self):
         if self.last_epoch == 0:
             return self.base_lr
         elif (self.last_epoch - 1 - self.T_max) % (2 * self.T_max) == 0:
-            return self.last_lr + (self.base_lr - self.eta_min) * (1 - math.cos(
-                math.pi / self.T_max)) / 2
+            return self.last_lr + (self.base_lr - self.eta_min) * (
+                1 - math.cos(math.pi / self.T_max)) / 2
 
-        return self.eta_min + 0.5 * (
-            self.base_lr - self.eta_min) * (
-            1 + np.cos(np.pi * self.last_epoch / (self.T_max - self.warmup_steps))) 
+        return self.eta_min + 0.5 * (self.base_lr - self.eta_min) * (
+            1 + np.cos(np.pi * self.last_epoch /
+                       (self.T_max - self.warmup_steps)))
 
 
 LRSCHEDULERS.register()
+
+
 class CosineWarmup(LinearWarmup):
     """
     Cosine learning rate decay with warmup
@@ -77,7 +78,6 @@ class CosineWarmup(LinearWarmup):
         epochs(int): total training epochs
         warmup_epoch(int): epoch num of warmup
     """
-
     def __init__(self,
                  learning_rate,
                  warmup_steps,
@@ -95,60 +95,54 @@ class CosineWarmup(LinearWarmup):
                         last_epoch=last_epoch,
                         verbose=verbose)
 
-        super(CosineWarmup, self).__init__(
-            learning_rate=lr_sch,
-            warmup_steps=warmup_steps,
-            start_lr=start_lr,
-            last_epoch=last_epoch,
-            end_lr=end_lr)
+        super(CosineWarmup, self).__init__(learning_rate=lr_sch,
+                                           warmup_steps=warmup_steps,
+                                           start_lr=start_lr,
+                                           last_epoch=last_epoch,
+                                           end_lr=end_lr)
 
         self.update_specified = False
 
 
 @LRSCHEDULERS.register()
-
 class Cosinesimclr(LRScheduler):
-
-    def __init__(self,
-                 learning_rate,
-                 T_max,
-                 last_epoch=-1,
-                 verbose=False):
+    def __init__(self, learning_rate, T_max, last_epoch=-1, verbose=False):
         self.T_max = T_max
-        
-        super(Cosinesimclr, self).__init__(learning_rate, last_epoch,
-                                                   verbose)
+
+        super(Cosinesimclr, self).__init__(learning_rate, last_epoch, verbose)
 
     def get_lr(self):
-        return self.base_lr* (1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2
-
-
-
-
-
+        return self.base_lr * (
+            1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2
 
 
 @LRSCHEDULERS.register()
 class simclrCosineWarmup(LinearWarmup):
-
-    def __init__(self, lr, warmup_steps, T_max, current_iter, last_epoch=-1, warmup_epoch=10, **kwargs):
+    def __init__(self,
+                 lr,
+                 warmup_steps,
+                 T_max,
+                 current_iter,
+                 last_epoch=-1,
+                 warmup_epoch=10,
+                 **kwargs):
         warmup_steps = warmup_steps
         T_max = T_max
         start_lr = 0.0
         lr = lr
         lr_sch = Cosinesimclr(lr, T_max, last_epoch=-1)
 
-        super(simclrCosineWarmup, self).__init__(
-            learning_rate=lr_sch,
-            warmup_steps=warmup_steps,
-            start_lr=start_lr,
-            last_epoch=last_epoch,
-            end_lr=lr)
+        super(simclrCosineWarmup, self).__init__(learning_rate=lr_sch,
+                                                 warmup_steps=warmup_steps,
+                                                 start_lr=start_lr,
+                                                 last_epoch=last_epoch,
+                                                 end_lr=lr)
 
         self.update_specified = False
-        
-@LRSCHEDULERS.register()      
-class ViTLRScheduler(LRScheduler):    
+
+
+@LRSCHEDULERS.register()
+class ViTLRScheduler(LRScheduler):
     def __init__(self,
                  learning_rate,
                  T_max,
@@ -163,30 +157,33 @@ class ViTLRScheduler(LRScheduler):
         self.linear_end = linear_end
         self.T_max = T_max
         self.warmup_steps = warmup_steps
-        
+
         if self.warmup_steps >= self.T_max:
             self.warmup_steps = self.T_max
-        
+
         self.decay_type = decay_type
         self.last_epoch = last_epoch
-        super(ViTLRScheduler, self).__init__(learning_rate, last_epoch, verbose)   
+        super(ViTLRScheduler, self).__init__(learning_rate, last_epoch, verbose)
 
     def get_lr(self):
-        
-        progress = (self.last_epoch - self.warmup_steps) / float(self.T_max - self.warmup_steps)
+
+        progress = (self.last_epoch -
+                    self.warmup_steps) / float(self.T_max - self.warmup_steps)
         progress = min(1.0, max(0.0, progress))
-        
+
         if self.decay_type == 'linear':
-            lr = self.linear_end + (self.base_lr - self.linear_end) * (1.0 - progress)
+            lr = self.linear_end + (self.base_lr - self.linear_end) * (1.0 -
+                                                                       progress)
         elif self.decay_type == 'cosine':
             lr = 0.5 * self.base_lr * (1.0 + math.cos(math.pi * progress))
         if self.warmup_steps:
             lr = lr * min(1.0, self.last_epoch / self.warmup_steps)
-            
+
         return lr
-    
+
+
 @LRSCHEDULERS.register()
-class TimmCosine(LRScheduler):    
+class TimmCosine(LRScheduler):
     def __init__(self,
                  learning_rate,
                  T_max,
@@ -198,16 +195,16 @@ class TimmCosine(LRScheduler):
                  **kwargs):
         if warmup_epoch >= T_max:
             warmup_epoch = T_max
-            
+
         self.learning_rate = learning_rate
 
         self.T_max = T_max
         self.warmup_steps = warmup_epoch
-        
+
         self.eta_min = eta_min
         self.last_epoch = last_epoch
         self.warmup_start_lr = warmup_start_lr
-        
+
         if not isinstance(learning_rate, (float, int)):
             raise TypeError(
                 "The type of learning rate must be float, but received {}".
@@ -216,45 +213,19 @@ class TimmCosine(LRScheduler):
         self.last_lr = float(learning_rate)
         self.last_epoch = last_epoch
         self.verbose = verbose
-        self._var_name = None  
+        self._var_name = None
 
     def get_lr(self):
         if self.last_epoch < self.warmup_steps:
-            return float(max(0, self.last_epoch)) * (self.learning_rate - self.warmup_start_lr) / float(self.warmup_steps) + self.warmup_start_lr
-        
-        cur_steps = self.last_epoch - (self.T_max * (self.last_epoch // self.T_max))
-        return self.eta_min + 0.5 * (self.base_lr - self.eta_min) * (1 + math.cos(math.pi * cur_steps / self.T_max))
+            return float(max(0, self.last_epoch)) * (
+                self.learning_rate - self.warmup_start_lr) / float(
+                    self.warmup_steps) + self.warmup_start_lr
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        cur_steps = self.last_epoch - (self.T_max *
+                                       (self.last_epoch // self.T_max))
+        return self.eta_min + 0.5 * (self.base_lr - self.eta_min) * (
+            1 + math.cos(math.pi * cur_steps / self.T_max))
 
 
 LRSCHEDULERS.register(Cosine)
 LRSCHEDULERS.register(CosineWarmup)
-

@@ -321,6 +321,7 @@ NAME_TO_OP = {
 
 
 class AugmentOp:
+
     def __init__(self, name, prob=0.5, magnitude=10, hparams=None):
         hparams = hparams or _HPARAMS_DEFAULT
         self.aug_fn = NAME_TO_OP[name]
@@ -505,6 +506,7 @@ class AutoAugment:
     AutoAugment: Learning Augmentation Policies from Data - https://arxiv.org/abs/1805.09501
     Learning Data Augmentation Strategies for Object Detection - https://arxiv.org/abs/1906.11172
     """
+
     def __init__(self, policy):
         self.policy = policy
 
@@ -527,7 +529,7 @@ def auto_augment_transform(config_str, hparams):
 
     :param hparams: Other hparams (kwargs) for the AutoAugmentation scheme
 
-    :return: A PyTorch compatible Transform
+    :return: A Paddle compatible Transform
     """
     config = config_str.split('-')
     policy_name = config[0]
@@ -627,6 +629,7 @@ class RandAugment:
     """
     RandAugment: Practical automated data augmentation... - https://arxiv.org/abs/1909.13719
     """
+
     def __init__(self, ops, num_layers=2, choice_weights=None):
         self.ops = ops
         self.num_layers = num_layers
@@ -660,7 +663,7 @@ def rand_augment_transform(config_str, hparams):
 
     :param hparams: Other hparams (kwargs) for the RandAugmentation scheme
 
-    :return: A PyTorch compatible Transform
+    :return: A Paddle compatible Transform
     """
     magnitude = _MAX_LEVEL  # default to _MAX_LEVEL for magnitude (currently 10)
     num_layers = 2  # default to 2 ops per image
@@ -728,6 +731,7 @@ class AugMixAugment:
     From paper: 'AugMix: A Simple Data Processing Method to Improve Robustness and Uncertainty -
     https://arxiv.org/abs/1912.02781
     """
+
     def __init__(self, ops, alpha=1., width=3, depth=-1, blended=False):
         self.ops = ops
         self.alpha = alpha
@@ -790,7 +794,7 @@ class AugMixAugment:
 
 
 def augment_and_mix_transform(config_str, hparams):
-    """ Create AugMix PyTorch transform
+    """ Create AugMix Paddle transform
 
     :param config_str: String defining configuration of random augmentation. Consists of multiple sections separated by
     dashes ('-'). The first section defines the specific variant of rand augment (currently only 'rand'). The remaining
@@ -804,7 +808,7 @@ def augment_and_mix_transform(config_str, hparams):
 
     :param hparams: Other hparams (kwargs) for the Augmentation transforms
 
-    :return: A PyTorch compatible Transform
+    :return: A Paddle compatible Transform
     """
     magnitude = 3
     width = 3
