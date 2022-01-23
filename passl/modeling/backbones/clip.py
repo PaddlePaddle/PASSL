@@ -87,11 +87,12 @@ class Bottleneck(nn.Layer):
 
 class ModifiedResNet(nn.Layer):
     """
-    A ResNet class that is similar to torchvision's but contains the following changes:
+    A ResNet class that contains the following changes:
     - There are now 3 "stem" convolutions as opposed to 1, with an average pool instead of a max pool.
     - Performs anti-aliasing strided convolutions, where an avgpool is prepended to convolutions with stride > 1
     - The final pooling layer is a QKV attention instead of an average pool
     """
+
     def __init__(self,
                  layers,
                  output_dim,
@@ -146,6 +147,7 @@ class ModifiedResNet(nn.Layer):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+
         def stem(x):
             for conv, bn in [(self.conv1, self.bn1), (self.conv2, self.bn2),
                              (self.conv3, self.bn3)]:
@@ -165,7 +167,8 @@ class ModifiedResNet(nn.Layer):
 
 
 class LayerNorm(nn.LayerNorm):
-    """Subclass torch's LayerNorm to handle fp16."""
+    """Subclass Paddle's LayerNorm to handle fp16."""
+
     def forward(self, x):
         orig_type = x.dtype
         ret = super().forward(x.astype("float32"))
@@ -173,12 +176,14 @@ class LayerNorm(nn.LayerNorm):
 
 
 class QuickGELU(nn.Layer):
+
     def forward(self, x):
         return x * F.sigmoid(1.702 * x)
 
 
 @BACKBONES.register()
 class CLIP(nn.Layer):
+
     def __init__(
             self,
             embed_dim,
@@ -334,6 +339,7 @@ class CLIP(nn.Layer):
 
 def convert_weights(model):
     """Convert applicable model parameters to fp16"""
+
     def _convert_weights_to_fp16(l):
         if isinstance(l, (nn.Conv1D, nn.Conv2D, nn.Linear)):
             l.weight.data = l.weight.data.half()

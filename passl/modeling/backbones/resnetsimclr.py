@@ -17,7 +17,6 @@ import paddle.nn as nn
 from .resnetcifar import ResNet
 from .resnetcifar import BasicBlock, BottleneckBlock
 
-
 from .builder import BACKBONES
 from ...modules import init, freeze
 from ...utils.logger import get_logger
@@ -46,6 +45,7 @@ class ResNetsimclr(ResNet):
             resnet18 = ResNet(BasicBlock, 18)
 
     """
+
     def __init__(self,
                  depth,
                  num_classes=0,
@@ -72,7 +72,6 @@ class ResNetsimclr(ResNet):
                 'Load pretrained backbone weight from {} success!'.format(
                     pretrained))
 
-   
         if self.frozen_stages >= 0:
             freeze.freeze_batchnorm_statictis(self.bn1)
             for m in [self.conv1, self.bn1]:
@@ -90,4 +89,3 @@ class ResNetsimclr(ResNet):
             logger = get_logger()
             logger.info(
                 'Frozen layer before stage {}'.format(self.frozen_stages + 1))
-

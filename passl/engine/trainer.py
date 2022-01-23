@@ -27,7 +27,7 @@ from ..hooks import build_hook, Hook
 from ..utils.misc import AverageMeter
 from ..datasets.builder import build_dataloader
 from ..modeling.architectures import build_model
-from ..solver import build_lr_scheduler, build_lr_scheduler_simclr, build_optimizer, MultiStateDictMeta
+from ..solver import build_lr_scheduler, build_lr_scheduler_simclr, build_optimizer
 
 
 def set_hyrbid_parallel_seed(basic_seed,
@@ -47,6 +47,7 @@ def set_hyrbid_parallel_seed(basic_seed,
 
 
 class IterLoader:
+
     def __init__(self, dataloader, epoch=0):
         self._dataloader = dataloader
         self.iter_loader = iter(self._dataloader)
@@ -92,6 +93,7 @@ class Trainer:
     #                     |                                    ||
     #                    end                                   \/
     """
+
     def __init__(self, cfg):
         # base config
         self.logger = logging.getLogger(__name__)
@@ -126,11 +128,13 @@ class Trainer:
 
         # build model
         self.model = build_model(cfg.model)
-        
-        n_parameters = sum(p.numel() for p in self.model.parameters() if not p.stop_gradient).item()
+
+        n_parameters = sum(p.numel() for p in self.model.parameters()
+                           if not p.stop_gradient).item()
         i = int(math.log(n_parameters, 10) // 3)
         size_unit = ['', 'K', 'M', 'B', 'T', 'Q']
-        self.logger.info("Number of Parameters is {:.2f}{}.".format(n_parameters / math.pow(1000, i), size_unit[i]))
+        self.logger.info("Number of Parameters is {:.2f}{}.".format(
+            n_parameters / math.pow(1000, i), size_unit[i]))
 
         # build train dataloader
         self.train_dataloader, self.mixup_fn = build_dataloader(
@@ -200,7 +204,7 @@ class Trainer:
             else:
                 raise NotImplementedError()
         # data parallel
-        if dist.get_world_size() > 1:
+        elif dist.get_world_size() > 1:
             self.model = fleet.distributed_model(self.model)
 
         # build hooks

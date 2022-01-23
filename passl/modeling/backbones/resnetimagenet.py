@@ -1,4 +1,4 @@
-i#copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
+#copyright (c) 2020 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,8 +58,12 @@ class BasicBlock(nn.Layer):
             raise NotImplementedError(
                 "Dilation > 1 not supported in BasicBlock")
 
-        self.conv1 = nn.Conv2D(
-            inplanes, planes, 3, padding=1, stride=stride, bias_attr=False)
+        self.conv1 = nn.Conv2D(inplanes,
+                               planes,
+                               3,
+                               padding=1,
+                               stride=stride,
+                               bias_attr=False)
         self.bn1 = norm_layer(planes)
         self.relu = nn.ReLU()
         self.conv2 = nn.Conv2D(planes, planes, 3, padding=1, bias_attr=False)
@@ -107,19 +111,20 @@ class BottleneckBlock(nn.Layer):
         self.conv1 = nn.Conv2D(inplanes, width, 1, bias_attr=False)
         self.bn1 = norm_layer(width)
 
-        self.conv2 = nn.Conv2D(
-            width,
-            width,
-            3,
-            padding=dilation,
-            stride=stride,
-            groups=groups,
-            dilation=dilation,
-            bias_attr=False)
+        self.conv2 = nn.Conv2D(width,
+                               width,
+                               3,
+                               padding=dilation,
+                               stride=stride,
+                               groups=groups,
+                               dilation=dilation,
+                               bias_attr=False)
         self.bn2 = norm_layer(width)
 
-        self.conv3 = nn.Conv2D(
-            width, planes * self.expansion, 1, bias_attr=False)
+        self.conv3 = nn.Conv2D(width,
+                               planes * self.expansion,
+                               1,
+                               bias_attr=False)
         self.bn3 = norm_layer(planes * self.expansion)
         self.relu = nn.ReLU()
         self.downsample = downsample
@@ -154,7 +159,7 @@ class ResNet(nn.Layer):
     Args:
         Block (BasicBlock|BottleneckBlock): block module of model.
         depth (int): layers of resnet, default: 50.
-        num_classes (int): output dim of last fc layer. If num_classes <=0, last fc layer 
+        num_classes (int): output dim of last fc layer. If num_classes <=0, last fc layer
                             will not be defined. Default: 1000.
         with_pool (bool): use pool before the last fc layer or not. Default: True.
     Examples:
@@ -182,13 +187,12 @@ class ResNet(nn.Layer):
         self.inplanes = 64
         self.dilation = 1
 
-        self.conv1 = nn.Conv2D(
-            3,
-            self.inplanes,
-            kernel_size=7,
-            stride=2,
-            padding=3,
-            bias_attr=False)
+        self.conv1 = nn.Conv2D(3,
+                               self.inplanes,
+                               kernel_size=7,
+                               stride=2,
+                               padding=3,
+                               bias_attr=False)
         self.bn1 = self._norm_layer(self.inplanes)
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2D(kernel_size=3, stride=2, padding=1)
@@ -211,13 +215,13 @@ class ResNet(nn.Layer):
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2D(
-                    self.inplanes,
-                    planes * block.expansion,
-                    1,
-                    stride=stride,
-                    bias_attr=False),
-                norm_layer(planes * block.expansion), )
+                nn.Conv2D(self.inplanes,
+                          planes * block.expansion,
+                          1,
+                          stride=stride,
+                          bias_attr=False),
+                norm_layer(planes * block.expansion),
+            )
 
         layers = []
         layers.append(
@@ -265,7 +269,7 @@ def _resnet(arch, Block, depth, pretrained, **kwargs):
 
 def resnet18(pretrained=False, **kwargs):
     """ResNet 18-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     Examples:
@@ -281,10 +285,10 @@ def resnet18(pretrained=False, **kwargs):
 
 def resnet34(pretrained=False, **kwargs):
     """ResNet 34-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
-    
+
     Examples:
         .. code-block:: python
             from paddle.vision.models import resnet34
@@ -298,7 +302,7 @@ def resnet34(pretrained=False, **kwargs):
 
 def resnet50(pretrained=False, **kwargs):
     """ResNet 50-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     Examples:
@@ -314,7 +318,7 @@ def resnet50(pretrained=False, **kwargs):
 
 def resnet101(pretrained=False, **kwargs):
     """ResNet 101-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     Examples:
@@ -330,7 +334,7 @@ def resnet101(pretrained=False, **kwargs):
 
 def resnet152(pretrained=False, **kwargs):
     """ResNet 152-layer model
-    
+
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     Examples:
@@ -341,4 +345,4 @@ def resnet152(pretrained=False, **kwargs):
             # build model and load imagenet pretrained weight
             # model = resnet152(pretrained=True)
     """
-    return _resnet('resnet152', BottleneckBlock, 152, pretrained, **kwargs) 
+    return _resnet('resnet152', BottleneckBlock, 152, pretrained, **kwargs)
