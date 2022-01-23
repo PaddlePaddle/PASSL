@@ -47,6 +47,7 @@ def set_hyrbid_parallel_seed(basic_seed,
 
 
 class IterLoader:
+
     def __init__(self, dataloader, epoch=0):
         self._dataloader = dataloader
         self.iter_loader = iter(self._dataloader)
@@ -92,6 +93,7 @@ class Trainer:
     #                     |                                    ||
     #                    end                                   \/
     """
+
     def __init__(self, cfg):
         # base config
         self.logger = logging.getLogger(__name__)
@@ -202,7 +204,7 @@ class Trainer:
             else:
                 raise NotImplementedError()
         # data parallel
-        if dist.get_world_size() > 1:
+        elif dist.get_world_size() > 1:
             self.model = fleet.distributed_model(self.model)
 
         # build hooks
