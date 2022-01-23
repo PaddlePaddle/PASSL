@@ -26,3 +26,4 @@ from .t2t_vit_head import T2TViTClsHead
 from .cait_head import CaitClsHead
 from .mlp_mixer_head import MlpMixerClsHead
 from .cvt_head import CvTClsHead
+from .pixpro_head import PixProHead

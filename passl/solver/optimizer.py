@@ -14,6 +14,7 @@
 
 import copy
 import paddle
+from paddle.fluid import framework
 
 from .builder import OPTIMIZERS
 

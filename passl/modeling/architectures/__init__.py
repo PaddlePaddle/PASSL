@@ -31,3 +31,4 @@ from .MlpMixerWrapper import MlpMixerWrapper
 from .CvTWrapper import CvTWrapper
 
 from .DeiTWrapper import DeiTWrapper
+from .pixpro import PixPro

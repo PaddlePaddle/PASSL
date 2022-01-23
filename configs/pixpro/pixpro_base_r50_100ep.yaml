@@ -1,0 +1,116 @@
+epochs: 100
+output_dir: output_dir
+total_images: 1281167
+
+model:
+  name: PixPro
+  backbone:
+    name: ResNet
+    depth: 50
+    num_classes: 0
+    with_pool: False
+  neck:
+    name: MLP2d
+    in_channels: 2048
+    hid_channels: 4096
+    out_channels: 256
+  predictor:
+    name: MLP2d
+    in_channels: 256
+    hid_channels: 4096
+    out_channels: 256
+  head:
+    name: PixProHead
+    pos_ratio: 0.7
+  use_synch_bn: True
+  pixpro_ins_loss_weight: 0.
+
+dataloader:
+  train:
+    num_workers: 4
+    sampler:
+      batch_size: 64
+      shuffle: True
+      drop_last: True
+    dataset:
+      name: ImageNetCoord
+      dataroot: data/ILSVRC2012/train
+      return_label: False
+      return_two_sample: True
+      view_trans1:
+        - name: RandomResizedCropCoord
+          size: 224
+          scale: [0.08, 1.]
+          interpolation: 'bicubic'
+        - name: RandomHorizontalFlipCoord
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
+        - name: Transpose
+        - name: Normalize
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
+      view_trans2:
+        - name: RandomResizedCropCoord
+          size: 224
+          scale: [0.08, 1.]
+          interpolation: 'bicubic'
+        - name: RandomHorizontalFlipCoord
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
+        - name: RandomApply
+          transforms:
+          - name: Solarization
+          p: 0.2
+        - name: Transpose
+        - name: Normalize
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
+
+
+lr_scheduler:
+  name: CosineWarmup
+  learning_rate: 2
+  eta_min: 0.000001
+  T_max: 237690 # (epochs - warmup_epoch) * n_iter_per_epoch(2502))
+  warmup_steps: 12510 # warmup_epoch(5) * n_iter_per_epoch(2502)
+  start_lr: 0.02
+  end_lr: 2
+
+
+optimizer:
+  name: LarsMomentumOptimizer
+  momentum: 0.9
+  lars_weight_decay: 1.0e-5
+  epsilon: 1e-8
+  lars_coeff: 0.001
+  exclude_from_weight_decay: ['batch_norm', '.b_0']
+
+log_config:
+    name: LogHook
+    interval: 100

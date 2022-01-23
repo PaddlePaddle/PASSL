@@ -17,6 +17,7 @@ Benchmark Linear Image Classification on ImageNet-1K
 | MoCo v2 | 200 | 67.7 | 67.72| ResNet-50 | [download](https://passl.bj.bcebos.com/models/moco_v2_r50_e200_ckpt.pdparams)|
 | MoCo-BYOL | 300 | 71.56 | 72.10| ResNet-50 | [download](https://passl.bj.bcebos.com/models/mocobyol_r50_ep300_ckpt.pdparams)|
 | BYOL | 300 | 72.50 | 71.62| ResNet-50 | [download](https://passl.bj.bcebos.com/models/byol_r50_300.pdparams)|
+| PixPro | 100 | 55.1(fp16) | 57.2(fp32) | ResNet-50 | [download](https://passl.bj.bcebos.com/models/pixpro_r50_ep100_no_instance_with_linear.pdparams)
 
 ## Getting Started
 Please see [GETTING_STARTED.md](https://github.com/PaddlePaddle/PASSL/blob/main/docs/GETTING_STARTED.md) for the basic usage of PASSL.
@@ -27,3 +28,4 @@ Please see [GETTING_STARTED.md](https://github.com/PaddlePaddle/PASSL/blob/main/
 - [Train MoCo-BYOL model](docs/Train_MoCo-BYOL_model.md)
 - [Train BYOL model](docs/Train_BYOL_model.md)
 - [Train CLIP model](docs/Train_CLIP_model.md)
+- [Train PixPro model](docs/Train_PixPro_model.md)

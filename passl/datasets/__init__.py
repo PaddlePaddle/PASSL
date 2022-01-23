@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .imagenet import ImageNet
+from .imagenet import ImageNetCoord
 from .cifar import CIFAR10, CIFAR100
 
 from .textimagedataset import TextImageDataset

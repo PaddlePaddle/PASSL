@@ -98,7 +98,6 @@ def cutmix_bbox_and_lam(img_shape,
     if ratio_minmax is not None:
         yl, yu, xl, xu = rand_bbox_minmax(img_shape, ratio_minmax, count=count)
     else:
-        lam = np.clip(lam, 0.9999, 0.9999)
         yl, yu, xl, xu = rand_bbox(img_shape, lam, count=count)
     if correct_lam or ratio_minmax is not None:
         bbox_area = (yu - yl) * (xu - xl)
