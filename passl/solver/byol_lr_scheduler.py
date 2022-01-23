@@ -17,6 +17,8 @@ import paddle
 
 from paddle.optimizer.lr import LRScheduler
 from .builder import LRSCHEDULERS, build_lr_scheduler
+
+
 class CosinLinearWarmup(LRScheduler):
     def __init__(self,
                  learning_rate,
@@ -30,8 +32,8 @@ class CosinLinearWarmup(LRScheduler):
             learning_rate, int) or isinstance(learning_rate, LRScheduler)
         if not type_check:
             raise TypeError(
-                "the type of learning_rate should be [int, float or LRScheduler], the current type is {}".
-                    format(learning_rate))
+                "the type of learning_rate should be [int, float or LRScheduler], the current type is {}"
+                .format(learning_rate))
         self.learning_rate = learning_rate
         self.T_max = T_max
         self.warmup_steps = warmup_steps
@@ -69,14 +71,27 @@ class CosinLinearWarmup(LRScheduler):
                 lr_value = self.learning_rate()
                 self.learning_rate.step()
                 return lr_value
-            return self.learning_rate * 0.5 * (1 + math.cos(math.pi * (self.last_epoch-self.warmup_steps) / self.T_max))
-
-
+            return self.learning_rate * 0.5 * (1 + math.cos(
+                math.pi * (self.last_epoch - self.warmup_steps) / self.T_max))
 
 
 class ByolLRScheduler(CosinLinearWarmup):
-    def __init__(self,total_image,total_batch,total_steps,warmup_steps,start_lr,end_lr,last_epoch=-1,verbose=False):
+    def __init__(self,
+                 total_image,
+                 total_batch,
+                 total_steps,
+                 warmup_steps,
+                 start_lr,
+                 end_lr,
+                 last_epoch=-1,
+                 verbose=False):
         total_steps = total_steps * total_image // total_batch
         warmup_steps = warmup_steps * total_image // total_batch
         T_max = total_steps - warmup_steps
-        super(CosinWarmup, self).__init__(end_lr,T_max,warmup_steps,start_lr,end_lr,last_epoch=-1,verbose=False)
+        super(CosinLinearWarmup, self).__init__(end_lr,
+                                                T_max,
+                                                warmup_steps,
+                                                start_lr,
+                                                end_lr,
+                                                last_epoch=-1,
+                                                verbose=False)
