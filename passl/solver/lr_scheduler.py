@@ -20,12 +20,10 @@ from paddle.optimizer.lr import LinearWarmup
 from paddle.optimizer.lr import CosineAnnealingDecay
 from paddle.optimizer.lr import MultiStepDecay, LRScheduler
 from .builder import LRSCHEDULERS, build_lr_scheduler, build_lr_scheduler_simclr
-from .byol_lr_scheduler import ByolLRScheduler
 
 LRSCHEDULERS.register(CosineAnnealingDecay)
 LRSCHEDULERS.register(LinearWarmup)
 LRSCHEDULERS.register(MultiStepDecay)
-LRSCHEDULERS.register(ByolLRScheduler)
 
 
 class Cosine(LRScheduler):
