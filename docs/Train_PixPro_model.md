@@ -1,4 +1,4 @@
-# Train MoCo Model
+# Train PixPro Model
 
 ## Introduction
 
@@ -15,6 +15,14 @@ Models are all trained with ResNet-50 backbone.
 |  | epochs |official results | passl results | Backbone| Model |
 | ---|--- | ----  | ---- | ----| ---- |
 | PixPro  | 100 | 55.1(fp16) | 57.2(fp32) | ResNet-50 | [download](https://passl.bj.bcebos.com/models/pixpro_r50_ep100_no_instance_with_linear.pdparams)|
+
+## Implemented COCO with PaddleDetection
+| Backbone        | Model      | images/GPU | lr schedule |FPS | Box AP |   
+| :-------------- | :------------- | :-----: | :-----: | :------------: | :-----: | 
+| ResNet50(official)    | FCOS（mmDetection）          |    2    |   1x      |     ----     |  37.4  | 
+| ResNet50(pixpro)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  38.4  | 
+| ResNet50(PaddleDetection)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  39.6  | 
+
 
 ## Getting Started
 
