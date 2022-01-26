@@ -19,9 +19,9 @@ Models are all trained with ResNet-50 backbone.
 ## Implemented COCO with PaddleDetection
 | Backbone        | Model      | images/GPU | lr schedule |FPS | Box AP |   
 | :-------------- | :------------- | :-----: | :-----: | :------------: | :-----: | 
+| ResNet50(supervised)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  39.6  | 
 | ResNet50(official)    | FCOS（mmDetection）          |    2    |   1x      |     ----     |  37.4  | 
 | ResNet50(pixpro)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  38.4  | 
-| ResNet50(PaddleDetection)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  39.6  | 
 
 
 ## Getting Started
