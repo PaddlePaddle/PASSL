@@ -1,4 +1,4 @@
-epochs: 100
+epochs: 90
 output_dir: output_dir
 
 model:
@@ -11,7 +11,7 @@ model:
   head:
     name: ClasHead
     with_avg_pool: false
-    in_channels: 2048
+    in_channels: 4096
 
 dataloader:
   train:
@@ -57,7 +57,7 @@ dataloader:
 
 lr_scheduler:
   name: MultiStepDecay
-  learning_rate: 30.0
+  learning_rate: 1.6
   milestones: [60, 80]
 
 optimizer:
