@@ -1,4 +1,4 @@
-# Train MoCo Model
+# Train PixPro Model
 
 ## Introduction
 
@@ -16,6 +16,14 @@ Models are all trained with ResNet-50 backbone.
 | ---|--- | ----  | ---- | ----| ---- |
 | PixPro  | 100 | 55.1(fp16) | 57.2(fp32) | ResNet-50 | [download](https://passl.bj.bcebos.com/models/pixpro_r50_ep100_no_instance_with_linear.pdparams)|
 
+## Implemented COCO with PaddleDetection
+| Backbone        | Model      | images/GPU | lr schedule |FPS | Box AP |   
+| :-------------- | :------------- | :-----: | :-----: | :------------: | :-----: | 
+| ResNet50(official)    | FCOS（mmDetection）          |    2    |   1x      |     ----     |  37.4  | 
+| ResNet50(pixpro)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  38.4  | 
+| ResNet50(PaddleDetection)    | FCOS（PaddleDetection）          |    2    |   1x      |     ----     |  39.6  | 
+
+
 ## Getting Started
 
 ### 1. Train PixPro
@@ -31,7 +39,8 @@ python tools/train.py -c configs/pixpro/pixpro_base_r50_100ep.yaml
 python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/pixpro/pixpro_base_r50_100ep.yaml
 ```
 
-Pretraining models with 100 epochs can be found at [pixpro](https://passl.bj.bcebos.com/models/pixpro_r50_ep100_no_instance_with_linear.pdparams)
+Pretraining models with 100 epochs can be found at [pixpro](https://passl
+.bj.bcebos.com/models/pixpro_r50_ep100_no_instance_with_linear.pdparams)
 
 Note: The default learning rate in config files is for 8 GPUs. If using differnt number GPUs, the total batch size will change in proportion, you have to scale the learning rate following ```new_lr = old_lr * new_ngpus / old_ngpus```.
 
