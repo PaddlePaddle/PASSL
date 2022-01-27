@@ -20,8 +20,10 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='This script extracts weights from a checkpoint')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument(
-        '--prefix', type=str, default='backbone', help='destination file name')
+    parser.add_argument('--prefix',
+                        type=str,
+                        default='backbone',
+                        help='destination file name')
     parser.add_argument('--output', type=str, help='destination file name')
     args = parser.parse_args()
     return args
@@ -35,7 +37,7 @@ def main():
     has_prefix = False
     for key, value in ckpt['state_dict'].items():
         if key.startswith(args.prefix):
-            output_dict[key[len(args.prefix) + 1:]] = value
+            output_dict[key] = value
             has_prefix = True
     if not has_prefix:
         raise Exception("Cannot find a {} layer in the checkpoint.".format(
