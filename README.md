@@ -1,4 +1,4 @@
-⚙️ 中文|[English](./README_en.md)
+⚙️ 中文 | [English](./README_en.md)
 
 <p align="center">
   <img src="./docs/imgs/passl_logo.svg" width="60%" height="60%"/>
