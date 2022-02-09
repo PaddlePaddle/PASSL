@@ -34,7 +34,7 @@ PASSL 主要特性：
 
 ## 模型库
 
-* **Self-Supervised Learning Models **
+* **Self-Supervised Learning Models**
 
 PASSL 实现了一系列自监督学习算法，更具体的使用文档请参阅 **Document**
 
