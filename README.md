@@ -19,7 +19,7 @@ PASSL 主要特性：
 
 - 自监督前沿算法实现
 
-  PASSL 实现了多种前沿自监督学习算法，包括不限于 [SimCLR](https://arxiv.org/abs/2002.05709), [MoCo(v1)](https://arxiv.org/abs/1911.05722), [MoCo(v2)](https://arxiv.org/abs/1911.05722), [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md), [CLIP](https://arxiv.org/abs/2103.00020)。[BYOL](https://arxiv.org/abs/2006.07733) 即将推出。也支持监督下的培训。
+  PASSL 实现了多种前沿自监督学习算法，包括不限于 [SimCLR](https://arxiv.org/abs/2002.05709)、 [MoCo(v1)](https://arxiv.org/abs/1911.05722)、 [MoCo(v2)](https://arxiv.org/abs/1911.05722)、 [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md)、 [CLIP](https://arxiv.org/abs/2103.00020)、[BYOL](https://arxiv.org/abs/2006.07733)，也支持监督下的训练。
 
 - 模块化设计
 
@@ -55,7 +55,7 @@ Comming Soon：更多的算法实现已经在我们的计划中 ...
 
 PASSL 实现了视觉 Transformer 等具有影响力的图像分类算法，并提供了相应的预训练权重。旨在支持自监督、多模态、大模型算法的建设和研究。更多使用细节请参阅 [Classification_Models_Guide.md](docs/Classification_Models_Guide.md)
 
-|                  | Detail                      | Tutorial                                                     |
+|                  | Detail                      | AI Studio                                                     |
 | ---------------- | --------------------------- | ------------------------------------------------------------ |
 | ViT              | /                           | [PaddleEdu](https://aistudio.baidu.com/aistudio/projectdetail/2293050) |
 | Swin Transformer | /                           | [PaddleEdu](https://aistudio.baidu.com/aistudio/projectdetail/2280436) |
@@ -66,7 +66,7 @@ PASSL 实现了视觉 Transformer 等具有影响力的图像分类算法，并�
 | MLP-Mixer        | [config](configs/mlp_mixer) | [PaddleFleet](https://aistudio.baidu.com/aistudio/projectdetail/3401295) |
 | ConvNeXt         | [config](configs/convnext)  | [PaddleFleet](https://aistudio.baidu.com/aistudio/projectdetail/3407445) |
 
-🔥 PASSL 提供了详细的算法剖析，具体请参阅 **Tutorial**。
+🔥 PASSL 提供了详细的算法剖析，具体请参阅 **AI Studio**。
 
 ## 安装
 
@@ -97,7 +97,7 @@ PASSL 还很年轻，它可能存在错误和问题。请在我们的错误跟�
 
 ```
 @misc{=passl,
-    title={PASSL: A visual Self-Supervised Learning Library},
+    title={PASSL: A self-supervised learning library based on PaddlePaddle},
     author={PASSL Contributors},
     howpublished = {\url{https://github.com/PaddlePaddle/PASSL}},
     year={2022}
