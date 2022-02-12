@@ -19,7 +19,7 @@ PASSL 主要特性：
 
 - 自监督前沿算法实现
 
-  PASSL 实现了多种前沿自监督学习算法，包括不限于 [SimCLR](https://arxiv.org/abs/2002.05709)、 [MoCo(v1)](https://arxiv.org/abs/1911.05722)、 [MoCo(v2)](https://arxiv.org/abs/1911.05722)、 [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md)、 [CLIP](https://arxiv.org/abs/2103.00020)、[BYOL](https://arxiv.org/abs/2006.07733)，也支持监督下的训练。
+  PASSL 实现了多种前沿自监督学习算法，包括不限于 [SimCLR](https://arxiv.org/abs/2002.05709)、 [MoCo(v1)](https://arxiv.org/abs/1911.05722)、 [MoCo(v2)](https://arxiv.org/abs/1911.05722)、 [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md)、 [CLIP](https://arxiv.org/abs/2103.00020)、[BYOL](https://arxiv.org/abs/2006.07733)，也支持有监督训练。
 
 - 模块化设计
 
