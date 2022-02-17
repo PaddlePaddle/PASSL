@@ -1,4 +1,4 @@
-⚙️ English|[简体中文](./README_cn.md)
+⚙️ English | [简体中文](./README_cn.md)
 
 <p align="center">
   <img src="./docs/imgs/passl_logo.svg" width="60%" height="60%"/>
@@ -10,6 +10,7 @@
     <a href=""><img src="https://camo.githubusercontent.com/abb97269de2982c379cbc128bba93ba724d8822bfbe082737772bd4feb59cb54/68747470733a2f2f63646e2e7261776769742e636f6d2f73696e647265736f726875732f617765736f6d652f643733303566333864323966656437386661383536353265336136336531353464643865383832392f6d656469612f62616467652e737667"></a>
   <a href="https://aistudio.baidu.com/aistudio/personalcenter/thirdview/940489"><img src="https://img.shields.io/badge/Tutorial-AI Studio-blue.svg"></a>
 </p>
+
 ## Introduction
 
 PASSL is a Paddle based vision library for state-of-the-art Self-Supervised Learning research with [PaddlePaddle](https://www.paddlepaddle.org.cn/). PASSL aims to accelerate research cycle in self-supervised learning: from designing a new self-supervised task to evaluating the learned representations.
@@ -33,7 +34,7 @@ Key features of PASSL：
 
 ## Implemented Models
 
-* **Self-Supervised Learning Models **
+* **Self-Supervised Learning Models**
 
 PASSL implements a series of self-supervised learning algorithms, See **Document** for details on its use
 
