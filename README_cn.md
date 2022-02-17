@@ -1,4 +1,4 @@
-⚙️ 简体中文|[English](./README.md)
+⚙️ 简体中文 | [English](./README.md)
 
 <p align="center">
   <img src="./docs/imgs/passl_logo.svg" width="60%" height="60%"/>
@@ -34,7 +34,7 @@ PASSL 主要特性：
 
 ## 模型库
 
-* **Self-Supervised Learning Models **
+* **Self-Supervised Learning Models**
 
 PASSL 实现了一系列自监督学习算法，更具体的使用文档请参阅 **Document**
 
