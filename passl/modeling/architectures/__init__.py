@@ -16,8 +16,9 @@ from .moco import MoCo
 from .clas import Classification
 from .BYOL import BYOL
 from .MoCoBYOL import MoCoBYOL
-from .CLIPWrapper import CLIPWrapper 
+from .CLIPWrapper import CLIPWrapper
 from .simclr import SimCLR
 from .byol_clas import ByolClassification
-from .ViTWrapper import ViTWrapper 
+from .ViTWrapper import ViTWrapper
 from .builder import build_model
+from .PvtWrapper import PvtWrapper

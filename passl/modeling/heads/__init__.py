@@ -19,4 +19,5 @@ from .mb_head import MBHead
 from .clip_head import CLIPHead
 from .builder import build_head
 from .simclr_contrastive_head import SimCLRContrastiveHead
-from .vision_transformer_head import VisionTransformerClsHead 
+from .vision_transformer_head import VisionTransformerClsHead
+from .pvt_v2_head import PyramidVisionTransformerV2ClsHead
