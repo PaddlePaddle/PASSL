@@ -20,13 +20,13 @@ model:
     name: PyramidVisionTransformerV2ClsHead
     with_avg_pool: False
     num_classes: 1000
-    in_channels: 768
+    in_channels: 512
 
 dataloader:
   train:
     num_workers: 8
     sampler:
-      batch_size: 256
+      batch_size: 128
       shuffle: true
       drop_last: True
     dataset:
