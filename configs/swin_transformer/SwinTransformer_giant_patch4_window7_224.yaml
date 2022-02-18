@@ -1,7 +1,7 @@
 epochs: 300
 output_dir: output_dir
 seed: 16
-use_amp: True 
+use_amp: True
 
 AMP:
    level: 'O1'
@@ -20,9 +20,9 @@ hybrid:
    pp_degree: 1
 
 sharding:
-   sharding_stage: 2  # 2 or 'dp'
-   offload: False 
-   accumulate_grad: False 
+   sharding_stage: 2
+   offload: False
+   accumulate_grad: False
 
 model:
   name: SwinWrapper
@@ -62,7 +62,7 @@ dataloader:
           interpolation: 'bicubic'
           img_size: 224
         - name: Transpose
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
@@ -80,7 +80,7 @@ dataloader:
   val:
     num_workers: 8
     sampler:
-      batch_size: 32 
+      batch_size: 32
       shuffle: false
       drop_last: false
     dataset:
@@ -94,7 +94,7 @@ dataloader:
         - name: CenterCrop
           size: 224
         - name: Transpose
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
