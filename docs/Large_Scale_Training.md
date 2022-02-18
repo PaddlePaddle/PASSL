@@ -22,6 +22,9 @@ AMP:
 
 **[ZeRO: Memory Optimizations Toward Training Trillion Parameter Models](https://arxiv.org/abs/1910.02054)** is a technique proposed by **Samyam Rajbhandari, Jeff Rasley, Olatunji Ruwase, Yuxiong He**.  To train a huge models with billions of parameters faces severe challenges in GPU memory comsumption. ZeRO can largely eliminate GPU memory redundancies by partitioning the optimizer states, gradients, and parameters across multiple devices.
 
+Note: The latest Paddle develop version should be install when using sharding:
+https://www.paddlepaddle.org.cn/install/quick?docurl=/documentation/docs/zh/develop/install/pip/linux-pip.html
+
 Users can use ZeRO by setting the following parameters in configure file:
 ```
 sharding:

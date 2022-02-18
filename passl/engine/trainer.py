@@ -19,9 +19,6 @@ import paddle
 import paddle.distributed as dist
 from paddle.distributed import fleet
 from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
-from paddle.distributed.fleet.meta_parallel.sharding.sharding_utils import ShardingScaler
-from paddle.distributed.fleet.meta_parallel.sharding.sharding_stage2 import ShardingStage2
-from paddle.distributed.fleet.meta_optimizers.dygraph_optimizer.sharding_optimizer_stage2 import ShardingOptimizerStage2
 
 from ..hooks import build_hook, Hook
 from ..utils.misc import AverageMeter
@@ -47,7 +44,6 @@ def set_hyrbid_parallel_seed(basic_seed,
 
 
 class IterLoader:
-
     def __init__(self, dataloader, epoch=0):
         self._dataloader = dataloader
         self.iter_loader = iter(self._dataloader)
@@ -93,7 +89,6 @@ class Trainer:
     #                     |                                    ||
     #                    end                                   \/
     """
-
     def __init__(self, cfg):
         # base config
         self.logger = logging.getLogger(__name__)
@@ -189,6 +184,9 @@ class Trainer:
         # ZeRO
         self.sharding_strategies = cfg.get('sharding', False)
         if self.sharding_strategies:
+            from paddle.distributed.fleet.meta_parallel.sharding.sharding_utils import ShardingScaler
+            from paddle.distributed.fleet.meta_parallel.sharding.sharding_stage2 import ShardingStage2
+            from paddle.distributed.fleet.meta_optimizers.dygraph_optimizer.sharding_optimizer_stage2 import ShardingOptimizerStage2
             self.sharding_stage = self.sharding_strategies['sharding_stage']
             accumulate_grad = self.sharding_strategies['accumulate_grad']
             offload = self.sharding_strategies['offload']
