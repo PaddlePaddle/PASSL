@@ -6,15 +6,15 @@ model:
   name: SwinWrapper
   architecture:
       name: XCiT
-      patch_size: 8
-      embed_dim: 384
+      patch_size: 16
+      embed_dim: 512
       depth: 24
       num_heads: 8
       eta: 1e-5
       tokens_norm: True
   head:
     name: SwinTransformerClsHead
-    in_channels: 384 # equals to architecture.embed_dim
+    in_channels: 512 # equals to architecture.embed_dim
     num_classes: 1000
 
 
@@ -22,7 +22,7 @@ dataloader:
   train:
     num_workers: 8
     sampler:
-      batch_size: 32
+      batch_size: 16
       shuffle: True
       drop_last: True
     dataset:

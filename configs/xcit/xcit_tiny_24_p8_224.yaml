@@ -68,6 +68,8 @@ dataloader:
         - name: Resize
           size: 224
           interpolation: 'bicubic'
+        - name: CenterCrop
+          size: 224
         - name: Transpose
         - name: Normalize
           mean: [123.675, 116.28, 103.53]

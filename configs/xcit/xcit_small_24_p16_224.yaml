@@ -6,7 +6,7 @@ model:
   name: SwinWrapper
   architecture:
       name: XCiT
-      patch_size: 8
+      patch_size: 16
       embed_dim: 384
       depth: 24
       num_heads: 8
