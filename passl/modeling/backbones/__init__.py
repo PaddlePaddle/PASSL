@@ -14,3 +14,4 @@ from .cvt import CvT
 from .deit import DeiTVisionTransformer, DistilledVisionTransformer
 from .convnext import ConvNeXt
 from .mae import MAE, MAE_ViT
+from .xcit import XCiT
