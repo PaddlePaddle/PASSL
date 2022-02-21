@@ -52,7 +52,6 @@ class PyramidVisionTransformerV2ClsHead(ClasHead):
 
     def loss(self, x, labels):
         losses = dict()
-
         losses['loss'] = paddle.sum(-labels * F.log_softmax(x, axis=-1),
                                     axis=-1).mean()
         losses['acc1'], losses['acc5'] = accuracy(x, labels, topk=(1, 5))
