@@ -34,3 +34,4 @@ from .DeiTWrapper import DeiTWrapper
 from .pixpro import PixPro
 
 from .MAE import MAE_PRETRAIN, MAE_FINETUNE
+from .DistillationWrapper import DistillationWrapper
