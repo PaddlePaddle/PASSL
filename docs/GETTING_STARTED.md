@@ -66,6 +66,7 @@ The trained linear weights in conjuction with the backbone weights can be found 
 
 ## Extract student wights from distillation model
 
+Checkpoints saved in distillation training include both Teacher's and Student's weights. You can extract the weights of Student by following command.
 ```bash
 python tools/extract_weight.py ${DISTILLATION_WEIGHTS_FILE} --prefix Student --remove_prefix --output ${STUDENT_WEIGHTS_FILE}
 ```
