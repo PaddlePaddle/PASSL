@@ -3,19 +3,48 @@ output_dir: output_dir
 seed: 0
 
 model:
-  name: SwinWrapper
-  architecture:
-    name: XCiT
-    patch_size: 8
-    embed_dim: 192
-    depth: 12
-    num_heads: 4
-    eta: 1.0
-    tokens_norm: True
-  head:
-    name: SwinTransformerClsHead
-    in_channels: 192 # equals to architecture.embed_dim
-    num_classes: 1000
+  name: DistillationWrapper
+  models:
+    - Teacher:
+        name: Classification
+        backbone:
+          name: RegNet
+          w_a: 106.23
+          w_0: 200
+          w_m: 2.48
+          d: 18
+          group_w: 112
+          bot_mul: 1.0
+          q: 8
+          se_on: True
+        head:
+          name: ClasHead
+          in_channels: 3024
+          num_classes: 1000
+    - Student:
+        name: SwinWrapper
+        architecture:
+          name: XCiT
+          img_size: 224
+          patch_size: 16
+          embed_dim: 192
+          depth: 12
+          num_heads: 4
+          eta: 1.0
+          tokens_norm: True
+        head:
+          name: SwinTransformerClsHead
+          in_channels: 192 # equals to architecture.embed_dim
+          num_classes: 1000
+  pretrained_list:
+    - regnety_160.pdparams
+    - null
+  freeze_params_list: 
+    - True
+    - False
+  infer_model_key: Student
+  dml_loss_weight: 0.5
+  head_loss_weight: 0.5
 
 
 dataloader:
@@ -58,8 +87,8 @@ dataloader:
     num_workers: 8
     sampler:
       batch_size: 128
-      shuffle: False
-      drop_last: False
+      shuffle: false
+      drop_last: false
     dataset:
       name: ImageNet
       dataroot: data/ILSVRC2012/val
@@ -68,8 +97,6 @@ dataloader:
         - name: Resize
           size: 224
           interpolation: 'bicubic'
-        - name: CenterCrop
-          size: 224
         - name: Transpose
         - name: Normalize
           mean: [123.675, 116.28, 103.53]
@@ -99,7 +126,7 @@ log_config:
 
 checkpoint:
   name: CheckpointHook
-  by_epoch: True
+  by_epoch: true
   interval: 1
   max_keep_ckpts: 50
 

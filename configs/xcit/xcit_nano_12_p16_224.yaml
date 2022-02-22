@@ -5,13 +5,13 @@ seed: 0
 model:
   name: SwinWrapper
   architecture:
-      name: XCiT
-      patch_size: 16
-      embed_dim: 128
-      depth: 12
-      num_heads: 4
-      eta: 1.0
-      tokens_norm: False
+    name: XCiT
+    patch_size: 16
+    embed_dim: 128
+    depth: 12
+    num_heads: 4
+    eta: 1.0
+    tokens_norm: False
   head:
     name: SwinTransformerClsHead
     in_channels: 128 # equals to architecture.embed_dim
