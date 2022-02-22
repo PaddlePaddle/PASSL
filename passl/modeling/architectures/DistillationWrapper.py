@@ -92,16 +92,9 @@ class DistillationWrapper(nn.Layer):
         losses['acc1'], losses['acc5'] = head_loss['acc1'], head_loss['acc5']
         return losses
 
-    def test_iter(self, *inputs, **kwargs):
-        return self.model_dict[self.infer_model_key].test_iter(*inputs, **kwargs)
-
     def forward(self, *inputs, mode='train', **kwargs):
         if mode == 'train':
             return self.train_iter(*inputs, **kwargs)
-        elif mode == 'test':
-            return self.test_iter(*inputs, **kwargs)
-        elif mode == 'extract':
+        else:
             return self.model_dict[self.infer_model_key]. \
                         forward(self, *inputs, mode, **kwargs)
-        else:
-            raise Exception("No such mode: {}".format(mode))
