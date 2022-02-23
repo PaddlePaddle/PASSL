@@ -18,9 +18,20 @@ python tools/train.py -c configs/xcit/${XCIT_ARCH}.yaml
 python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/xcit/${XCIT_ARCH}.yaml
 ```
 #### Evaluate
+
 ```bash
 python tools/train.py -c configs/xcit/${XCIT_ARCH}.yaml --load ${XCIT_WEGHT_FILE} --evaluate-only
 ```
+
+#### Knowledge distillation
+
+For knowledge distillation, you only need to replace `${XCIT_ARCH}.yaml` to corresponding distillation config file, `${XCIT_ARCH}_dist.yaml`,  at above commands. We provide pretrained weights of Teacher model `RegNetY_160`, which can be downloaded [here](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/regnety_160.pdparams).
+
+Checkpoints saved in distillation training include both Teacher's and Student's weights. You can extract the weights of Student by following command.
+```bash
+python tools/extract_weight.py ${DISTILLATION_WEIGHTS_FILE} --prefix Student --remove_prefix --output ${STUDENT_WEIGHTS_FILE}
+```
+
 
 ## Model Zoo
 
