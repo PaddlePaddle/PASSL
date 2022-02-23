@@ -19,7 +19,7 @@ Key features of PASSL：
 
 - Reproducible implementation of SOTA in Self-Supervision
 
-  Existing SOTA in Self-Supervision are implemented - [SimCLR](https://arxiv.org/abs/2002.05709), [MoCo(v1)](https://arxiv.org/abs/1911.05722), [MoCo(v2)](https://arxiv.org/abs/1911.05722), [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md), [BYOL](https://arxiv.org/abs/2006.07733), [BEiT](https://arxiv.org/abs/2106.08254). Also supports supervised trainings.
+  Existing SOTA in Self-Supervision are implemented - [SimCLR](https://arxiv.org/abs/2002.05709), [MoCo(v1)](https://arxiv.org/abs/1911.05722), [MoCo(v2)](https://arxiv.org/abs/1911.05722), [MoCo-BYOL](docs/Train_MoCo-BYOL_model.md), [BYOL](https://arxiv.org/abs/2006.07733), [BEiT](https://arxiv.org/abs/2106.08254). Supervised classification training is also supported.
 
 - Modular Design
 
