@@ -4,7 +4,7 @@ seed: 0
 device: gpu
 
 model:
-    name: BeitPTWrapper
+    name: BEiTPTWrapper
     architecture:
         name: VisionTransformerForMaskedImageModeling
         img_size: 224
