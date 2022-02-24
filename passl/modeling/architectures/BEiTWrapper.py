@@ -164,11 +164,6 @@ class BEiTFTWrapper(nn.Layer):
         if mixup_fn is not None:
             img, label = mixup_fn(img, label)
 
-        # Only Used For Debug The Network.
-        import numpy as np
-        img = paddle.to_tensor(np.load('ft_data.npy'))
-        label = paddle.to_tensor(np.load('ft_tar.npy'))
-
         x = self.backbone_forward(img)
         outputs = self.head(x)
         outputs = self.head.loss(outputs, label)
