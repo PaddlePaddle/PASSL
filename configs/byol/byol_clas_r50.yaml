@@ -1,5 +1,7 @@
 epochs: 100
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
   name: ByolClassification
@@ -16,7 +18,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: true
@@ -30,11 +34,13 @@ dataloader:
         - name: RandomHorizontalFlip
         - name: Resize
           size: [224,224]
-          interpolation: bicubic 
+          interpolation: bicubic
         - name: ByolNormalize
         - name: Clip
   val:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: false
@@ -49,7 +55,7 @@ dataloader:
         - name: CenterCrop
           size: 224
         - name: ByolNormalize
-        - name: Clip 
+        - name: Clip
 
 lr_scheduler:
   name: ByolLRScheduler
