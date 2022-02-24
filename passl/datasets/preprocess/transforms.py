@@ -26,6 +26,7 @@ import paddle.vision.transforms.functional as F
 from .mixup import Mixup
 from .builder import TRANSFORMS, build_transform
 from .random_erasing import RandomErasing
+from .masking_generator import MaskingGenerator, RandomMaskingGenerator
 from .constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, DEFAULT_CROP_PCT
 from .auto_augment import rand_augment_transform, augment_and_mix_transform, auto_augment_transform
 from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize, \
@@ -41,6 +42,7 @@ TRANSFORMS.register(PT.Resize)
 TRANSFORMS.register(PT.CenterCrop)
 TRANSFORMS.register(PT.ToTensor)
 
+# BYOL Augmentation
 TRANSFORMS.register(ByolRandomHorizontalFlip)
 TRANSFORMS.register(ByolColorJitter)
 TRANSFORMS.register(ByolRandomGrayscale)
@@ -53,8 +55,13 @@ TRANSFORMS.register(ByolCenterCrop)
 TRANSFORMS.register(RandomErasing)
 TRANSFORMS.register(Mixup)
 
+# PixPro
 TRANSFORMS.register(RandomResizedCropCoord)
 TRANSFORMS.register(RandomHorizontalFlipCoord)
+
+# BEiT
+TRANSFORMS.register(MaskingGenerator)
+
 
 @TRANSFORMS.register()
 class Clip():
@@ -252,7 +259,7 @@ class AutoAugment(PT.BaseTransform):
             if not is_pil:
                 img = np.asarray(img)
         return img
-    
+
 
 class UnifiedResize(object):
     """
@@ -299,13 +306,13 @@ class UnifiedResize(object):
 
     def __call__(self, src, size):
         return self.resize_func(src, size)
-    
+
+
 @TRANSFORMS.register()
 class RandCropImage(object):
     """ random crop image
         https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
     """
-
     def __init__(self,
                  size,
                  scale=None,
@@ -320,8 +327,8 @@ class RandCropImage(object):
         self.scale = [0.08, 1.0] if scale is None else scale
         self.ratio = [3. / 4., 4. / 3.] if ratio is None else ratio
 
-        self._resize_func = UnifiedResize(
-            interpolation=interpolation, backend=backend)
+        self._resize_func = UnifiedResize(interpolation=interpolation,
+                                          backend=backend)
 
     def __call__(self, img):
         size = self.size
@@ -350,13 +357,13 @@ class RandCropImage(object):
         img = img[j:j + h, i:i + w, :]
 
         return self._resize_func(img, size)
-   
+
+
 @TRANSFORMS.register()
 class ResizeImage(object):
     """ resize image
         https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
     """
-
     def __init__(self,
                  size=None,
                  resize_short=None,
@@ -374,8 +381,8 @@ class ResizeImage(object):
             raise OperatorParamError("invalid params for ReisizeImage for '\
                 'both 'size' and 'resize_short' are None")
 
-        self._resize_func = UnifiedResize(
-            interpolation=interpolation, backend=backend)
+        self._resize_func = UnifiedResize(interpolation=interpolation,
+                                          backend=backend)
 
     def __call__(self, img):
         img_h, img_w = img.shape[:2]
@@ -398,7 +405,7 @@ class NormalizeImage(PT.Normalize):
         scale (float): Normalize input value to [0, 1].
         mean (int|float|list|tuple): Sequence of means for each channel.
         std (int|float|list|tuple): Sequence of standard deviations for each channel.
-        data_format (str, optional): Data format of img, should be 'HWC' or 
+        data_format (str, optional): Data format of img, should be 'HWC' or
             'CHW'. Default: 'CHW'.
         to_rgb (bool, optional): Whether to convert to rgb. Default: False.
         keys (list[str]|tuple[str], optional): Same as ``BaseTransform``. Default: None.
@@ -411,7 +418,7 @@ class NormalizeImage(PT.Normalize):
         A callable object of Normalize.
 
     Examples:
-    
+
         .. code-block:: python
 
             import numpy as np
@@ -419,7 +426,7 @@ class NormalizeImage(PT.Normalize):
             from paddle.vision.transforms import Normalize
 
             normalize = NormalizeImage(scale=1./255.,
-                                  mean=[127.5, 127.5, 127.5], 
+                                  mean=[127.5, 127.5, 127.5],
                                   std=[127.5, 127.5, 127.5],
                                   data_format='HWC')
 
@@ -428,9 +435,8 @@ class NormalizeImage(PT.Normalize):
             fake_img = normalize(fake_img)
             print(fake_img.shape)
             print(fake_img.max, fake_img.max)
-    
-    """
 
+    """
     def __init__(self,
                  scale=None,
                  mean=0.0,
@@ -441,11 +447,11 @@ class NormalizeImage(PT.Normalize):
                  keys=None):
         super(NormalizeImage, self).__init__(mean=mean, std=std, keys=keys)
         self.scale = eval(scale)
-        self.dtype = dtype 
+        self.dtype = dtype
 
     def _apply_image(self, img):
         if self.scale is not None:
             img = img * self.scale
         img = F.normalize(img, self.mean, self.std, self.data_format,
-                           self.to_rgb)
+                          self.to_rgb)
         return img.astype(self.dtype)
