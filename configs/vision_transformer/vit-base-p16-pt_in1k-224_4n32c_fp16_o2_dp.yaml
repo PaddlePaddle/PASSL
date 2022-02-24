@@ -1,6 +1,7 @@
-epochs: 300 
+epochs: 300
 output_dir: output_dir
 seed: 2021
+device: gpu
 
 use_amp: True
 AMP:
@@ -17,14 +18,14 @@ AMP:
 model:
   name: ViTWrapper
   architecture:
-      name: GoogleVisionTransformer 
-      img_size: 224 
-      patch_size: 16 
-      embed_dim: 768 
-      depth: 12 
+      name: GoogleVisionTransformer
+      img_size: 224
+      patch_size: 16
+      embed_dim: 768
+      depth: 12
       num_heads: 12
-      mlp_ratio: 4 
-      qkv_bias: True 
+      mlp_ratio: 4
+      qkv_bias: True
       epsilon: 1e-6
       class_num: 1000
       drop_rate: 0.1
@@ -33,13 +34,15 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
-      batch_size: 128 
+      batch_size: 128
       shuffle: True
       drop_last: True
     dataset:
-      name: ImageNet 
+      name: ImageNet
       dataroot: data/ILSVRC2012/train/
       return_label: True
       transforms:
@@ -54,10 +57,12 @@ dataloader:
         - name: Normalize
           data_format: 'HWC'
           mean: [127.5, 127.5, 127.5]
-          std: [127.5, 127.5, 127.5] 
+          std: [127.5, 127.5, 127.5]
         - name: Transpose
   val:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 256
       shuffle: False
@@ -78,11 +83,11 @@ dataloader:
         - name: Normalize
           data_format: 'HWC'
           mean: [127.5, 127.5, 127.5]
-          std: [127.5, 127.5, 127.5] 
+          std: [127.5, 127.5, 127.5]
         - name: Transpose
 
 lr_scheduler:
-  name: ViTLRScheduler 
+  name: ViTLRScheduler
   learning_rate: 3e-3
   decay_type: cosine
   warmup_steps: 10000
