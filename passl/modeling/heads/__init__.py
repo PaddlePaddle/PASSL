@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .beit_head import BEiTClsHead, BEiTPTHead, BEiTFTHead
+from .builder import build_head
+from .cait_head import CaitClsHead
 from .contrastive_head import ContrastiveHead
 from .clas_head import ClasHead
+from .clip_head import CLIPHead
+from .cvt_head import CvTClsHead
 from .l2_head import L2Head
 from .mb_head import MBHead
-from .clip_head import CLIPHead
-from .builder import build_head
-from .simclr_contrastive_head import SimCLRContrastiveHead
-from .vision_transformer_head import VisionTransformerClsHead
-from .swin_transformer_head import SwinTransformerClsHead
-from .beit_head import BeitClsHead
-from .t2t_vit_head import T2TViTClsHead
-from .cait_head import CaitClsHead
 from .mlp_mixer_head import MlpMixerClsHead
-from .cvt_head import CvTClsHead
 from .pixpro_head import PixProHead
+from .simclr_contrastive_head import SimCLRContrastiveHead
+from .swin_transformer_head import SwinTransformerClsHead
+from .t2t_vit_head import T2TViTClsHead
+from .vision_transformer_head import VisionTransformerClsHead

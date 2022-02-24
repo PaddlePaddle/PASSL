@@ -1,0 +1,104 @@
+epochs: 800
+output_dir: output_dir
+seed: 0
+device: gpu
+
+model:
+    name: BEiTPTWrapper
+    architecture:
+        name: VisionTransformerForMaskedImageModeling
+        img_size: 224
+        embed_dim: 768
+        patch_size: 16
+        depth: 12
+        num_heads: 12
+        mlp_ratio: 4
+        use_abs_pos_emb: False
+        use_rel_pos_bias: False
+        use_shared_rel_pos_bias: True
+        init_values: 0.1
+        drop_path_rate: 0.1
+    head:
+        name: BEiTPTHead
+        num_classes: 1000
+        in_channels: 768
+    d_vae:
+        name: dall-e
+        weight_path: 'dvae/'
+        image_size: 112
+
+dataloader:
+  train:
+    loader:
+      num_workers: 0
+      use_shared_memory: False
+    sampler:
+      batch_size: 128
+      shuffle: True
+      drop_last: True
+    dataset:
+      name: BEiT_ImageNet
+      dataroot: data/ILSVRC2012/train/
+      common_transforms:
+        - name: ToRGB
+        - name: ColorJitter
+          brightness: 0.4
+          contrast: 0.4
+          saturation: 0.4
+          hue: 0.4
+        - name: RandomHorizontalFlip
+        - name: RandomResizedCropAndInterpolationWithTwoPic
+          size: 224
+          second_size: 112
+          interpolation: 'bicubic'
+          second_interpolation: 'lanczos'
+      patch_transforms:
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+      visual_token_transforms:
+        - name: Transpose
+        - name: VisualTokenMap
+          mode: 'map_pixels'
+          scale: 255
+      masking_generator:
+          input_size: 14
+          num_masking_patches: 75
+          max_num_patches: None
+          min_num_patches: 16
+
+lr_scheduler:
+  name: LinearWarmup
+  learning_rate:
+    name: CosineAnnealingDecay
+    learning_rate: 3e-3
+    T_max: 800
+    eta_min: 1e-5
+  warmup_steps: 10
+  start_lr: 0
+  end_lr: 3e-3
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.05
+  epsilon: 1e-8
+  exclude_from_weight_decay: ["pos_embed","cls_token",".bias","norm","gamma"]
+  grad_clip:
+    name: global_norm
+    value: 3.0
+
+log_config:
+    name: LogHook
+    interval: 1
+
+checkpoint:
+  name: CheckpointHook
+  by_epoch: True
+  interval: 1
+
+vdl_config:
+    name: VisualHook

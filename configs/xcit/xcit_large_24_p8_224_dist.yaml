@@ -1,6 +1,7 @@
 epochs: 400
 output_dir: output_dir
 seed: 0
+device: gpu
 
 model:
   name: DistillationWrapper
@@ -38,7 +39,7 @@ model:
   pretrained_list:
     - regnety_160.pdparams
     - null
-  freeze_params_list: 
+  freeze_params_list:
     - True
     - False
   infer_model_key: Student
@@ -48,7 +49,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: True
@@ -83,7 +86,9 @@ dataloader:
           mode: 'batch'
           cutmix_alpha: 1.0
   val:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: false

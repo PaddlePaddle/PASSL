@@ -1,5 +1,7 @@
 epochs: 100
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
   name: Classification
@@ -14,7 +16,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 6
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 64
       shuffle: true
@@ -32,7 +36,9 @@ dataloader:
           mean: [123.675, 116.28, 103.53]
           std: [58.395, 57.12, 57.375]
   val:
-    num_workers: 4
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 64
       shuffle: false
