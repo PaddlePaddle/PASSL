@@ -1,0 +1,123 @@
+epochs: 100
+output_dir: output_dir
+seed: 0
+device: gpu
+
+model:
+  name: BEiTFTWrapper
+  architecture:
+      name: VisionTransformerForFinetune
+      img_size: 224
+      embed_dim: 768
+      patch_size: 16
+      depth: 12
+      num_heads: 12
+      mlp_ratio: 4
+      qkv_bias: True
+      drop_path_rate: 0.1
+      init_values: 0.1
+      use_abs_pos_emb: False
+      use_rel_pos_bias: True
+  head:
+    name: BEiTFTHead
+    num_classes: 1000
+    in_channels: 768
+
+dataloader:
+  train:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 128
+      shuffle: True
+      drop_last: True
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train/
+      return_label: True
+      transforms:
+        - name: RandomResizedCrop
+          size: 224
+          scale: [0.08, 1.]
+          interpolation: 'bicubic'
+        - name: RandomHorizontalFlip
+        - name: AutoAugment
+          config_str: 'rand-m9-mstd0.5-inc1'
+          interpolation: 'bicubic'
+          img_size: 224
+          mean: [0.5, 0.5, 0.5]
+          std: [0.5, 0.5, 0.5]
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.5, 0.5, 0.5]
+          std: [0.5, 0.5, 0.5]
+        - name: RandomErasing
+          prob: 0.25
+          mode: 'pixel'
+          max_count: 1
+      batch_transforms:
+        - name: Mixup
+          mixup_alpha: 0.8
+          prob: 1.
+          switch_prob: 0.5
+          mode: 'batch'
+          cutmix_alpha: 1.0
+  val:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 64
+      shuffle: false
+      drop_last: false
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/val
+      return_label: True
+      transforms:
+        - name: Resize
+          size: 256
+          interpolation: 'bicubic'
+        - name: CenterCrop
+          size: 224
+        - name: Transpose
+        - name: Normalize
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
+
+lr_scheduler:
+  name: LinearWarmup
+  learning_rate:
+    name: CosineAnnealingDecay
+    learning_rate: 4e-3
+    T_max: 100
+    eta_min: 1e-6
+  warmup_steps: 20
+  start_lr: 0
+  end_lr: 4e-3
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.05
+  epsilon: 1e-8
+  exclude_from_weight_decay: ["pos_embed","cls_token",".bias","norm","gamma"]
+  layer_decay: 0.65
+
+log_config:
+    name: LogHook
+    interval: 10
+
+checkpoint:
+  name: CheckpointHook
+  by_epoch: true
+  interval: 1
+
+custom_config:
+  - name: EvaluateHook
+
+vdl_config:
+    name: VisualHook
