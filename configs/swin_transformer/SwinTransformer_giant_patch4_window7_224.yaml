@@ -2,6 +2,7 @@ epochs: 300
 output_dir: output_dir
 seed: 16
 use_amp: True
+device: gpu
 
 AMP:
    level: 'O1'
@@ -19,6 +20,7 @@ hybrid:
    mp_degree: 1
    pp_degree: 1
 
+# Make sure your paddle version is develop to use sharding.
 sharding:
    sharding_stage: 2
    offload: False
@@ -42,7 +44,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 8
       shuffle: true
@@ -78,7 +82,9 @@ dataloader:
           mode: 'batch'
           cutmix_alpha: 1.0
   val:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 32
       shuffle: false

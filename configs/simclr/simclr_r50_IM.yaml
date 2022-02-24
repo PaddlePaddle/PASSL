@@ -2,6 +2,8 @@ epochs: 100
 use_simclr_iters: True
 global_batch_size: 4096
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
   name: SimCLR
@@ -21,7 +23,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 6
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 32
       shuffle: true
@@ -83,7 +87,9 @@ dataloader:
           std: [0.229, 0.224, 0.225]
 
   val:
-    num_workers: 4
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 512
       shuffle: false
