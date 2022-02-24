@@ -2,26 +2,28 @@ epochs: 300
 output_dir: output_dir
 
 model:
-    name: BeitWrapper
-    architecture:
-        name: Beit
-        img_size: 384
-        embed_dim: 1024
-        patch_size: 16
-        depth: 24
-        num_heads: 16
-        mlp_ratio: 4
-        use_abs_pos_emb: False
-        use_rel_pos_bias: True
-        init_values: 0.00001
-    head:
-        name: BeitClsHead
-        num_classes: 1000
-        in_channels: 1024
+  name: BEiTWrapper
+  architecture:
+      name: BEiT
+      img_size: 384
+      embed_dim: 1024
+      patch_size: 16
+      depth: 24
+      num_heads: 16
+      mlp_ratio: 4
+      use_abs_pos_emb: False
+      use_rel_pos_bias: True
+      init_values: 0.00001
+  head:
+      name: BEiTClsHead
+      num_classes: 1000
+      in_channels: 1024
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: true
