@@ -1,5 +1,7 @@
 epochs: 300
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
   name: T2TViTWrapper
@@ -17,7 +19,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 0
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: true
