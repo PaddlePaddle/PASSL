@@ -7,6 +7,7 @@ from .clip import CLIP
 from .convnext import ConvNeXt
 from .cvt import CvT
 from .deit import DeiTVisionTransformer, DistilledVisionTransformer
+from .discrete_vae import Dalle_VAE, DiscreteVAE
 from .mae import MAE, MAE_ViT
 from .mlp_mixer import MlpMixer
 from .regnet import RegNet
