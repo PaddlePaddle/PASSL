@@ -19,7 +19,7 @@ model:
         init_values: 0.1
         drop_path_rate: 0.1
     head:
-        name: BEiTClsHead
+        name: BEiTPTHead
         num_classes: 1000
         in_channels: 768
     d_vae:
@@ -30,8 +30,8 @@ model:
 dataloader:
   train:
     loader:
-      num_workers: 8
-      use_shared_memory: True
+      num_workers: 0
+      use_shared_memory: False
     sampler:
       batch_size: 128
       shuffle: True
