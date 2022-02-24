@@ -1,5 +1,7 @@
 epochs: 10
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
   name: CLIPWrapper
@@ -24,7 +26,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: true
@@ -38,7 +42,7 @@ dataloader:
           size: 224
           scale: [0.75, 1.]
           ratio: [1., 1.]
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]

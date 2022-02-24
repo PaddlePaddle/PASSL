@@ -106,6 +106,12 @@ class Trainer:
             np.random.seed(seed)
             random.seed(seed)
 
+        # set device
+        assert cfg['device'] in ['cpu', 'gpu', 'xpu', 'npu']
+        self.device = paddle.set_device(cfg['device'])
+        self.logger.info('train with paddle {} on {} device'.format(
+            paddle.__version__, self.device))
+
         self.start_epoch = 0
         self.current_epoch = 0
         self.current_iter = 0
@@ -133,7 +139,7 @@ class Trainer:
 
         # build train dataloader
         self.train_dataloader, self.mixup_fn = build_dataloader(
-            cfg.dataloader.train)
+            cfg.dataloader.train, self.device)
         self.iters_per_epoch = len(self.train_dataloader)
 
         # use byol iters
@@ -168,7 +174,11 @@ class Trainer:
             mp_rank = hcg.get_model_parallel_rank()
             pp_rank = hcg.get_stage_id()
             dp_rank = hcg.get_data_parallel_rank()
-            set_hyrbid_parallel_seed(seed, 0, mp_rank, pp_rank)
+            set_hyrbid_parallel_seed(seed,
+                                     0,
+                                     mp_rank,
+                                     pp_rank,
+                                     device=self.device)
 
         # amp training
         self.use_amp = cfg.get('use_amp',
@@ -324,7 +334,7 @@ class Trainer:
     def val(self, **kargs):
         if not hasattr(self, 'val_dataloader'):
             self.val_dataloader, mixup_fn = build_dataloader(
-                self.cfg.dataloader.val)
+                self.cfg.dataloader.val, self.device)
 
         self.logger.info(
             'start evaluate on epoch {} ..'.format(self.current_epoch + 1))

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cv2
 import math
 import random
-from PIL import ImageFilter, Image, ImageOps
-import cv2
+import warnings
 import numpy as np
 from functools import partial
+from PIL import ImageFilter, Image, ImageOps
 
 import paddle
 import paddle.vision.transforms as PT
@@ -26,6 +27,7 @@ import paddle.vision.transforms.functional as F
 from .mixup import Mixup
 from .builder import TRANSFORMS, build_transform
 from .random_erasing import RandomErasing
+from .masking_generator import MaskingGenerator, RandomMaskingGenerator
 from .constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, DEFAULT_CROP_PCT
 from .auto_augment import rand_augment_transform, augment_and_mix_transform, auto_augment_transform
 from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize, \
@@ -41,6 +43,7 @@ TRANSFORMS.register(PT.Resize)
 TRANSFORMS.register(PT.CenterCrop)
 TRANSFORMS.register(PT.ToTensor)
 
+# BYOL Augmentation
 TRANSFORMS.register(ByolRandomHorizontalFlip)
 TRANSFORMS.register(ByolColorJitter)
 TRANSFORMS.register(ByolRandomGrayscale)
@@ -53,8 +56,15 @@ TRANSFORMS.register(ByolCenterCrop)
 TRANSFORMS.register(RandomErasing)
 TRANSFORMS.register(Mixup)
 
+# PixPro
 TRANSFORMS.register(RandomResizedCropCoord)
 TRANSFORMS.register(RandomHorizontalFlipCoord)
+
+# BEiT
+TRANSFORMS.register(MaskingGenerator)
+
+_RANDOM_INTERPOLATION = ('bilinear', 'bicubic')
+
 
 @TRANSFORMS.register()
 class Clip():
@@ -252,7 +262,7 @@ class AutoAugment(PT.BaseTransform):
             if not is_pil:
                 img = np.asarray(img)
         return img
-    
+
 
 class UnifiedResize(object):
     """
@@ -292,20 +302,17 @@ class UnifiedResize(object):
                 interpolation = _pil_interp_from_str[interpolation.lower()]
             self.resize_func = partial(_pil_resize, resample=interpolation)
         else:
-            logger.warning(
-                f"The backend of Resize only support \"cv2\" or \"PIL\". \"f{backend}\" is unavailable. Use \"cv2\" instead."
-            )
             self.resize_func = cv2.resize
 
     def __call__(self, src, size):
         return self.resize_func(src, size)
-    
+
+
 @TRANSFORMS.register()
 class RandCropImage(object):
     """ random crop image
         https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
     """
-
     def __init__(self,
                  size,
                  scale=None,
@@ -320,8 +327,8 @@ class RandCropImage(object):
         self.scale = [0.08, 1.0] if scale is None else scale
         self.ratio = [3. / 4., 4. / 3.] if ratio is None else ratio
 
-        self._resize_func = UnifiedResize(
-            interpolation=interpolation, backend=backend)
+        self._resize_func = UnifiedResize(interpolation=interpolation,
+                                          backend=backend)
 
     def __call__(self, img):
         size = self.size
@@ -350,13 +357,13 @@ class RandCropImage(object):
         img = img[j:j + h, i:i + w, :]
 
         return self._resize_func(img, size)
-   
+
+
 @TRANSFORMS.register()
 class ResizeImage(object):
     """ resize image
         https://github.com/PaddlePaddle/PaddleClas/blob/release/2.3/ppcls/data/preprocess/ops/operators.py
     """
-
     def __init__(self,
                  size=None,
                  resize_short=None,
@@ -371,11 +378,11 @@ class ResizeImage(object):
             self.w = size if type(size) is int else size[0]
             self.h = size if type(size) is int else size[1]
         else:
-            raise OperatorParamError("invalid params for ReisizeImage for '\
+            raise ValueError("invalid params for ReisizeImage for '\
                 'both 'size' and 'resize_short' are None")
 
-        self._resize_func = UnifiedResize(
-            interpolation=interpolation, backend=backend)
+        self._resize_func = UnifiedResize(interpolation=interpolation,
+                                          backend=backend)
 
     def __call__(self, img):
         img_h, img_w = img.shape[:2]
@@ -398,7 +405,7 @@ class NormalizeImage(PT.Normalize):
         scale (float): Normalize input value to [0, 1].
         mean (int|float|list|tuple): Sequence of means for each channel.
         std (int|float|list|tuple): Sequence of standard deviations for each channel.
-        data_format (str, optional): Data format of img, should be 'HWC' or 
+        data_format (str, optional): Data format of img, should be 'HWC' or
             'CHW'. Default: 'CHW'.
         to_rgb (bool, optional): Whether to convert to rgb. Default: False.
         keys (list[str]|tuple[str], optional): Same as ``BaseTransform``. Default: None.
@@ -411,7 +418,7 @@ class NormalizeImage(PT.Normalize):
         A callable object of Normalize.
 
     Examples:
-    
+
         .. code-block:: python
 
             import numpy as np
@@ -419,7 +426,7 @@ class NormalizeImage(PT.Normalize):
             from paddle.vision.transforms import Normalize
 
             normalize = NormalizeImage(scale=1./255.,
-                                  mean=[127.5, 127.5, 127.5], 
+                                  mean=[127.5, 127.5, 127.5],
                                   std=[127.5, 127.5, 127.5],
                                   data_format='HWC')
 
@@ -428,9 +435,8 @@ class NormalizeImage(PT.Normalize):
             fake_img = normalize(fake_img)
             print(fake_img.shape)
             print(fake_img.max, fake_img.max)
-    
-    """
 
+    """
     def __init__(self,
                  scale=None,
                  mean=0.0,
@@ -441,11 +447,154 @@ class NormalizeImage(PT.Normalize):
                  keys=None):
         super(NormalizeImage, self).__init__(mean=mean, std=std, keys=keys)
         self.scale = eval(scale)
-        self.dtype = dtype 
+        self.dtype = dtype
 
     def _apply_image(self, img):
         if self.scale is not None:
             img = img * self.scale
         img = F.normalize(img, self.mean, self.std, self.data_format,
-                           self.to_rgb)
+                          self.to_rgb)
         return img.astype(self.dtype)
+
+
+@TRANSFORMS.register()
+class RandomResizedCropAndInterpolationWithTwoPic(PT.RandomResizedCrop):
+    """Crop the given PIL Image to random size and aspect ratio with random interpolation.
+    A crop of random size (default: of 0.08 to 1.0) of the original size and a random
+    aspect ratio (default: of 3/4 to 4/3) of the original aspect ratio is made.
+    This crop is finally resized to given size.
+    This is popularly used to train the Inception networks.
+
+    Args:
+        size: expected output size of each edge
+        second size: second expected output size of each edge
+        scale: range of size of the origin size cropped
+        ratio: range of aspect ratio of the origin aspect ratio cropped
+        interpolation: Default: PIL.Image.BILINEAR
+        second_interpolation: Default: PIL.Image.LANCZOS
+    """
+    def __init__(self,
+                 size,
+                 second_size=None,
+                 scale=(0.08, 1.0),
+                 ratio=(3. / 4., 4. / 3.),
+                 interpolation='bilinear',
+                 second_interpolation='lanczos',
+                 keys=None):
+        super(RandomResizedCropAndInterpolationWithTwoPic, self).__init__(keys)
+        if isinstance(size, list):
+            self.size = size
+        else:
+            self.size = [size, size]
+        if second_size is not None:
+            if isinstance(second_size, list):
+                self.second_size = second_size
+            else:
+                self.second_size = [second_size, second_size]
+        else:
+            self.second_size = None
+        if (scale[0] > scale[1]) or (ratio[0] > ratio[1]):
+            warnings.warn("range should be of kind (min, max)")
+
+        if interpolation == 'random':
+            self.interpolation = _RANDOM_INTERPOLATION
+        else:
+            self.interpolation = interpolation
+        self.second_interpolation = second_interpolation
+        self.scale = scale
+        self.ratio = ratio
+
+    def get_params(self, img, scale, ratio):
+        """Get parameters for ``crop`` for a random sized crop.
+
+        Args:
+            img (PIL Image): Image to be cropped.
+            scale (tuple): range of size of the origin size cropped
+            ratio (tuple): range of aspect ratio of the origin aspect ratio cropped
+
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for a random
+                sized crop.
+        """
+        area = img.size[0] * img.size[1]
+
+        for attempt in range(10):
+            target_area = random.uniform(*scale) * area
+            log_ratio = (math.log(ratio[0]), math.log(ratio[1]))
+            aspect_ratio = math.exp(random.uniform(*log_ratio))
+
+            w = int(round(math.sqrt(target_area * aspect_ratio)))
+            h = int(round(math.sqrt(target_area / aspect_ratio)))
+
+            if w <= img.size[0] and h <= img.size[1]:
+                i = random.randint(0, img.size[1] - h)
+                j = random.randint(0, img.size[0] - w)
+                return i, j, h, w
+
+        # Fallback to central crop
+        in_ratio = img.size[0] / img.size[1]
+        if in_ratio < min(ratio):
+            w = img.size[0]
+            h = int(round(w / min(ratio)))
+        elif in_ratio > max(ratio):
+            h = img.size[1]
+            w = int(round(h * max(ratio)))
+        else:  # whole image
+            w = img.size[0]
+            h = img.size[1]
+        i = (img.size[1] - h) // 2
+        j = (img.size[0] - w) // 2
+        return i, j, h, w
+
+    def _apply_image(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be cropped and resized.
+
+        Returns:
+            PIL Image: Randomly cropped and resized image.
+        """
+        i, j, h, w = self.get_params(img, self.scale, self.ratio)
+        if isinstance(self.interpolation, (tuple, list)):
+            interpolation = random.choice(self.interpolation)
+        else:
+            interpolation = self.interpolation
+        cropped_img = F.crop(img, i, j, h, w)
+        if self.second_size is None:
+            return F.resize(cropped_img, self.size, interpolation)
+        else:
+            return F.resize(img, self.size, interpolation), \
+                   F.resize(img, self.second_size, self.second_interpolation)
+
+
+@TRANSFORMS.register()
+class VisualTokenMap(object):
+    def __init__(self, mode='map_pixel', scale=None):
+        self.mode = mode
+        self.scale = scale
+        self.logit_laplace_eps = 0.1
+
+    def map_pixels(self, x):
+        if self.scale is not None:
+            try:
+                x = paddle.to_tensor(x).astype('float32') / self.scale
+            except:
+                import pdb
+
+        return (1 - 2 * self.logit_laplace_eps) * x + self.logit_laplace_eps
+
+    def unmap_pixels(self, x):
+        if len(x.shape) != 4:
+            raise ValueError('expected input to be 4d')
+        if x.dtype != paddle.float32:
+            raise ValueError('expected input to have type float')
+
+        return paddle.clamp(
+            (x - self.logit_laplace_eps) / (1 - 2 * self.logit_laplace_eps), 0,
+            1)
+
+    def __call__(self, x):
+        if self.mode == "map_pixels":
+            return self.map_pixels(x)
+        elif self.mode == "unmap_pixels":
+            return self.unmap_pixels(x)
