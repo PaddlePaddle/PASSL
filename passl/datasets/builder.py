@@ -79,8 +79,9 @@ def build_dataset(cfg):
     return build_from_config(cfg, DATASETS)
 
 
-def build_dataloader(cfg):
+def build_dataloader(cfg, device):
     cfg_ = copy.deepcopy(cfg)
+    loader_cfg = cfg_.pop('loader')
     dataset_cfg = cfg_.pop('dataset')
     sampler_cfg = cfg_.pop('sampler')
 
@@ -93,7 +94,7 @@ def build_dataloader(cfg):
     
     sampler = eval("{}".format(sampler_name))(dataset, **sampler_cfg)
 
-    dataloader = paddle.io.DataLoader(dataset, batch_sampler=sampler, **cfg_)
+    dataloader = paddle.io.DataLoader(dataset, batch_sampler=sampler, place=device, **loader_cfg)
 
     #setup mixup / cutmix
     mixup_fn = None
