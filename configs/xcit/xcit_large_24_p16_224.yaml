@@ -1,0 +1,112 @@
+epochs: 400
+output_dir: output_dir
+seed: 0
+device: gpu
+
+model:
+  name: SwinWrapper
+  architecture:
+    name: XCiT
+    patch_size: 16
+    embed_dim: 768
+    depth: 24
+    num_heads: 16
+    eta: 1e-5
+    tokens_norm: True
+  head:
+    name: SwinTransformerClsHead
+    in_channels: 768 # equals to architecture.embed_dim
+    num_classes: 1000
+
+
+dataloader:
+  train:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 16
+      shuffle: True
+      drop_last: True
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train/
+      return_label: True
+      transforms:
+        - name: RandomResizedCrop
+          size: 224
+          scale: [0.08, 1.]
+          interpolation: 'bicubic'
+        - name: RandomHorizontalFlip
+        - name: AutoAugment
+          config_str: 'rand-m9-mstd0.5-inc1'
+          interpolation: 'bicubic'
+          img_size: 224
+        - name: Transpose
+        - name: Normalize
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
+        - name: RandomErasing
+          prob: 0.25
+          mode: 'pixel'
+          max_count: 1
+      batch_transforms:
+        - name: Mixup
+          mixup_alpha: 0.8
+          prob: 1.
+          switch_prob: 0.5
+          mode: 'batch'
+          cutmix_alpha: 1.0
+  val:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 128
+      shuffle: False
+      drop_last: False
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/val
+      return_label: True
+      transforms:
+        - name: Resize
+          size: 224
+          interpolation: 'bicubic'
+        - name: CenterCrop
+          size: 224
+        - name: Transpose
+        - name: Normalize
+          mean: [123.675, 116.28, 103.53]
+          std: [58.395, 57.12, 57.375]
+
+lr_scheduler:
+  name: LinearWarmup
+  learning_rate:
+    name: CosineAnnealingDecay
+    learning_rate: 5e-4
+    T_max: 400
+    eta_min: 1e-5
+  warmup_steps: 5
+  start_lr: 1e-6
+  end_lr: 5e-4
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.05
+  exclude_from_weight_decay: ["temperature", "pos_embed", "cls_token", "dist_token"]
+
+log_config:
+    name: LogHook
+    interval: 10
+
+checkpoint:
+  name: CheckpointHook
+  by_epoch: True
+  interval: 1
+  max_keep_ckpts: 50
+
+custom_config:
+  - name: EvaluateHook
