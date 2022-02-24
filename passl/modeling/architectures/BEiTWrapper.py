@@ -25,7 +25,7 @@ from ..backbones import build_backbone
 
 
 @MODELS.register()
-class BEitWrapper(nn.Layer):
+class BEiTWrapper(nn.Layer):
     def __init__(self, architecture=None, head=None):
         """A wrapper for a BEiT supervised model.
 
