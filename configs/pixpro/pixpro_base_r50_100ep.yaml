@@ -1,6 +1,8 @@
 epochs: 100
 output_dir: output_dir
 total_images: 1281167
+seed: 0
+device: gpu
 
 model:
   name: PixPro
@@ -27,7 +29,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 4
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 64
       shuffle: True
