@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cv2
 import math
 import random
-from PIL import ImageFilter, Image, ImageOps
-import cv2
+import warnings
 import numpy as np
 from functools import partial
+from PIL import ImageFilter, Image, ImageOps
 
 import paddle
 import paddle.vision.transforms as PT
@@ -61,6 +62,8 @@ TRANSFORMS.register(RandomHorizontalFlipCoord)
 
 # BEiT
 TRANSFORMS.register(MaskingGenerator)
+
+_RANDOM_INTERPOLATION = ('bilinear', 'bicubic')
 
 
 @TRANSFORMS.register()
@@ -299,9 +302,6 @@ class UnifiedResize(object):
                 interpolation = _pil_interp_from_str[interpolation.lower()]
             self.resize_func = partial(_pil_resize, resample=interpolation)
         else:
-            logger.warning(
-                f"The backend of Resize only support \"cv2\" or \"PIL\". \"f{backend}\" is unavailable. Use \"cv2\" instead."
-            )
             self.resize_func = cv2.resize
 
     def __call__(self, src, size):
@@ -378,7 +378,7 @@ class ResizeImage(object):
             self.w = size if type(size) is int else size[0]
             self.h = size if type(size) is int else size[1]
         else:
-            raise OperatorParamError("invalid params for ReisizeImage for '\
+            raise ValueError("invalid params for ReisizeImage for '\
                 'both 'size' and 'resize_short' are None")
 
         self._resize_func = UnifiedResize(interpolation=interpolation,
@@ -565,3 +565,36 @@ class RandomResizedCropAndInterpolationWithTwoPic(PT.RandomResizedCrop):
         else:
             return F.resize(img, self.size, interpolation), \
                    F.resize(img, self.second_size, self.second_interpolation)
+
+
+@TRANSFORMS.register()
+class VisualTokenMap(object):
+    def __init__(self, mode='map_pixel', scale=None):
+        self.mode = mode
+        self.scale = scale
+        self.logit_laplace_eps = 0.1
+
+    def map_pixels(self, x):
+        if self.scale is not None:
+            try:
+                x = paddle.to_tensor(x).astype('float32') / self.scale
+            except:
+                import pdb
+
+        return (1 - 2 * self.logit_laplace_eps) * x + self.logit_laplace_eps
+
+    def unmap_pixels(self, x):
+        if len(x.shape) != 4:
+            raise ValueError('expected input to be 4d')
+        if x.dtype != paddle.float32:
+            raise ValueError('expected input to have type float')
+
+        return paddle.clamp(
+            (x - self.logit_laplace_eps) / (1 - 2 * self.logit_laplace_eps), 0,
+            1)
+
+    def __call__(self, x):
+        if self.mode == "map_pixels":
+            return self.map_pixels(x)
+        elif self.mode == "unmap_pixels":
+            return self.unmap_pixels(x)

@@ -96,7 +96,7 @@ def build_dataloader(cfg, device):
 
     dataloader = paddle.io.DataLoader(dataset,
                                       batch_sampler=sampler,
-                                      place=device,
+                                      places=device,
                                       **loader_cfg)
 
     #setup mixup / cutmix
