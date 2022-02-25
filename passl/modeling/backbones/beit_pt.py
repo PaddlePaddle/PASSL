@@ -40,7 +40,7 @@ def drop_path(x, drop_prob=0.0, training=False):
         return x
     keep_prob = paddle.to_tensor(1 - drop_prob)
     shape = (paddle.shape(x)[0], ) + (1, ) * (x.ndim - 1)
-    random_tensor = keep_prob + paddle.rand(shape, dtype=x.dtype)
+    random_tensor = keep_prob + paddle.rand(shape, dtype='float32')
     random_tensor = paddle.floor(random_tensor)  # binarize
     output = x.divide(keep_prob) * random_tensor
     return output
@@ -236,7 +236,6 @@ class Attention(nn.Layer):
 
         qkv = qkv.reshape([B, N, 3, self.num_heads,
                            -1]).transpose([2, 0, 3, 1, 4])
-        # make torchscript happy (cannot use tensor as tuple)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         q = q * self.scale
@@ -377,11 +376,12 @@ class RelativePositionBias(nn.Layer):
 
     def forward(self):
         relative_position_bias = self.relative_position_bias_table[
-            self.relative_position_index.reshape([-1])].reshape([
-                self.window_size[0] * self.window_size[1] + 1,
-                self.window_size[0] * self.window_size[1] + 1,
-                -1,
-            ])  # Wh*Ww,Wh*Ww,nH
+            self.relative_position_index.astype('int64').reshape([-1])].reshape(
+                [
+                    self.window_size[0] * self.window_size[1] + 1,
+                    self.window_size[0] * self.window_size[1] + 1,
+                    -1,
+                ])  # Wh*Ww,Wh*Ww,nH
         return relative_position_bias.transpose([2, 0, 1])  # nH, Wh*Ww, Wh*Ww
 
 

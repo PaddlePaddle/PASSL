@@ -19,8 +19,6 @@ import math
 from functools import partial
 
 import paddle
-import torch
-from timm.models.layers import trunc_normal_ as trunc_normal__
 import paddle.nn as nn
 import paddle.nn.functional as F
 
@@ -42,7 +40,7 @@ def drop_path(x, drop_prob=0.0, training=False):
         return x
     keep_prob = paddle.to_tensor(1 - drop_prob)
     shape = (paddle.shape(x)[0], ) + (1, ) * (x.ndim - 1)
-    random_tensor = keep_prob + paddle.rand(shape, dtype=x.dtype)
+    random_tensor = keep_prob + paddle.rand(shape, dtype='float32')
     random_tensor = paddle.floor(random_tensor)  # binarize
     output = x.divide(keep_prob) * random_tensor
     return output
@@ -238,7 +236,6 @@ class Attention(nn.Layer):
 
         qkv = qkv.reshape([B, N, 3, self.num_heads,
                            -1]).transpose([2, 0, 3, 1, 4])
-        # make torchscript happy (cannot use tensor as tuple)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         q = q * self.scale
@@ -379,11 +376,12 @@ class RelativePositionBias(nn.Layer):
 
     def forward(self):
         relative_position_bias = self.relative_position_bias_table[
-            self.relative_position_index.reshape([-1])].reshape([
-                self.window_size[0] * self.window_size[1] + 1,
-                self.window_size[0] * self.window_size[1] + 1,
-                -1,
-            ])  # Wh*Ww,Wh*Ww,nH
+            self.relative_position_index.astype('int64').reshape([-1])].reshape(
+                [
+                    self.window_size[0] * self.window_size[1] + 1,
+                    self.window_size[0] * self.window_size[1] + 1,
+                    -1,
+                ])  # Wh*Ww,Wh*Ww,nH
         return relative_position_bias.transpose([2, 0, 1])  # nH, Wh*Ww, Wh*Ww
 
 
@@ -414,7 +412,7 @@ class VisionTransformerForFinetune(nn.Layer):
                  use_shared_rel_pos_bias=False,
                  use_mean_pooling=True,
                  init_scale=0.001):
-        super().__init__()
+        super(VisionTransformerForFinetune).__init__()
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim
 
@@ -425,8 +423,8 @@ class VisionTransformerForFinetune(nn.Layer):
             embed_dim=embed_dim,
         )
         num_patches = self.patch_embed.num_patches
-        wa = torch.ones(size=(1, 1, embed_dim))
-        trunc_normal__(wa, std=0.02)
+        wa = paddle.ones(shape=[1, 1, embed_dim])
+        trunc_normal_(wa, std=0.02)
         wa = wa.cpu().numpy()
 
         self.cls_token = paddle.create_parameter(
