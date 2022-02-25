@@ -201,8 +201,8 @@ def load_model(model_name, model_dir):
     if not os.path.exists(model_path):
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-            from paddle.utils.download import get_weights_path_from_url
-            model_path = get_weights_path_from_url(url)
+        from paddle.utils.download import get_weights_path_from_url
+        model_path = get_weights_path_from_url(url)
 
     params = paddle.load(model_path)
     model.set_state_dict(params)
