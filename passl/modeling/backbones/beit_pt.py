@@ -372,8 +372,6 @@ class RelativePositionBias(nn.Layer):
 
         self.register_buffer("relative_position_index", relative_position_index)
 
-        # trunc_normal_(self.relative_position_bias_table, std=.02)
-
     def forward(self):
         relative_position_bias = self.relative_position_bias_table[
             self.relative_position_index.astype('int64').reshape([-1])].reshape(

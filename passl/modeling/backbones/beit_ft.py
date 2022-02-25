@@ -372,8 +372,6 @@ class RelativePositionBias(nn.Layer):
 
         self.register_buffer("relative_position_index", relative_position_index)
 
-        # trunc_normal_(self.relative_position_bias_table, std=.02)
-
     def forward(self):
         relative_position_bias = self.relative_position_bias_table[
             self.relative_position_index.astype('int64').reshape([-1])].reshape(
@@ -430,14 +428,8 @@ class VisionTransformerForFinetune(nn.Layer):
         self.cls_token = paddle.create_parameter(
             shape=[1, 1, embed_dim],
             dtype="float32",
-            #default_initializer=wa.cpu().numpy(),
         )
         self.cls_token.set_value(wa)
-        #self.mask_token = paddle.create_parameter(
-        #    shape=[1, 1, embed_dim],
-        #    dtype="float32",
-        #    default_initializer=trunc_normal_,
-        #)
         if use_abs_pos_emb:
             self.pos_embed = paddle.create_parameter(
                 shape=[1, num_patches + 1, embed_dim],
@@ -473,9 +465,7 @@ class VisionTransformerForFinetune(nn.Layer):
         ])
         self.norm = Identity() if use_mean_pooling else norm_layer(embed_dim)
         self.fc_norm = norm_layer(embed_dim) if use_mean_pooling else None
-        #self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else Identity()
 
-        #trunc_normal_(self.head.weight)
         self.apply(self._init_weights)
         self.fix_init_weight()
 
@@ -527,5 +517,4 @@ class VisionTransformerForFinetune(nn.Layer):
 
     def forward(self, x):
         x = self.forward_features(x)
-        #x = self.head(x)
         return x
