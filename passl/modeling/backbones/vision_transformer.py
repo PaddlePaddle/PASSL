@@ -236,7 +236,9 @@ class PatchEmbed(nn.Layer):
         patch_size = to_2tuple(patch_size)
         num_patches = (img_size[1] // patch_size[1]) * \
             (img_size[0] // patch_size[0])
-        self.patches_resolution = num_patches
+        self.patches_resolution = [
+            img_size[0] // patch_size[0], img_size[1] // patch_size[1]
+        ]
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
