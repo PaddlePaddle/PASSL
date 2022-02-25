@@ -1,4 +1,4 @@
-# How to use ViTs in PASSL 
+# How to use ViTs in PASSL
 
 PASSL provides developers with a number of implementations of Transformer classification models for the vision domain, each of which can be invoked through PASSL's configuration files so that users can quickly implement research experiments, and provides model pre-training weights that can be used to fine-tune their own datasets
 
@@ -41,12 +41,19 @@ PASSL provides developers with a number of implementations of Transformer classi
 | beit_large_p16_512 | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/beit/beit_large_p16_512_ft.pdparams) | 88.60     | 98.66     | 1.0        | 304M     |
 | mlp_mixer_b16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/mlp_mixer/mlp-mixer_b16_224.pdparams) | 76.60     | 92.23     | 0.875      | 60.0M    |
 | mlp_mixer_l16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/mlp_mixer/mlp-mixer_l16_224.pdparams) | 72.06     | 87.67     | 0.875      | 208.2M   |
+| pvt_v2_b0  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b0.pdparams) | 70.47   | 90.16 | 1.0 | 3.67M |
+| pvt_v2_b1  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b1.pdparams) | 78.702   | 94.48 | 1.0 | 14.01M |
+| pvt_v2_b2_linear  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b2_linear.pdparams) | 82.06   | 95.04 | 1.0 | 22.55M |
+| pvt_v2_b2  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b2.pdparams) | 82.02   | 95.99 | 1.0 | 25.36M |
+| pvt_v2_b3  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b3.pdparams) | 83.14   | 96.47 | 1.0 | 45.24M |
+| pvt_v2_b4  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b4.pdparams) | 83.61   | 96.69 | 1.0 | 62.56M |
+| pvt_v2_b5  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/pvt_v2_b5.pdparams) | 83.77   | 96.61 | 1.0 | 81.96M |
 
 The above metrics were tested on the ImageNet 2012 dataset.
 
 >  Note：**pretrain 1k**  means that the model is trained directly on ImageNet1k, **ft 22k in 1k** means that the model is trained on ImageNet22k and then fine-tuned on ImageNet1K
 
-## Usage 
+## Usage
 
 Please install the necessary packages first to ensure the code can run, see [INSTALL.md](https://github.com/PaddlePaddle/PASSL/blob/main/docs/INSTALL.md)
 
@@ -99,13 +106,13 @@ model:
     name: CvTClsHead
     num_classes: 10   # Modify the number of categories to match your taxonomy data set
     in_channels: 384
-    
+
 ...
 ```
 
 ## Coming Soon
 
-model train 
+model train
 
 model validate
 

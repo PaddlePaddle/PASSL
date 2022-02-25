@@ -1,0 +1,118 @@
+epochs: 300
+output_dir: output_dir
+seed: 0
+
+model:
+  name: PvtWrapper
+  architecture:
+      name: PyramidVisionTransformerV2
+      patch_size: 4
+      embed_dims: [64, 128, 320, 512]
+      num_heads: [1, 2, 5, 8]
+      mlp_ratios: [8, 8, 4, 4]
+      qkv_bias: True
+      depths: [3, 8, 27, 3]
+      sr_ratios: [8, 4, 2, 1]
+      drop_rate: 0.0
+      attn_drop_rate: 0.0
+      drop_path_rate: 0.1
+  head:
+    name: PyramidVisionTransformerV2ClsHead
+    with_avg_pool: False
+    num_classes: 1000
+    in_channels: 512
+
+dataloader:
+  train:
+    num_workers: 8
+    sampler:
+      batch_size: 128
+      shuffle: true
+      drop_last: True
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train/
+      return_label: True
+      transforms:
+        - name: RandomResizedCrop
+          size: 224
+          scale: [0.08, 1.]
+          interpolation: 'bicubic'
+        - name: RandomHorizontalFlip
+        - name: AutoAugment
+          config_str: 'rand-m9-mstd0.5-inc1'
+          interpolation: 'bicubic'
+          img_size: 224
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+        - name: RandomErasing
+          prob: 0.25
+          mode: 'pixel'
+          max_count: 1
+      batch_transforms:
+        - name: Mixup
+          mixup_alpha: 0.8
+          prob: 1.
+          switch_prob: 0.5
+          mode: 'batch'
+          cutmix_alpha: 1.0
+  val:
+    num_workers: 8
+    sampler:
+      batch_size: 128
+      shuffle: false
+      drop_last: false
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/val
+      return_label: True
+      transforms:
+        - name: Resize
+          size: 256
+          interpolation: 'bicubic'
+        - name: CenterCrop
+          size: 224
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+
+lr_scheduler:
+  name: LinearWarmup
+  learning_rate:
+    name: CosineAnnealingDecay
+    learning_rate: 0.001  # 8 gpus
+    T_max: 300
+    eta_min: 1e-5
+  warmup_steps: 5
+  start_lr: 1e-6
+  end_lr: 0.001
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.05
+  epsilon: 1e-8
+  exclude_from_weight_decay: ["pos_embed1","pos_embed2","pos_embed3","pos_embed4", "cls_token"]
+  grad_clip:
+    name: global_norm
+    value: 5.0
+
+
+log_config:
+    name: LogHook
+    interval: 10
+
+checkpoint:
+  name: CheckpointHook
+  by_epoch: true
+  interval: 1
+  max_keep_ckpts: 50
+
+custom_config:
+  - name: EvaluateHook
