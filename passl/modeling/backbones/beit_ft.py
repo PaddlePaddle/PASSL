@@ -422,7 +422,7 @@ class VisionTransformerForFinetune(nn.Layer):
         )
         num_patches = self.patch_embed.num_patches
         wa = paddle.ones(shape=[1, 1, embed_dim])
-        trunc_normal_(wa, std=0.02)
+        trunc_normal_(wa)
         wa = wa.cpu().numpy()
 
         self.cls_token = paddle.create_parameter(
