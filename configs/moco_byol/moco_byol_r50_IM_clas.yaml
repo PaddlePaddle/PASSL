@@ -1,5 +1,7 @@
 epochs: 100
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
   name: Classification
@@ -16,7 +18,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: true
@@ -28,7 +32,7 @@ dataloader:
       transforms:
         - name: RandomResizedCrop
           size: 224
-          interpolation: bicubic 
+          interpolation: bicubic
         - name: RandomHorizontalFlip
         - name: Transpose
         - name: NormalizeImage
@@ -36,7 +40,9 @@ dataloader:
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
   val:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 64
       shuffle: false
@@ -48,7 +54,7 @@ dataloader:
       transforms:
         - name: Resize
           size: 256
-          interpolation: bicubic 
+          interpolation: bicubic
         - name: CenterCrop
           size: 224
         - name: Transpose
@@ -73,4 +79,3 @@ log_config:
 
 custom_config:
   - name: EvaluateHook
-

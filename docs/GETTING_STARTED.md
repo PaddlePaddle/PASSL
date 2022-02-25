@@ -63,3 +63,11 @@ Augments:
 - Optional arguments include:
     - `--resume ${CHECKPOINT_FILE}`: Resume from a previous checkpoint file.
 The trained linear weights in conjuction with the backbone weights can be found at [MoCo v1 linear](https://passl.bj.bcebos.com/models/moco_v1_r50_clas.pdparams) and [MoCo v2 linear](https://passl.bj.bcebos.com/models/moco_v2_r50_clas.pdparams)
+
+## Extract student wights from distillation model
+
+Checkpoints saved in distillation training include both Teacher's and Student's weights. You can extract the weights of Student by following command.
+```bash
+python tools/extract_weight.py ${DISTILLATION_WEIGHTS_FILE} --prefix Student --remove_prefix --output ${STUDENT_WEIGHTS_FILE}
+```
+

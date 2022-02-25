@@ -1,8 +1,11 @@
 epochs: 300
 use_byol_iters: True
 total_images: 1281167
-global_batch_size: 4096  # 128 * 4 * 8
+global_batch_size: 4096
 output_dir: output_dir
+seed: 0
+device: gpu
+
 model:
   name: BYOL
   backbone:
@@ -33,7 +36,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: True

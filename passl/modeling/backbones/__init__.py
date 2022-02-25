@@ -1,17 +1,22 @@
-from .resnet import ResNet
-from .clip import CLIP
-from .builder import build_backbone
-from .resnetcifar import ResNet as ResNetCifar
-from .resnetsimclr import ResNetsimclr
-from .vision_transformer import VisionTransformer
-from .vit import GoogleVisionTransformer
-from .swin_transformer import SwinTransformer
 from .beit import Beit
-from .t2t_vit import T2TViT
+from .beit_ft import VisionTransformerForFinetune
+from .beit_pt import VisionTransformerForMaskedImageModeling
+from .builder import build_backbone
 from .cait import Cait
-from .mlp_mixer import MlpMixer
+from .clip import CLIP
+from .convnext import ConvNeXt
 from .cvt import CvT
 from .deit import DeiTVisionTransformer, DistilledVisionTransformer
-from .convnext import ConvNeXt
+from .discrete_vae import Dalle_VAE, DiscreteVAE
 from .mae import MAE, MAE_ViT
+from .mlp_mixer import MlpMixer
+from .regnet import RegNet
+from .resnet import ResNet
+from .resnetcifar import ResNet as ResNetCifar
+from .resnetsimclr import ResNetsimclr
+from .swin_transformer import SwinTransformer
+from .t2t_vit import T2TViT
+from .vision_transformer import VisionTransformer
+from .vit import GoogleVisionTransformer
+from .xcit import XCiT
 from .pvt_v2 import PyramidVisionTransformerV2

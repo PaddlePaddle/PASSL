@@ -13,4 +13,5 @@
 # limitations under the License.
 
 from .builder import build_transform, build_transforms
+from .masking_generator import MaskingGenerator
 from .transforms import RandomApply, RandomGrayscale, GaussianBlur, Solarization

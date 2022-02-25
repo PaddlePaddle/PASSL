@@ -24,11 +24,11 @@ from .preprocess.mixup import Mixup
 
 DATASETS = Registry("DATASET")
 
+
 class DistributedRepeatedAugSampler(DistributedBatchSampler):
     """
     based on https://github.com/facebookresearch/deit/blob/main/samplers.py
     """
-
     def __init__(self,
                  dataset,
                  batch_size,
@@ -36,10 +36,10 @@ class DistributedRepeatedAugSampler(DistributedBatchSampler):
                  rank=None,
                  shuffle=False,
                  drop_last=False):
-        super(DistributedRepeatedAugSampler, self).__init__(
-            dataset, batch_size, num_replicas, rank, shuffle, drop_last)
-        self.num_samples = int(
-            math.ceil(len(self.dataset) * 3.0 / self.nranks))
+        super(DistributedRepeatedAugSampler,
+              self).__init__(dataset, batch_size, num_replicas, rank, shuffle,
+                             drop_last)
+        self.num_samples = int(math.ceil(len(self.dataset) * 3.0 / self.nranks))
         self.total_size = self.num_samples * self.nranks
         self.num_selected_samples = int(
             math.floor(len(self.dataset) // 256 * 256 / self.nranks))
@@ -79,8 +79,9 @@ def build_dataset(cfg):
     return build_from_config(cfg, DATASETS)
 
 
-def build_dataloader(cfg):
+def build_dataloader(cfg, device):
     cfg_ = copy.deepcopy(cfg)
+    loader_cfg = cfg_.pop('loader')
     dataset_cfg = cfg_.pop('dataset')
     sampler_cfg = cfg_.pop('sampler')
 
@@ -90,10 +91,13 @@ def build_dataloader(cfg):
     dataset = build_dataset(dataset_cfg)
 
     sampler_name = sampler_cfg.pop('name', 'DistributedBatchSampler')
-    
+
     sampler = eval("{}".format(sampler_name))(dataset, **sampler_cfg)
 
-    dataloader = paddle.io.DataLoader(dataset, batch_sampler=sampler, **cfg_)
+    dataloader = paddle.io.DataLoader(dataset,
+                                      batch_sampler=sampler,
+                                      places=device,
+                                      **loader_cfg)
 
     #setup mixup / cutmix
     mixup_fn = None
