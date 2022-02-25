@@ -19,33 +19,12 @@
 # Based on OpenAI DALL-E and lucidrains' DALLE-pytorch code bases
 # https://github.com/openai/DALL-E
 # https://github.com/lucidrains/DALLE-pytorch
+
 import os
-#import wget
 import paddle
 import paddle.nn as nn
 
 
-#
-#logit_laplace_eps = 0.1
-#
-#
-#def map_pixels(x):
-#    return (1 - 2 * logit_laplace_eps) * x + logit_laplace_eps
-#
-#
-#def unmap_pixels(x):
-#    return paddle.clip((x - logit_laplace_eps) / (1 - 2 * logit_laplace_eps), 0, 1)
-#
-#
-#
-#class Identity(nn.Layer):
-#    def __init__(self):
-#        super(Identity, self).__init__()
-#
-#    def forward(self, inputs):
-#        return inputs
-#
-#
 class EncoderBlock(nn.Layer):
     def __init__(self, n_in, n_out, n_layers):
         super(EncoderBlock, self).__init__()
@@ -222,94 +201,14 @@ def load_model(model_name, model_dir):
     if not os.path.exists(model_path):
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        #wget.download(url, out=model_path)
+            from paddle.utils.download import get_weights_path_from_url
+            model_path = get_weights_path_from_url(url)
+
     params = paddle.load(model_path)
     model.set_state_dict(params)
     model.eval()
     return model
 
-
-#
-#
-#class DalleVAE(nn.Layer):
-#    def __init__(self, group_count=4, n_init=128, n_hid=256, n_blk_per_group=2, input_channels=3, output_channels=3, vocab_size=8192):
-#        super(DiscreteVAE, self).__init__()
-#        self.vocab_size = vocab_size
-#        self.encoder = Encoder()
-#        self.decoder = Decoder()
-#        self.l1_loss = paddle.nn.loss.L1Loss(reduction='none')
-#
-#    def encode(self, x):
-#        return self.encoder(x)
-#
-#    def decode(self, z):
-#        return self.decoder(z)
-#
-#
-#    def logit_laplace_loss(self, x, x_stats):
-#        ## x [ B, 3, 256, 256 ]
-#        ## x_stats [ B, 6, 256, 256 ]
-#        # mu
-#        mu = x_stats[:,:3]
-#        #
-#        lnb = x_stats[:,3:]
-#        log_norm = -paddle.log(x * (1 - x)) - lnb - paddle.log(paddle.to_tensor(2.0))
-#        #print("log_norm", log_norm)
-#        log_compare = -self.l1_loss(paddle.log(x/(1-x)), mu) / paddle.exp(lnb)
-#        #print("log_compare", log_compare)
-#        return -(log_norm+log_compare)
-#
-#    def gumbel_softmax(self, z_logits, temperature):
-#
-#        def sample_gumbel(shape, eps=1e-20):
-#            U = paddle.fluid.layers.uniform_random(shape,min=0,max=1)
-#            return -paddle.log(-paddle.log(U + eps) + eps)
-#
-#        def gumbel_softmax_sample(logits, temperature):
-#            y = logits + sample_gumbel(logits.shape)
-#            return nn.functional.softmax( y / temperature, axis=1)
-#
-#        return gumbel_softmax_sample(z_logits, temperature)
-#
-#
-#    def forward(self, x, temperature):
-#        # [B, vocab_size, 32, 32]
-#        z_logits = self.encoder(x)
-#        q_y = nn.functional.softmax(z_logits, axis=1)
-#        log_q_y = paddle.log(q_y+1e-20)
-#        kl_loss = q_y*(log_q_y-paddle.log(paddle.to_tensor(1.0/self.vocab_size)))
-#        # to [B, 32, 32]
-#        kl_loss = paddle.sum(kl_loss, axis=[1])
-#        # to [B]
-#        kl_loss = paddle.mean(kl_loss, axis=[1,2])
-#        #print(kl_loss)
-#
-#        z = self.gumbel_softmax(z_logits, temperature)
-#        x_stats = self.decoder(z)
-#        recon_loss = self.logit_laplace_loss(x, x_stats)
-#        recon_loss = paddle.mean(recon_loss, axis=[1, 2, 3])
-#        #print(recon_loss)
-#
-#        return recon_loss, kl_loss
-#
-
-#
-#
-#def load_model(model_name, pretrained=False):
-#    model_fn, url, file_name = model_dict[model_name]
-#    model = model_fn()
-#
-#    if pretrained:
-#        model_path = os.path.join('pretrained_models', file_name)
-#        if not os.path.isfile(model_path):
-#            if not os.path.exists('pretrained_models'):
-#                os.mkdir('pretrained_models')
-#            wget.download(url, out=model_path)
-#        params = paddle.load(model_path)
-#        model.set_dict(params)
-#
-#    model.eval()
-#    return model
 
 from math import sqrt
 import os
