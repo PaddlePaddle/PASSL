@@ -30,7 +30,7 @@ model:
 dataloader:
   train:
     loader:
-      num_workers: 0
+      num_workers: 8
       use_shared_memory: False
     sampler:
       batch_size: 128
