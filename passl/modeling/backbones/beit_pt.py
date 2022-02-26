@@ -506,7 +506,7 @@ class VisionTransformerForMaskedImageModeling(nn.Layer):
         mask_token = self.mask_token.expand([batch_size, seq_len, -1])
 
         w = bool_masked_pos.unsqueeze(-1).astype(mask_token.dtype)
-        x = x * (1 - w) + cls_tokens * w
+        x = x * (1 - w) + mask_token * w
 
         x = paddle.concat((cls_tokens, x), axis=1)
         if self.pos_embed is not None:
