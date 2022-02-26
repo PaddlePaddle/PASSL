@@ -167,9 +167,9 @@ def build_optimizer(cfg, lr_scheduler, model_list=None):
     name = cfg.pop('name')
     if 'layer_decay' in cfg:
         layer_decay = cfg.pop('layer_decay')
-        assert isinstance(layer_decay, float)
-    if layer_decay is None:
+    else:
         layer_decay = 1.0
+    assert isinstance(layer_decay, float)
 
     # step 1 clip grad
     if 'grad_clip' in cfg:

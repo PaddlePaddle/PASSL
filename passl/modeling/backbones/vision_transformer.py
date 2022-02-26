@@ -23,6 +23,11 @@ from .base_transformer import QuickGELU
 
 __all__ = ["VisionTransformer"]
 
+
+def to_2tuple(x):
+    return tuple([x] * 2)
+
+
 trunc_normal_ = TruncatedNormal(std=0.02)
 zeros_ = Constant(value=0.0)
 ones_ = Constant(value=1.0)
@@ -227,13 +232,15 @@ class PatchEmbed(nn.Layer):
                  embed_dim=768,
                  patch_bias=True):
         super().__init__()
-        num_patches = (img_size // patch_size) * (img_size // patch_size)
-        self.patches_resolution = (
-            (img_size // patch_size),
-            (img_size // patch_size),
-        )
-        img_size = (img_size, img_size)
-        patch_size = (img_size, patch_size)
+        img_size = to_2tuple(img_size)
+        patch_size = to_2tuple(patch_size)
+        num_patches = (img_size[1] // patch_size[1]) * \
+            (img_size[0] // patch_size[0])
+
+        self.patches_resolution = [
+            img_size[0] // patch_size[0], img_size[1] // patch_size[1]
+        ]
+
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
@@ -343,7 +350,6 @@ class VisionTransformer(nn.Layer):
             ones_(m.weight)
 
     def forward_features(self, x):
-        # B = x.shape[0]
         B = paddle.shape(x)[0]
         x = self.patch_embed(x)
         patch_resolution = self.patch_embed.patches_resolution
