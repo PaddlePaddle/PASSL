@@ -279,6 +279,7 @@ class RegNet(nn.Layer):
                 shortcut = True
 
         self.pool2d_avg = nn.AdaptiveAvgPool2D(1)
+        self.pool2d_avg_channels = w_out
 
     def forward(self, inputs):
         y = self.conv(inputs)
