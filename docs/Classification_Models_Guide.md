@@ -42,20 +42,21 @@ PASSL provides developers with a number of implementations of Transformer classi
 | beit_large_p16_512 | [ft 22k to 1k](https://passl.bj.bcebos.com/vision_transformers/beit/beit_large_p16_512_ft.pdparams) | 88.60     | 98.66     | 1.0        | 304M     |
 | mlp_mixer_b16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/mlp_mixer/mlp-mixer_b16_224.pdparams) | 76.60     | 92.23     | 0.875      | 60.0M    |
 | mlp_mixer_l16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/mlp_mixer/mlp-mixer_l16_224.pdparams) | 72.06     | 87.67     | 0.875      | 208.2M   |
-| xcit_nano_12_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_nano_12_p8_224.pdparams) | 73.90   | 92.13 | 1.0 | 3.05M |
-| xcit_tiny_12_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_tiny_12_p8_224.pdparams) | 79.68   | 95.04 | 1.0 | 6.71M |
-| xcit_tiny_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_tiny_24_p8_224.pdparams) | 81.87   | 95.97 | 1.0 | 12.11M |
-| xcit_small_12_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_small_12_p8_224.pdparams) | 83.36   | 96.51 | 1.0 | 26.21M |
-| xcit_small_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_small_24_p8_224.pdparams) | 83.82   | 96.65 | 1.0 | 47.63M |
-| xcit_medium_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_medium_24_p8_224.pdparams ) | 83.73 | 96.39 | 1.0 | 84.32M |
-| xcit_large_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_large_24_p8_224.pdparams) | 84.42  | 96.65 | 1.0 | 188.93M |
-| xcit_nano_12_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_nano_12_p16_224.pdparams) | 70.01 | 89.82 | 1.0 | 3.05M |
-| xcit_tiny_12_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_tiny_12_p16_224.pdparams) | 77.15    | 93.72 | 1.0 | 6.72M |
-| xcit_tiny_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_tiny_24_p16_224.pdparams) | 79.42    | 94.86 | 1.0 | 12.12M |
-| xcit_small_12_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_small_12_p16_224.pdparams) | 81.89 | 95.83 | 1.0 | 26.25M |
-| xcit_small_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_small_24_p16_224.pdparams) | 82.51   | 95.97 | 1.0 | 47.67M |
-| xcit_medium_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_medium_24_p16_224.pdparams) | 82.67   | 95.91 | 1.0 | 84.40M |
-| xcit_large_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/pvt_v2/xcit_large_24_p16_224.pdparams) | 82.89   | 95.89 | 1.0 | 189.10M |
+| xcit_nano_12_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_nano_12_p8_224.pdparams) | 73.90   | 92.13 | 1.0 | 3.05M |
+| xcit_nano_12_p8_224_dist  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_nano_12_p8_224_dist.pdparams) | 77.28   | 93.25 | 1.0 | 3.05M |
+| xcit_tiny_12_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_tiny_12_p8_224.pdparams) | 79.68   | 95.04 | 1.0 | 6.71M |
+| xcit_tiny_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_tiny_24_p8_224.pdparams) | 81.87   | 95.97 | 1.0 | 12.11M |
+| xcit_small_12_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_small_12_p8_224.pdparams) | 83.36   | 96.51 | 1.0 | 26.21M |
+| xcit_small_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_small_24_p8_224.pdparams) | 83.82   | 96.65 | 1.0 | 47.63M |
+| xcit_medium_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_medium_24_p8_224.pdparams ) | 83.73 | 96.39 | 1.0 | 84.32M |
+| xcit_large_24_p8_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_large_24_p8_224.pdparams) | 84.42  | 96.65 | 1.0 | 188.93M |
+| xcit_nano_12_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_nano_12_p16_224.pdparams) | 70.01 | 89.82 | 1.0 | 3.05M |
+| xcit_tiny_12_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_tiny_12_p16_224.pdparams) | 77.15    | 93.72 | 1.0 | 6.72M |
+| xcit_tiny_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_tiny_24_p16_224.pdparams) | 79.42    | 94.86 | 1.0 | 12.12M |
+| xcit_small_12_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_small_12_p16_224.pdparams) | 81.89 | 95.83 | 1.0 | 26.25M |
+| xcit_small_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_small_24_p16_224.pdparams) | 82.51   | 95.97 | 1.0 | 47.67M |
+| xcit_medium_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_medium_24_p16_224.pdparams) | 82.67   | 95.91 | 1.0 | 84.40M |
+| xcit_large_24_p16_224  | [pretrain 1k](https://passl.bj.bcebos.com/vision_transformers/xcit/xcit_large_24_p16_224.pdparams) | 82.89   | 95.89 | 1.0 | 189.10M |
 
 The above metrics were tested on the ImageNet 2012 dataset.
 
