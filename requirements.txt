@@ -1,0 +1,7 @@
+paddlepaddle-gpu>=2.2
+Pillow>=9.0.1
+numpy
+opencv-python
+tqdm
+ftfy
+regex

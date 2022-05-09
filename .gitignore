@@ -102,6 +102,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# vscode
+.vscode/
+
 # data
 data/
+log/
+output/
+outputs/
 output_dir/

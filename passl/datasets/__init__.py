@@ -15,6 +15,7 @@
 from .imagenet import ImageNet
 from .imagenet import ImageNetCoord
 from .beitdataset import BEiT_ImageNet
+from .lvdataset import LVViT_ImageNet
 from .cifar import CIFAR10, CIFAR100
 
 from .textimagedataset import TextImageDataset
