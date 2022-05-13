@@ -31,7 +31,7 @@ dataloader:
   train:
     loader:
       num_workers: 8
-      use_shared_memory: False
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: True
