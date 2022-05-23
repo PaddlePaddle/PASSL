@@ -18,6 +18,7 @@ from .clas import Classification
 from .moco import MoCo
 from .simclr import SimCLR
 from .pixpro import PixPro
+from .densecl import DenseCL
 
 from .BEiTWrapper import BEiTWrapper, BEiTPTWrapper, BEiTFTWrapper
 from .BYOL import BYOL

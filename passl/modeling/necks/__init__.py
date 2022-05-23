@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .base_neck import LinearNeck
+from .base_neck import DenseCLNeck
 from .base_neck import NonLinearNeckV1
 from .base_neck import NonLinearNeckV2
 from .base_neck import NonLinearNeckV3
