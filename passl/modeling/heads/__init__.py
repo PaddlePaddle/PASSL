@@ -21,6 +21,7 @@ from .clip_head import CLIPHead
 from .cvt_head import CvTClsHead
 from .l2_head import L2Head
 from .mb_head import MBHead
+from .swav_head import SwAVHead
 from .mlp_mixer_head import MlpMixerClsHead
 from .pixpro_head import PixProHead
 from .simclr_contrastive_head import SimCLRContrastiveHead

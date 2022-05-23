@@ -239,6 +239,55 @@ class NonLinearNeckfc3(nn.Layer):
 
 
 @NECKS.register()
+class SwAVNeck(nn.Layer):
+    """The non-linear neck in SwAV: fc-bn-relu-fc-normalization.
+    """
+    def __init__(self,
+                 in_channels,
+                 hid_channels,
+                 out_channels,
+                 with_l2norm=True,
+                 with_avg_pool=True):
+        super(SwAVNeck, self).__init__()
+
+        self.with_l2norm = with_l2norm
+        self.with_avg_pool = with_avg_pool
+        if with_avg_pool:
+            self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
+        if out_channels == 0:
+            self.projection_neck = None
+        elif hid_channels == 0:
+            self.projection_neck = nn.Linear(in_channels, out_channels)
+        else:
+            self.projection_neck = nn.Sequential(
+                nn.Linear(in_channels, hid_channels),
+                nn.BatchNorm1D(hid_channels), nn.ReLU(),
+                nn.Linear(hid_channels, out_channels)
+            )
+
+    def forward_projection(self, x):
+        if self.projection_neck is not None:
+            x = self.projection_neck(x)
+        if self.with_l2norm:
+            x = nn.functional.normalize(x, axis=1, p=2)
+        return x
+
+    def forward(self, x):
+        # forward computing
+        # x: list of feature maps, len(x) according to len(num_crops)
+        avg_out = []
+        for _x in x:
+            if self.with_avg_pool:
+                _out = self.avgpool(_x)
+                avg_out.append(_out)
+        feat_vec = paddle.concat(avg_out)  # [sum(num_crops) * N, C]
+        feat_vec = feat_vec.reshape([feat_vec.shape[0], -1])
+        output = self.forward_projection(feat_vec)
+        return output
+
+
+
+@NECKS.register()
 class MLP2d(nn.Layer):
     """The non-linear neck in pixpro.
     """
