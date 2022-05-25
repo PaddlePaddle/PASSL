@@ -67,7 +67,7 @@ class SwAVHead(nn.Layer):
         # normalize the prototypes
         with paddle.no_grad():
             w = self.prototypes.weight.clone()
-            w = F.normalize(w, axis=1, p=2)
+            w = F.normalize(w, axis=0, p=2)
             self.prototypes.weight.set_value(w)
 
         embedding, output = x, self.prototypes(x)

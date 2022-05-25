@@ -3,18 +3,6 @@ output_dir: output_dir
 seed: 0
 device: gpu
 
-use_amp: False
-AMP:
-  level: 'O1'
-  save_dtype: 'float32'
-  optimizers: None
-  scale_loss: 32768.0
-  auto_cast:
-    enable: True
-    custom_black_list: ["reduce_mean", "reduce_sum",
-                        "log_softmax", "elementwise_div"]
-    level: 'O1'
-
 model:
   name: SwAV
   backbone:
@@ -43,7 +31,7 @@ dataloader:
       num_workers: 16
       use_shared_memory: True
     sampler:
-      batch_size: 32
+      batch_size: 128
       shuffle: true
       drop_last: true
     dataset:
@@ -57,8 +45,8 @@ dataloader:
 lr_scheduler:
   name: CosineWarmup
   learning_rate: 4.8
-  T_max: 250200
-  warmup_steps: 25020
+  T_max: 41700
+  warmup_steps: 4170
   start_lr: 0.3
   end_lr: 4.8
   eta_min: 0.0048

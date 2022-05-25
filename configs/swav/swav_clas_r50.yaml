@@ -62,7 +62,7 @@ dataloader:
 lr_scheduler:
   name: CosineAnnealingDecay
   learning_rate: 0.3
-  T_max: 500400
+  T_max: 100
 
 
 optimizer:
