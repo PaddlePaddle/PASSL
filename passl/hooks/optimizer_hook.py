@@ -33,11 +33,63 @@ class OptimizerHook(Hook):
         if trainer.use_amp:
             scaled_loss = trainer.scaler.scale(loss)
             scaled_loss.backward()
-            trainer.scaler.step(trainer.optimizer)
-            trainer.scaler.update()
-
+            if 'lars' in trainer.optimizer.type:
+                trainer.scaler.minimize(trainer.optimizer, scaled_loss)
+            else:
+                trainer.scaler.step(trainer.optimizer)
+                trainer.scaler.update()
         else:
             loss.backward()
+            if 'lars' in trainer.optimizer.type:
+                trainer.optimizer.minimize(loss)
+            else:
+                trainer.optimizer.step()
+
+        if 'loss' not in trainer.outputs:
+            trainer.outputs['loss'] = loss
+
+
+@HOOKS.register()
+class DINOOptimizerHook(Hook):
+    def __init__(self, freeze_last_layer, priority=1):
+        self.priority = priority
+        self.freeze_last_layer = freeze_last_layer
+        
+    def train_iter_end(self, trainer):
+        if 'Lars' in trainer.cfg['optimizer']['name']:
+            trainer.optimizer.clear_gradients()
+        else:
+            trainer.optimizer.clear_grad()
+
+        loss = 0
+        loss = trainer.outputs['loss']
+
+        # backward
+        if trainer.use_amp:
+            scaled_loss = trainer.scaler.scale(loss)
+            scaled_loss.backward()
+        else:
+            loss.backward()
+
+        # cancel gradients for the prototypes
+        if trainer.current_epoch < self.freeze_last_layer:
+            if hasattr(trainer.model, '_layers'):
+                student = trainer.model._layers.student
+            else:
+                student = trainer.model.student
+
+            for n, p in student.named_parameters():
+                if "last_layer" in n:
+                    p.clear_gradient()
+
+        # update parameters
+        if trainer.use_amp:
+            if 'lars' in trainer.optimizer.type:
+                trainer.scaler.minimize(trainer.optimizer, scaled_loss)
+            else:
+                trainer.scaler.step(trainer.optimizer)
+                trainer.scaler.update()
+        else:
             if 'lars' in trainer.optimizer.type:
                 trainer.optimizer.minimize(loss)
             else:

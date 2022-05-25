@@ -273,3 +273,47 @@ class MLP2d(nn.Layer):
         x = self.linear2(x)
 
         return x
+
+
+@NECKS.register()
+class DINONeck(nn.Layer):
+    def __init__(self, in_dim, out_dim, use_bn=False, norm_last_layer=True,
+                 n_layers=3, hidden_dim=2048, bottleneck_dim=256):
+        super().__init__()
+        n_layers = max(n_layers, 1)
+        if n_layers == 1:
+            self.mlp = nn.Linear(in_dim, bottleneck_dim)
+        else:
+            layers = [nn.Linear(in_dim, hidden_dim)]
+            if use_bn:
+                layers.append(nn.BatchNorm1D(hidden_dim))
+            layers.append(nn.GELU())
+            for _ in range(n_layers - 2):
+                layers.append(nn.Linear(hidden_dim, hidden_dim))
+                if use_bn:
+                    layers.append(nn.BatchNorm1D(hidden_dim))
+                layers.append(nn.GELU())
+            layers.append(nn.Linear(hidden_dim, bottleneck_dim))
+            self.mlp = nn.Sequential(*layers)
+
+        self.apply(self._init_weights)
+        self.last_layer = nn.utils.weight_norm(
+            nn.Linear(bottleneck_dim, out_dim, bias_attr=False), dim=1)
+        self.last_layer.weight_g.set_value(
+            paddle.ones_like(self.last_layer.weight_g))
+        if norm_last_layer:
+            self.last_layer.weight_g.stop_gradient = True
+
+    def _init_weights(self, m):
+        trunc_normal_ = nn.initializer.TruncatedNormal(std=0.02)
+        zeros_ = nn.initializer.Constant(value=0.0)
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                zeros_(m.bias)
+
+    def forward(self, x):
+        x = self.mlp(x)
+        x = nn.functional.normalize(x, axis=-1, p=2)
+        x = self.last_layer(x)
+        return x

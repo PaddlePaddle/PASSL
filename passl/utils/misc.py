@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import paddle
+import paddle.nn as nn
 
 
 class AverageMeter(object):
@@ -55,3 +56,11 @@ def accuracy(output, target, topk=(1, )):
             correct_k = correct[:k].reshape([-1]).sum(0, keepdim=True)
             res.append(correct_k * 100.0 / batch_size)
         return res
+
+
+def has_batchnorms(model):
+    bn_types = (nn.BatchNorm1D, nn.BatchNorm2D, nn.BatchNorm3D, nn.SyncBatchNorm)
+    for name, layer in model.named_sublayers():
+        if isinstance(layer, bn_types):
+            return True
+    return False

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import numpy as np
 import paddle
 import paddle.nn as nn
@@ -146,7 +147,7 @@ class Block(nn.Layer):
         attn_mask=None,
         attn_drop=0.0,
         drop_path=0.0,
-        act_layer=QuickGELU,
+        act_layer=nn.GELU,
         norm_layer="nn.LayerNorm",
         epsilon=1e-5,
     ):
@@ -255,10 +256,6 @@ class PatchEmbed(nn.Layer):
 
     def forward(self, x):
         B, C, H, W = x.shape
-        assert (
-            H == self.img_size[0] and W == self.img_size[1]
-        ), "Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
-
         x = self.proj(x).flatten(2).transpose((0, 2, 1))
         return x
 
@@ -349,17 +346,45 @@ class VisionTransformer(nn.Layer):
             zeros_(m.bias)
             ones_(m.weight)
 
+    def interpolate_pos_encoding(self, x, w, h):
+        npatch = x.shape[1] - 1
+        N = self.positional_embedding.shape[1] - 1
+        if npatch == N and w == h:
+            return self.positional_embedding
+        class_pos_embed = self.positional_embedding[:, 0]
+        patch_pos_embed = self.positional_embedding[:, 1:]
+        dim = x.shape[-1]
+        w0 = w // self.patch_embed.patch_size[0]
+        h0 = h // self.patch_embed.patch_size[0]
+        # we add a small number to avoid floating point error in the interpolation
+        w0, h0 = w0 + 0.1, h0 + 0.1
+        patch_pos_embed = nn.functional.interpolate(
+            patch_pos_embed.reshape((1, int(math.sqrt(N)), int(math.sqrt(N)), dim)).transpose((0, 3, 1, 2)),
+            scale_factor=(w0 / math.sqrt(N), h0 / math.sqrt(N)),
+            mode='bicubic',
+        )
+        assert int(w0) == patch_pos_embed.shape[-2] and int(h0) == patch_pos_embed.shape[-1]
+        patch_pos_embed = patch_pos_embed.transpose((0, 2, 3, 1)).reshape((1, -1, dim))
+        return paddle.concat((class_pos_embed.unsqueeze(0), patch_pos_embed), axis=1)
+
     def forward_features(self, x):
-        B = paddle.shape(x)[0]
+        B, nc, w, h = x.shape
         x = self.patch_embed(x)
-        patch_resolution = self.patch_embed.patches_resolution
+
         class_embedding = self.class_embedding.expand((B, -1, -1))
         x = paddle.concat((class_embedding, x), axis=1)
-        x = x + self.positional_embedding
+        x = x + self.interpolate_pos_encoding(x, w, h)
+        
+        patch_resolution = [
+            int(math.sqrt(x.shape[1] - 1)), int(math.sqrt(x.shape[1] - 1))
+        ]
+
         x = self.pos_drop(x)
         x = self.norm_pre(x)
-        for blk in self.blocks:
+        
+        for i, blk in enumerate(self.blocks):
             x = blk(x)
+
         if self.proj is not None:
             x = self.norm_post(x[:, 0, :])
             x = paddle.matmul(x, self.proj)

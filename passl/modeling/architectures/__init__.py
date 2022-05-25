@@ -21,6 +21,7 @@ from .pixpro import PixPro
 
 from .BEiTWrapper import BEiTWrapper, BEiTPTWrapper, BEiTFTWrapper
 from .BYOL import BYOL
+from .DINO import DINO
 from .CaiTWrapper import CaiTWrapper
 from .CLIPWrapper import CLIPWrapper
 from .CvTWrapper import CvTWrapper

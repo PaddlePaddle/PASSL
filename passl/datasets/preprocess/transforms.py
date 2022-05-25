@@ -33,6 +33,7 @@ from .auto_augment import rand_augment_transform, augment_and_mix_transform, aut
 from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize, \
          ToCHW, ByolToRGB, ByolCenterCrop, ByolRandomCrop
 from .img_pil_pixpro_transforms import RandomResizedCropCoord, RandomHorizontalFlipCoord
+from .multi_crop import MultiCrop
 
 TRANSFORMS.register(PT.RandomResizedCrop)
 TRANSFORMS.register(PT.ColorJitter)
@@ -62,6 +63,9 @@ TRANSFORMS.register(RandomHorizontalFlipCoord)
 
 # BEiT
 TRANSFORMS.register(MaskingGenerator)
+
+# MultiCrop
+TRANSFORMS.register(MultiCrop)
 
 _RANDOM_INTERPOLATION = ('bilinear', 'bicubic')
 
