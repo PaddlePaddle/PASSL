@@ -15,3 +15,4 @@
 from .builder import build_transform, build_transforms
 from .masking_generator import MaskingGenerator
 from .transforms import RandomApply, RandomGrayscale, GaussianBlur, Solarization
+from .multi_crop import MultiCrop, MultiCropv2
