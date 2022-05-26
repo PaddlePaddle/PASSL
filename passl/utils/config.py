@@ -117,7 +117,7 @@ def override_config(config, options=None):
     return config
 
 
-def get_config(fname, overrides=None, show=True):
+def get_config(fname, overrides=None):
     """
     Read config from file
     """

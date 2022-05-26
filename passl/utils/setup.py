@@ -27,8 +27,18 @@ def setup(args, cfg):
 
     use_byol_iters = cfg.get('use_byol_iters', None)
 
+    timestamp = cfg.get('timestamp', False)
     cfg.timestamp = time.strftime('-%Y-%m-%d-%H-%M', time.localtime())
-    cfg.output_dir = args.output_dir
+
+    if timestamp:
+        cfg.output_dir = os.path.join(
+            cfg.output_dir,
+            os.path.splitext(os.path.basename(str(args.config_file)))[0] +
+            cfg.timestamp)
+    else:
+        cfg.output_dir = os.path.join(
+            cfg.output_dir,
+            os.path.splitext(os.path.basename(str(args.config_file)))[0])
 
     if args.pretrained:
         cfg.model.backbone.pretrained = args.pretrained
