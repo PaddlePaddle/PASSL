@@ -72,17 +72,17 @@ class DINOOptimizerHook(Hook):
             loss.backward()
 
         # cancel gradients for the prototypes
-        if trainer.current_epoch < self.freeze_last_layer:
-            if hasattr(trainer.model, '_layers'):
-                student = trainer.model._layers.student
-            else:
-                student = trainer.model.student
+        if hasattr(trainer.model, '_layers'):
+            model = trainer.model._layers
+        else:
+            model = trainer.model
 
-            for n, p in student.named_parameters():
+        if trainer.current_epoch < self.freeze_last_layer:
+            for n, p in model.student.named_parameters():
                 if "last_layer" in n:
                     p.clear_gradient()
 
-        # update parameters
+        # update student parameters
         if trainer.use_amp:
             if 'lars' in trainer.optimizer.type:
                 trainer.scaler.minimize(trainer.optimizer, scaled_loss)
@@ -94,6 +94,9 @@ class DINOOptimizerHook(Hook):
                 trainer.optimizer.minimize(loss)
             else:
                 trainer.optimizer.step()
+
+        # EMA update for the teacher
+        model.momentum_update_teacher()
 
         if 'loss' not in trainer.outputs:
             trainer.outputs['loss'] = loss

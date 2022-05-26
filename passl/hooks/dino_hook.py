@@ -23,8 +23,8 @@ class DINOHook(Hook):
                  priority=1,
                  weight_decay=0.04,
                  weight_decay_end=0.4,
-                 momeumtum=0.996,
-                 momeumtum_end=1.0,
+                 momentum=0.996,
+                 momentum_end=1.0,
                  total_steps=250200,
                  ):
         self.priority = priority
@@ -32,8 +32,8 @@ class DINOHook(Hook):
             weight_decay, total_steps, warmup_steps=0,
             eta_min=weight_decay_end, last_epoch=-1)
         self.mm_schedule = Cosine(
-            momeumtum, total_steps, warmup_steps=0,
-            eta_min=momeumtum_end, last_epoch=-1)
+            momentum, total_steps, warmup_steps=0,
+            eta_min=momentum_end, last_epoch=-1)
 
     def train_iter_begin(self, trainer):
         # update weight decay
@@ -41,7 +41,7 @@ class DINOHook(Hook):
         cur_wd = self.wd_schedule.get_lr()
         trainer.optimizer.regularization = L2Decay(cur_wd)
 
-        # update teacher momeumtum
+        # update teacher momentum
         self.mm_schedule.step()
         cur_m = self.mm_schedule.get_lr()
 

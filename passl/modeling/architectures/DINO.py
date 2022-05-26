@@ -70,7 +70,7 @@ class DINO(nn.Layer):
             p.stop_gradient = True
 
     @paddle.no_grad()
-    def _momentum_update_teacher(self):
+    def momentum_update_teacher(self):
         """
         Momentum update of the teacher
         """
