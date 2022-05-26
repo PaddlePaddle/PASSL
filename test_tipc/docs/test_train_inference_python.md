@@ -2,17 +2,13 @@
 
 Linux端基础训练预测功能测试的主程序为`test_train_inference_python.sh`，可以测试基于Python的模型训练、评估、推理等基本功能，包括裁剪、量化、蒸馏。
 
-- Mac端基础训练预测功能测试参考[链接](./mac_test_train_inference_python.md)
-- Windows端基础训练预测功能测试参考[链接](./win_test_train_inference_python.md)
-
 ## 1. 测试结论汇总
 
 - 训练相关：
 
 | 算法名称 | 模型名称 | 单机单卡 | 单机多卡 | 多机多卡 | 模型压缩（单机多卡） |
 |  :----  |   :----  |    :----  |  :----   |  :----   |  :----   |
-|  MobileNetV3  | MobileNetV3_large_x1_0 | 正常训练 <br> 混合精度 | 正常训练 <br> 混合精度 | 正常训练 <br> 混合精度 | 正常训练：FPGM裁剪、PACT量化 <br> 离线量化（无需训练） |
-|  ResNet50  | ResNet50_vd | 正常训练 <br> 混合精度 | 正常训练 <br> 混合精度 | 正常训练 <br> 混合精度 | 正常训练：FPGM裁剪、PACT量化 <br> 离线量化（无需训练） |
+|  MoCoV1  | ResNet50 | 正常训练 <br> 混合精度 | 正常训练 <br> 混合精度 | 正常训练 <br> 混合精度 | 正常训练：FPGM裁剪、PACT量化 <br> 离线量化（无需训练） |
 
 
 - 预测相关：基于训练是否使用量化，可以将训练产出的模型可以分为`正常模型`和`量化模型`，这两类模型对应的预测功能汇总如下，
@@ -31,7 +27,7 @@ Linux端基础训练预测功能测试的主程序为`test_train_inference_pytho
 
 ### 2.1 安装依赖
 - 安装PaddlePaddle >= 2.2
-- 安装PaddleClas依赖
+- 安装PASSL依赖
     ```
     pip3 install  -r ../requirements.txt
     ```
@@ -62,38 +58,6 @@ bash test_tipc/prepare.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_pyth
 bash test_tipc/test_train_inference_python.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'lite_train_lite_infer'
 ```
 
-- 模式2：lite_train_whole_infer，使用少量数据训练，一定量数据预测，用于验证训练后的模型执行预测，预测速度是否合理；
-```shell
-bash test_tipc/prepare.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt  'lite_train_whole_infer'
-bash test_tipc/test_train_inference_python.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'lite_train_whole_infer'
-```
-
-- 模式3：whole_infer，不训练，全量数据预测，走通开源模型评估、动转静，检查inference model预测时间和精度;
-```shell
-bash test_tipc/prepare.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'whole_infer'
-# 用法1:
-bash test_tipc/test_train_inference_python.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'whole_infer'
-# 用法2: 指定GPU卡预测，第三个传入参数为GPU卡号
-bash test_tipc/test_train_inference_python.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'whole_infer' '1'
-```
-
-- 模式4：whole_train_whole_infer，CE： 全量数据训练，全量数据预测，验证模型训练精度，预测精度，预测速度；
-```shell
-bash test_tipc/prepare.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'whole_train_whole_infer'
-bash test_tipc/test_train_inference_python.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'whole_train_whole_infer'
-```
-
-- 模式5:  klquant_whole_infer，测试离线量化；
-
-```shell
-bash test_tipc/prepare.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'klquant_whole_infer'
-bash test_tipc/test_train_inference_python.sh ./test_tipc/config/ResNet/ResNet50_vd_train_infer_python.txt 'klquant_whole_infer'
-```
-
-
-
-运行相应指令后，在`test_tipc/output`文件夹下自动会保存运行日志。如'lite_train_lite_infer'模式下，会运行训练+inference的链条，因此，在`test_tipc/output`文件夹有以下文件：
-
 ```
 test_tipc/output/
 |- results_python.log    # 运行指令状态的日志
@@ -104,51 +68,3 @@ test_tipc/output/
 |- python_infer_gpu_usetrt_True_precision_fp16_batchsize_1.log # GPU上开启TensorRT，测试batch_size=1的半精度预测日志
 ......
 ```
-
-其中`results_python.log`中包含了每条指令的运行状态，如果运行成功会输出：
-```
-Run successfully with command - python3.7 tools/train.py -c tests/configs/det_mv3_db.yml -o Global.pretrained_model=./pretrain_models/MobileNetV3_large_x0_5_pretrained Global.use_gpu=True  Global.save_model_dir=./tests/output/norm_train_gpus_0_autocast_null Global.epoch_num=1     Train.loader.batch_size_per_card=2   !
-Run successfully with command - python3.7 tools/export_model.py -c tests/configs/det_mv3_db.yml -o  Global.pretrained_model=./tests/output/norm_train_gpus_0_autocast_null/latest Global.save_inference_dir=./tests/output/norm_train_gpus_0_autocast_null!
-......
-```
-如果运行失败，会输出：
-```
-Run failed with command - python3.7 tools/train.py -c tests/configs/det_mv3_db.yml -o Global.pretrained_model=./pretrain_models/MobileNetV3_large_x0_5_pretrained Global.use_gpu=True  Global.save_model_dir=./tests/output/norm_train_gpus_0_autocast_null Global.epoch_num=1     Train.loader.batch_size_per_card=2   !
-Run failed with command - python3.7 tools/export_model.py -c tests/configs/det_mv3_db.yml -o  Global.pretrained_model=./tests/output/norm_train_gpus_0_autocast_null/latest Global.save_inference_dir=./tests/output/norm_train_gpus_0_autocast_null!
-......
-```
-可以很方便的根据`results_python.log`中的内容判定哪一个指令运行错误。
-
-
-### 2.3 精度测试
-
-使用compare_results.py脚本比较模型预测的结果是否符合预期，主要步骤包括：
-- 提取日志中的预测坐标；
-- 从本地文件中提取保存好的坐标结果；
-- 比较上述两个结果是否符合精度预期，误差大于设置阈值时会报错。
-
-#### 使用方式
-运行命令：
-```shell
-python3.7 test_tipc/compare_results.py --gt_file=./test_tipc/results/python_*.txt  --log_file=./test_tipc/output/python_*.log --atol=1e-3 --rtol=1e-3
-```
-
-参数介绍：  
-- gt_file： 指向事先保存好的预测结果路径，支持*.txt 结尾，会自动索引*.txt格式的文件，文件默认保存在test_tipc/result/ 文件夹下
-- log_file: 指向运行test_tipc/test_train_inference_python.sh 脚本的infer模式保存的预测日志，预测日志中打印的有预测结果，比如：文本框，预测文本，类别等等，同样支持python_infer_*.log格式传入
-- atol: 设置的绝对误差
-- rtol: 设置的相对误差
-
-#### 运行结果
-
-正常运行效果如下图：
-<img src="compare_right.png" width="1000">
-
-出现不一致结果时的运行输出：
-<img src="compare_wrong.png" width="1000">
-
-
-## 3. 更多教程
-本文档为功能测试用，更丰富的训练预测使用教程请参考：  
-[模型训练](../../docs/zh_CN/models_training)  
-[基于Python预测引擎推理](../../docs/zh_CN/inference_deployment/python_deploy.md)

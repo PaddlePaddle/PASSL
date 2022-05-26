@@ -89,7 +89,7 @@ wget  https://paddle-wheel.bj.bcebos.com/with-trt/2.1.1-gpu-cuda10.2-cudnn8.1-mk
 pip3.7 install -U paddlepaddle_gpu-2.1.1-cp37-cp37m-linux_x86_64.whl
 ```
 
-## 4. 安装PaddleClas依赖
+## 4. 安装PASSL依赖
 ```
 # 安装AutoLog
 git clone https://github.com/LDOUBLEV/AutoLog
@@ -98,15 +98,15 @@ pip3.7 install -r requirements.txt
 python3.7 setup.py bdist_wheel
 pip3.7 install ./dist/auto_log-1.0.0-py3-none-any.whl
 
-# 下载Clas代码
+# 下载PASSL代码
 cd ../
-git clone https://github.com/PaddlePaddle/PaddleClas
+git clone https://github.com/PaddlePaddle/PASSL
 
 ```
 
-安装PaddleClas依赖：
+安装PASSL依赖：
 ```
-cd PaddleClas
+cd PASSL
 pip3.7 install -r requirements.txt
 ```
 

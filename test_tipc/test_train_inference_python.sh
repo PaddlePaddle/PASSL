@@ -151,8 +151,6 @@ function func_inference(){
                         continue
                     fi
                     for batch_size in ${batch_size_list[*]}; do
-                        echo ' ### up batch_size'
-                        echo ${batch_size}
                         _save_log_path="${_log_path}/infer_gpu_usetrt_${use_trt}_precision_${precision}_batchsize_${batch_size}.log"
                         set_infer_data=$(func_set_params "${image_dir_key}" "${_img_dir}")
                         set_benchmark=$(func_set_params "${benchmark_key}" "${benchmark_value}")
@@ -325,7 +323,6 @@ else
                     load_norm_train_model=${set_ext_pretrain}
                 fi
                 # run extract 
-                echo ${set_ext_pretrain} 
                 if [ ${ext_py} != "null" ]; then
                     set_ext_params1=$(func_set_params "${ext_key1}" "${ext_value1}")
                     set_ext_params2=$(func_set_params "${ext_key2}" "${save_log}/${model_name}/${ext_value2}")
@@ -335,7 +332,6 @@ else
                     sleep 5
                 fi
                 # run linear eval
-                echo ${set_save_model} 
                 if [ ${lin_py} != "null" ]; then
                     set_lin_eval=$(func_set_params "${lin_key1}" "${save_log}/${model_name}/${ext_value2}")
                     set_lin_lr=$(func_set_params "${lin_key2}" "${lin_value2}")
