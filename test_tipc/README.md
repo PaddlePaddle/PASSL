@@ -32,8 +32,8 @@
 ./test_tipc/
 ├── common_func.sh                      #test_*.sh会调用到的公共函数
 ├── config     # 配置文件目录
-│   ├── MoCo_v1_R50         # MoCoV1模型测试配置文件目录
-│   │   ├── MoCo_v1_R50_train_infer_python.txt                                    #基础训练预测配置文件
+│   ├── moco_v1_r50         # MoCoV1模型测试配置文件目录
+│   │   ├── train_infer_python.txt                                    #基础训练预测配置文件
 |   ......
 ├── docs
 │   ├── guide.png
@@ -59,11 +59,11 @@
 ```shell
 # 功能：准备数据
 # 格式：bash + 运行脚本 + 参数1: 配置文件选择 + 参数2: 模式选择
-bash test_tipc/prepare.sh  configs/[model_name]/[params_file_name]  [Mode]
+bash test_tipc/prepare.sh  configs/[model_name]/[params_file_name]  [Mode] [model_name]
 
 # 功能：运行测试
 # 格式：bash + 运行脚本 + 参数1: 配置文件选择 + 参数2: 模式选择
-bash test_tipc/test_train_inference_python.sh configs/[model_name]/[params_file_name]  [Mode]
+bash test_tipc/test_train_inference_python.sh configs/[model_name]/[params_file_name]  [Mode] [model_name]
 
 ```
 
@@ -71,13 +71,12 @@ bash test_tipc/test_train_inference_python.sh configs/[model_name]/[params_file_
 
 ```shell
 # 准备数据
-bash test_tipc/prepare.sh ./test_tipc/config/MoCo_v1_R50/MoCo_v1_R50_train_infer_python.txt 'lite_train_lite_infer'
+bash test_tipc/prepare.sh ./test_tipc/config/moco_v1_r50/train_infer_python.txt 'lite_train_lite_infer' 'moco_v1_r50'
 # 运行测试
-bash test_tipc/test_train_inference_python.sh ./test_tipc/config/MoCo_v1_R50/MoCo_v1_R50_train_infer_python.txt 'lite_train_lite_infer'
+bash test_tipc/test_train_inference_python.sh ./test_tipc/config/moco_v1_r50/train_infer_python.txt 'lite_train_lite_infer' 'moco_v1_r50'
 
 ```
 
-关于本示例命令的更多信息可查看[基础训练预测使用文档](docs/test_train_inference_python.md)。
 
 ### 配置文件命名规范
 
