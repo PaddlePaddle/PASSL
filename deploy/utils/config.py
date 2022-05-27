@@ -1,4 +1,4 @@
-# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserve.
+# copyright (c) 2022 PaddlePaddle Authors. All Rights Reserve.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,23 +13,29 @@
 # limitations under the License.
 
 import os
+import copy
+import argparse
 import yaml
 
+from utils.logger import get_logger
+
 __all__ = ['get_config']
+
+logger = get_logger()
 
 
 class AttrDict(dict):
     def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(key)
+        return self[key]
 
     def __setattr__(self, key, value):
         if key in self.__dict__:
             self.__dict__[key] = value
         else:
             self[key] = value
+
+    def __deepcopy__(self, content):
+        return copy.deepcopy(dict(self))
 
 
 def create_attr_dict(yaml_config):
@@ -54,6 +60,40 @@ def parse_config(cfg_file):
         yaml_config = AttrDict(yaml.load(fopen, Loader=yaml.SafeLoader))
     create_attr_dict(yaml_config)
     return yaml_config
+
+
+def print_dict(d, delimiter=0):
+    """
+    Recursively visualize a dict and
+    indenting acrrording by the relationship of keys.
+    """
+    placeholder = "-" * 60
+    for k, v in sorted(d.items()):
+        if isinstance(v, dict):
+            logger.info("{}{} : ".format(delimiter * " ",
+                                         logger.coloring(k, "HEADER")))
+            print_dict(v, delimiter + 4)
+        elif isinstance(v, list) and len(v) >= 1 and isinstance(v[0], dict):
+            logger.info("{}{} : ".format(delimiter * " ",
+                                         logger.coloring(str(k), "HEADER")))
+            for value in v:
+                print_dict(value, delimiter + 4)
+        else:
+            logger.info("{}{} : {}".format(delimiter * " ",
+                                           logger.coloring(k, "HEADER"),
+                                           logger.coloring(v, "OKGREEN")))
+        if k.isupper():
+            logger.info(placeholder)
+
+
+def print_config(config):
+    """
+    visualize configs
+    Arguments:
+        config: configs
+    """
+    logger.advertise()
+    print_dict(config)
 
 
 def override(dl, ks, v):
@@ -82,7 +122,9 @@ def override(dl, ks, v):
             override(dl[k], ks[1:], v)
     else:
         if len(ks) == 1:
-            assert ks[0] in dl, ('{} is not exist in {}'.format(ks[0], dl))
+            # assert ks[0] in dl, ('{} is not exist in {}'.format(ks[0], dl))
+            if not ks[0] in dl:
+                logger.warning('A new filed ({}) detected!'.format(ks[0]))
             dl[ks[0]] = str2num(v)
         else:
             override(dl[ks[0]], ks[1:], v)
@@ -103,8 +145,8 @@ def override_config(config, options=None):
     """
     if options is not None:
         for opt in options:
-            assert isinstance(opt,
-                              str), ("option({}) should be a str".format(opt))
+            assert isinstance(opt, str), (
+                "option({}) should be a str".format(opt))
             assert "=" in opt, (
                 "option({}) should contain a ="
                 "to distinguish between key and value".format(opt))
@@ -113,7 +155,6 @@ def override_config(config, options=None):
             key, value = pair
             keys = key.split('.')
             override(config, keys, value)
-
     return config
 
 
@@ -124,5 +165,30 @@ def get_config(fname, overrides=None):
     assert os.path.exists(fname), ('config file({}) is not exist'.format(fname))
     config = parse_config(fname)
     override_config(config, overrides)
-
+    # check_config(config)
     return config
+
+
+def parse_args():
+    parser = argparse.ArgumentParser("generic-image-rec train script")
+    parser.add_argument(
+        '-c',
+        '--config',
+        type=str,
+        default='configs/config.yaml',
+        help='config file path')
+    parser.add_argument(
+        '-o',
+        '--override',
+        action='append',
+        default=[],
+        help='config options to be overridden')
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='wheather print the config info')
+
+    args = parser.parse_args()
+
+    return args
