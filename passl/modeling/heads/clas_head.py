@@ -23,6 +23,7 @@ from ...modules.init import reset_parameters, normal_init
 class ClasHead(nn.Layer):
     """Simple classifier head.
     """
+
     def __init__(self, with_avg_pool=False, in_channels=2048, num_classes=1000):
         super(ClasHead, self).__init__()
         self.with_avg_pool = with_avg_pool
@@ -39,10 +40,8 @@ class ClasHead(nn.Layer):
 
     def forward(self, x):
         if self.with_avg_pool:
-            assert x.dim() == 4, \
-                "Tensor must has 4 dims, got: {}".format(x.dim())
             x = self.avg_pool(x)
-        x = x.reshape([x.shape[0], -1])
+        x = paddle.reshape(x, [-1, self.in_channels])
         cls_score = self.fc_cls(x)
         return cls_score
 
@@ -50,9 +49,8 @@ class ClasHead(nn.Layer):
         losses = dict()
 
         losses['loss'] = self.criterion(cls_score, labels)
-        losses['acc1'], losses['acc5'] = accuracy(cls_score,
-                                                  labels,
-                                                  topk=(1, 5))
+        losses['acc1'], losses['acc5'] = accuracy(
+            cls_score, labels, topk=(1, 5))
         return losses
 
 

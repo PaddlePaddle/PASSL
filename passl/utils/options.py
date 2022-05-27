@@ -19,6 +19,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description='PASSL')
     parser.add_argument(
         '-c', '--config-file', metavar="FILE", help='config file path')
+    parser.add_argument(
+        '-o',
+        '--override',
+        action='append',
+        default=[],
+        help='config options to be overridden')
     # cuda setting
     parser.add_argument(
         '--no-cuda',
@@ -41,6 +47,8 @@ def parse_args():
         type=str,
         default=None,
         help='put the path to pretrained file if needed')
+    parser.add_argument(
+        '--export', type=str, default=None, help='export model for inference')
     # for evaluation
     parser.add_argument(
         '--val-interval',
@@ -68,7 +76,6 @@ def parse_args():
     parser.add_argument(
         "--reference_dir", default="", help="path to reference images")
     parser.add_argument("--model_path", default=None, help="model for loading")
-    parser.add_argument('--output_dir', type=str, default='outputs', help='saving checkpoints and other states in this folder')
 
     args = parser.parse_args()
 
