@@ -117,6 +117,7 @@ function func_inference(){
     _log_path=$4
     _img_dir=$5
     _flag_quant=$6
+    _status_log="${_log_path}/results_python.log"
     # inference 
     for use_gpu in ${use_gpu_list[*]}; do
         if [ ${use_gpu} = "False" ] || [ ${use_gpu} = "cpu" ]; then
@@ -137,7 +138,7 @@ function func_inference(){
                         eval $command
                         last_status=${PIPESTATUS[0]}
                         eval "cat ${_save_log_path}"
-                        status_check $last_status "${command}" "${status_log}" "${model_name}"
+                        status_check $last_status "${command}" "${_status_log}" "${model_name}"
                     done
                 done
             done
@@ -162,7 +163,7 @@ function func_inference(){
                         eval $command
                         last_status=${PIPESTATUS[0]}
                         eval "cat ${_save_log_path}"
-                        status_check $last_status "${command}" "${status_log}" "${model_name}"
+                        status_check $last_status "${command}" "${_status_log}" "${model_name}"
                     done
                 done
             done

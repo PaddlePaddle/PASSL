@@ -56,11 +56,19 @@ class LVViTWrapper(nn.Layer):
 
         return outs
 
+    def infer_iter(self, *inputs, **kwargs):
+        with paddle.no_grad():
+            outs = self.backbone(*inputs)
+
+        return outs
+
     def forward(self, *inputs, mode='train', **kwargs):
         if mode == 'train':
             return self.train_iter(*inputs, **kwargs)
         elif mode == 'test':
             return self.test_iter(*inputs, **kwargs)
+        elif mode == 'infer':
+            return self.infer_iter(*inputs, **kwargs)
         elif mode == 'extract':
             return self.backbone.forward_features(inputs[0])
         else:
