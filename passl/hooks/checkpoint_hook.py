@@ -70,6 +70,7 @@ class CheckpointHook(Hook):
             like to delete old ones to save the disk space.
             Default: -1, which means unlimited.
     """
+
     def __init__(self,
                  interval=1,
                  by_epoch=True,
@@ -89,24 +90,25 @@ class CheckpointHook(Hook):
     def save_checkpoint(self,
                         out_dir,
                         trainer,
-                        filename_tmpl='epoch_{}.pdparams',
+                        filename_tmpl='epoch_{}.pd',
                         save_optimizer=True,
-                        create_symlink=False):
+                        create_symlink=True):
         filename = filename_tmpl.format(trainer.current_epoch + 1)
         filepath = os.path.join(out_dir, filename)
         optimizer = trainer.optimizer if save_optimizer else None
         lr_scheduler = trainer.lr_scheduler
-        save(
-            {
-                'epoch': trainer.current_epoch + 1,
-                'state_dict': trainer.model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'lr_scheduler': lr_scheduler.state_dict()
-            }, filepath)
+        save({
+            'epoch': trainer.current_epoch + 1,
+            'state_dict': trainer.model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'lr_scheduler': lr_scheduler.state_dict()
+        }, filepath)
         # in some environments, `os.symlink` is not supported, you may need to
         # set `create_symlink` to False
         if create_symlink:
-            os.symlink(filename, os.path.join(out_dir, 'latest.pth'))
+            latest = os.path.join(out_dir, 'latest.pd')
+            os.system('rm -rf %s' % latest)
+            os.symlink(filename, latest)
 
     def train_epoch_end(self, trainer):
         if paddle.distributed.get_rank() != 0:
@@ -119,10 +121,11 @@ class CheckpointHook(Hook):
             f'Saving checkpoint at {trainer.current_epoch + 1} epochs')
         if not self.out_dir:
             self.out_dir = trainer.output_dir
-        self.save_checkpoint(self.out_dir,
-                             trainer,
-                             save_optimizer=self.save_optimizer,
-                             **self.args)
+        self.save_checkpoint(
+            self.out_dir,
+            trainer,
+            save_optimizer=self.save_optimizer,
+            **self.args)
 
         # remove other checkpoints
         if self.max_keep_ckpts > 0:
@@ -148,9 +151,8 @@ class CheckpointHook(Hook):
             f'Saving checkpoint at {trainer.iter + 1} iterations')
         if not self.out_dir:
             self.out_dir = trainer.output_dir
-        trainer.save_checkpoint(self.out_dir,
-                                save_optimizer=self.save_optimizer,
-                                **self.args)
+        trainer.save_checkpoint(
+            self.out_dir, save_optimizer=self.save_optimizer, **self.args)
 
         # remove other checkpoints
         if self.max_keep_ckpts > 0:

@@ -43,10 +43,15 @@ def main(args, cfg):
         trainer.val()
         return
 
+    if args.export:
+        trainer.export(args.export)
+        return
+
     trainer.train()
 
 
 if __name__ == '__main__':
     args = parse_args()
-    cfg = get_config(args.config_file)
+    cfg = get_config(
+        args.config_file, overrides=args.override)
     main(args, cfg)
