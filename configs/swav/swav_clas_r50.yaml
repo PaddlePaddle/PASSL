@@ -3,6 +3,10 @@ output_dir: output_dir
 seed: 0
 device: gpu
 
+# used for static mode and model export
+image_shape: [3, 224, 224]
+save_inference_dir: ./inference
+
 model:
   name: Classification
   backbone:

@@ -331,6 +331,7 @@ else
                     status_check $? "${ext_cmd}" "${status_log}" "${model_name}"
                     sleep 5
                 fi
+
                 # run linear eval
                 if [ ${lin_py} != "null" ]; then
                     set_lin_eval=$(func_set_params "${lin_key1}" "${save_log}/${model_name}/${ext_value2}")
@@ -353,9 +354,9 @@ else
                     # run export model
                     save_infer_path="${save_log}"
 		    if [[ $FILENAME == *GeneralRecognition* ]]; then
-		        set_eval_pretrain=$(func_set_params "${pretrain_model_key}" "${save_log}/RecModel/${train_model_name}")
+		        set_eval_pretrain=$(func_set_params "${pretrain_model_key}" "${save_log}/RecModel/${ext_value2}")
 		    else
-		        set_export_weight=$(func_set_params "${export_weight}" "${save_log}/${model_name}/${train_model_name}")
+		        set_export_weight=$(func_set_params "${export_weight}" "${save_log}/${model_name}/${ext_value2}")
 		    fi
                     set_save_infer_key=$(func_set_params "${save_infer_key}" "${save_infer_path}")
                     export_cmd="${python} ${run_export} ${set_export_weight} ${set_save_infer_key} ${set_lin_lr}"
