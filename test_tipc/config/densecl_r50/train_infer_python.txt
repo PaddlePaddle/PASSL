@@ -1,0 +1,58 @@
+===========================pre_train_params===========================
+model_name:densecl_r50
+python:python3.7
+gpu_list:0|0,1
+-o device:gpu
+-o auto_cast:null
+-o epochs:lite_train_lite_infer=2|whole_train_whole_infer=120
+-o output_dir:./output/
+-o dataloader.train.sampler.batch_size:8
+-o pretrained_model:null
+train_model_name:latest.pd
+train_infer_img_dir:./data/ILSVRC2012/val
+null:null
+##
+trainer:norm_train
+norm_train:tools/train.py -c configs/densecl/densecl_r50.yaml -o seed=1234 -o dataloader.train.sampler.shuffle=False -o dataloader.train.loader.num_workers=0 -o dataloader.train.loader.use_shared_memory=False 
+pact_train:null
+fpgm_train:null
+distill_train:null
+null:null
+null:null
+##
+===========================extrct_params=========================== 
+extract:tools/extract_weight.py
+--prefix:backbone
+--output:ext.pd
+##
+===========================linear_eval_params=========================== 
+linear:tools/train.py -c configs/moco/moco_clas_r50.yaml -o seed=1234 -o dataloader.train.sampler.shuffle=False -o dataloader.train.loader.num_workers=0 -o dataloader.train.loader.use_shared_memory=False 
+pretrained:null
+-o lr_scheduler.milestones:[1,]
+##
+===========================infer_params==========================
+-o save_inference_dir:./inference
+--export:null
+norm_export:tools/train.py -c configs/moco/moco_clas_r50.yaml
+quant_export:null
+fpgm_export:null
+distill_export:null
+kl_quant:null
+export2:null
+pretrained_model_url:https://passl.bj.bcebos.com/models/moco_v1_r50_clas.pdparams
+infer_model:../inference/
+infer_export:True
+infer_quant:Fasle
+inference:python/predict_cls.py -c configs/inference_cls.yaml
+-o use_gpu:True|False
+-o enable_mkldnn:False|False
+-o cpu_num_threads:1|6
+-o batch_size:1|4
+-o use_tensorrt:False|False
+-o use_fp16:True|False
+-o inference_model_dir:../inference
+-o infer_imgs:../data/ILSVRC2012/val
+-o save_log_path:null
+-o benchmark:True
+null:null
+null:null

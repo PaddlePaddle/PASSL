@@ -90,3 +90,4 @@ if [ ${MODE} = "lite_train_lite_infer" ] || [ ${MODE} = "lite_train_whole_infer"
     tar xf whole_chain_little_train.tar
     ln -s whole_chain_little_train ILSVRC2012
     cd ../../
+fi
