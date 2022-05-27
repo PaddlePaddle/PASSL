@@ -148,11 +148,14 @@ class DatasetFolder(Dataset):
                     and class_to_idx is a dictionary.
         """
         if cls_filter is None:
-            cls_filter = lambda x:True
+            cls_filter = lambda x: True
 
         if sys.version_info >= (3, 5):
             # Faster and available in Python 3.5 and above
-            classes = [d.name for d in os.scandir(dir) if d.is_dir() and cls_filter(d.name)]
+            classes = [
+                d.name for d in os.scandir(dir)
+                if d.is_dir() and cls_filter(d.name)
+            ]
         else:
             classes = [
                 d for d in os.listdir(dir)
@@ -181,7 +184,7 @@ class DatasetFolder(Dataset):
 
 
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif',
-                  '.tiff', '.webp')
+                  '.tiff', '.webp', '.JPEG')
 
 
 def pil_loader(path):

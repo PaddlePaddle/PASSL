@@ -59,6 +59,13 @@ class Classification(nn.Layer):
 
         return outs
 
+    def infer_iter(self, *inputs, **kwargs):
+        with paddle.no_grad():
+            x = self.backbone_forward(*inputs)
+            outs = self.head(x)
+
+        return outs
+
     def forward(self, *inputs, mode='train', **kwargs):
         if mode == 'train':
             return self.train_iter(*inputs, **kwargs)
@@ -66,5 +73,7 @@ class Classification(nn.Layer):
             return self.test_iter(*inputs, **kwargs)
         elif mode == 'extract':
             return self.backbone(*inputs)
+        elif mode == 'infer':
+            return self.infer_iter(*inputs)
         else:
             raise Exception("No such mode: {}".format(mode))
