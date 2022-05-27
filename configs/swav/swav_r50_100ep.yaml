@@ -45,8 +45,8 @@ dataloader:
 lr_scheduler:
   name: CosineWarmup
   learning_rate: 4.8
-  T_max: 41700
-  warmup_steps: 4170
+  T_max: 31200
+  warmup_steps: 3120
   start_lr: 0.3
   end_lr: 4.8
   eta_min: 0.0048
