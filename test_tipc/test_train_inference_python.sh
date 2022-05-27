@@ -105,7 +105,7 @@ infer_value1=$(func_parser_value "${lines[56]}")
 if [ ! $epoch_num ]; then
   epoch_num=2
 fi
-LOG_PATH="./test_tipc/output"
+LOG_PATH="./log/${model_name}/${MODE}"
 mkdir -p ${LOG_PATH}
 status_log="${LOG_PATH}/results_python.log"
 
@@ -137,7 +137,7 @@ function func_inference(){
                         eval $command
                         last_status=${PIPESTATUS[0]}
                         eval "cat ${_save_log_path}"
-                        status_check $last_status "${command}" "../${status_log}"
+                        status_check $last_status "${command}" "${status_log}" "${model_name}"
                     done
                 done
             done
@@ -162,7 +162,7 @@ function func_inference(){
                         eval $command
                         last_status=${PIPESTATUS[0]}
                         eval "cat ${_save_log_path}"
-                        status_check $last_status "${command}" "../${status_log}"
+                        status_check $last_status "${command}" "${status_log}" "${model_name}"
                     done
                 done
             done
@@ -209,7 +209,7 @@ elif [ ${MODE} = "klquant_whole_infer" ]; then
 	command="${python} ${kl_quant_cmd_value}"
 	eval $command
 	last_status=${PIPESTATUS[0]}
-	status_check $last_status "${command}" "${status_log}"
+	status_check $last_status "${command}" "${status_log}" "${model_name}"
 	cd inference/quant_post_static_model
 	ln -s __model__ inference.pdmodel
 	ln -s __params__ inference.pdiparams
@@ -305,10 +305,10 @@ else
                 fi
                 # run train
 		eval "unset CUDA_VISIBLE_DEVICES"
-		export FLAGS_cudnn_deterministic=True
+		#export FLAGS_cudnn_deterministic=True
 		sleep 5
                 eval $cmd
-                status_check $? "${cmd}" "${status_log}"
+                status_check $? "${cmd}" "${status_log}" "${model_name}"
                 sleep 5
 		
 		if [[ $FILENAME == *GeneralRecognition* ]]; then
@@ -328,7 +328,7 @@ else
                     set_ext_params2=$(func_set_params "${ext_key2}" "${save_log}/${model_name}/${ext_value2}")
                     ext_cmd="${python} ${ext_py} ${set_ext_pretrain} ${set_ext_params1} ${set_ext_params2} --remove_prefix" 
                     eval $ext_cmd
-                    status_check $? "${ext_cmd}" "${status_log}"
+                    status_check $? "${ext_cmd}" "${status_log}" "${model_name}"
                     sleep 5
                 fi
                 # run linear eval
@@ -337,7 +337,7 @@ else
                     set_lin_lr=$(func_set_params "${lin_key2}" "${lin_value2}")
                     lin_cmd="${python} ${lin_py} ${set_batchsize} ${set_use_gpu} ${set_save_model} ${set_epoch} ${set_lin_eval} ${set_autocast} ${set_lin_lr} " 
                     eval $lin_cmd
-                    status_check $? "${lin_cmd}" "${status_log}"
+                    status_check $? "${lin_cmd}" "${status_log}" "${model_name}"
                     sleep 5
                 fi
                 # run eval 
@@ -345,7 +345,7 @@ else
                     set_eval_params1=$(func_set_params "${eval_key1}" "${eval_value1}")
                     eval_cmd="${python} ${eval_py} ${set_eval_pretrain} ${set_use_gpu} ${set_eval_params1}" 
                     eval $eval_cmd
-                    status_check $? "${eval_cmd}" "${status_log}"
+                    status_check $? "${eval_cmd}" "${status_log}" "${model_name}"
                     sleep 5
                 fi
                 # run export model
@@ -360,7 +360,7 @@ else
                     set_save_infer_key=$(func_set_params "${save_infer_key}" "${save_infer_path}")
                     export_cmd="${python} ${run_export} ${set_export_weight} ${set_save_infer_key} ${set_lin_lr}"
                     eval $export_cmd
-                    status_check $? "${export_cmd}" "${status_log}"
+                    status_check $? "${export_cmd}" "${status_log}" "${model_name}"
 
                     #run inference
                     eval $env
