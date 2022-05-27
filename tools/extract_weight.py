@@ -20,13 +20,12 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='This script extracts weights from a checkpoint')
     parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--prefix',
-                        type=str,
-                        default='backbone',
-                        help='destination file name')
-    parser.add_argument('--remove_prefix',
-                        action='store_true',
-                        help='remove prefix from keys of state dict')
+    parser.add_argument(
+        '--prefix', type=str, default='backbone', help='destination file name')
+    parser.add_argument(
+        '--remove_prefix',
+        action='store_true',
+        help='remove prefix from keys of state dict')
     parser.add_argument('--output', type=str, help='destination file name')
     args = parser.parse_args()
     return args
@@ -34,7 +33,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    assert args.output.endswith(".pdparams")
+    assert (args.output.endswith(".pd") or args.output.endswith(".pdparams"))
     ckpt = paddle.load(args.checkpoint)
     output_dict = dict()
     has_prefix = False
