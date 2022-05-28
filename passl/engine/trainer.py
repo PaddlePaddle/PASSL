@@ -189,7 +189,7 @@ class Trainer:
             scale_loss = amp_cfg.pop('scale_loss')
             self.scaler = paddle.amp.GradScaler(init_loss_scaling=scale_loss)
             amp_cfg['models'] = self.model
-            self.model, _ = paddle.amp.decorate(**amp_cfg)  # decorate for level O2
+            self.model = paddle.amp.decorate(**amp_cfg)  # decorate for level O2
 
         # ZeRO
         self.sharding_strategies = cfg.get('sharding', False)
