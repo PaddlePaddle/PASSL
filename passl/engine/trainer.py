@@ -8,6 +8,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import math
 import random
 import logging
@@ -16,6 +17,7 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 import paddle
+import paddle.nn as nn
 import paddle.distributed as dist
 from paddle.distributed import fleet
 from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
@@ -89,6 +91,7 @@ class Trainer:
     #                     |                                    ||
     #                    end                                   \/
     """
+
     def __init__(self, cfg):
         # base config
         self.logger = logging.getLogger(__name__)
@@ -174,11 +177,8 @@ class Trainer:
             mp_rank = hcg.get_model_parallel_rank()
             pp_rank = hcg.get_stage_id()
             dp_rank = hcg.get_data_parallel_rank()
-            set_hyrbid_parallel_seed(seed,
-                                     0,
-                                     mp_rank,
-                                     pp_rank,
-                                     device=self.device)
+            set_hyrbid_parallel_seed(
+                seed, 0, mp_rank, pp_rank, device=self.device)
 
         # amp training
         self.use_amp = cfg.get('use_amp',
@@ -205,9 +205,10 @@ class Trainer:
                     params=self.model.parameters(),
                     optim=self.optimizer,
                     offload=offload)
-                self.model = ShardingStage2(self.model,
-                                            self.optimizer,
-                                            accumulate_grads=accumulate_grad)
+                self.model = ShardingStage2(
+                    self.model,
+                    self.optimizer,
+                    accumulate_grads=accumulate_grad)
                 self.scaler = ShardingScaler(self.scaler)
             else:
                 raise NotImplementedError()
@@ -314,15 +315,17 @@ class Trainer:
                             mixup_fn=self.mixup_fn)
             else:
                 if self.use_byol_iters:
-                    self.outputs = self.model(*data,
-                                              total_iters=self.byol_total_iters,
-                                              current_iter=self.current_iter,
-                                              mixup_fn=self.mixup_fn)
+                    self.outputs = self.model(
+                        *data,
+                        total_iters=self.byol_total_iters,
+                        current_iter=self.current_iter,
+                        mixup_fn=self.mixup_fn)
                 else:
-                    self.outputs = self.model(*data,
-                                              total_iters=self.total_iters,
-                                              current_iter=self.current_iter,
-                                              mixup_fn=self.mixup_fn)
+                    self.outputs = self.model(
+                        *data,
+                        total_iters=self.total_iters,
+                        current_iter=self.current_iter,
+                        mixup_fn=self.mixup_fn)
             self.call_hook('train_iter_end')
 
             if self.current_iter % self.iters_per_epoch == 0:
@@ -336,8 +339,8 @@ class Trainer:
             self.val_dataloader, mixup_fn = build_dataloader(
                 self.cfg.dataloader.val, self.device)
 
-        self.logger.info(
-            'start evaluate on epoch {} ..'.format(self.current_epoch + 1))
+        self.logger.info('start evaluate on epoch {} ..'.format(
+            self.current_epoch + 1))
         rank = dist.get_rank()
         world_size = dist.get_world_size()
 
@@ -383,8 +386,8 @@ class Trainer:
                 labels = paddle.concat(label_list, 0)
                 if accum_samples > total_samples:
                     self.logger.info('total samples {} {} {}'.format(
-                        total_samples, accum_samples,
-                        total_samples + current_samples - accum_samples))
+                        total_samples, accum_samples, total_samples +
+                        current_samples - accum_samples))
                     pred = pred[:total_samples + current_samples -
                                 accum_samples]
                     labels = labels[:total_samples + current_samples -
@@ -422,13 +425,72 @@ class Trainer:
         self.optimizer.set_state_dict(checkpoint['optimizer'])
         self.lr_scheduler.set_state_dict(checkpoint['lr_scheduler'])
 
-        self.logger.info(
-            'Resume training from {} success!'.format(checkpoint_path))
+        self.logger.info('Resume training from {} success!'.format(
+            checkpoint_path))
 
-    def load(self, weight_path):
+    def load(self, weight_path, export=False):
         state_dict = paddle.load(weight_path)
 
         if 'state_dict' in state_dict:
             state_dict = state_dict['state_dict']
 
+        if export:
+            state_dict_ = dict()
+            for k, v in state_dict.items():
+                state_dict_['model.' + k] = v
+            state_dict = state_dict_
+
         self.model.set_state_dict(state_dict)
+
+    def export(self, ckpt):
+        self.model.eval()
+        self.model = ExportModel(self.cfg, self.model)
+        self.load(ckpt, export=True)
+
+        save_path = os.path.join(self.cfg.save_inference_dir, "inference")
+        if self.model.quanter:
+            model.quanter.save_quantized_model(
+                model.base_model,
+                save_path,
+                input_spec=[
+                    paddle.static.InputSpec(
+                        shape=[None] + self.cfg["image_shape"], dtype='float32')
+                ])
+        else:
+            model = paddle.jit.to_static(
+                self.model,
+                input_spec=[
+                    paddle.static.InputSpec(
+                        shape=[None] + self.cfg["image_shape"], dtype='float32')
+                ])
+            paddle.jit.save(model, save_path)
+
+
+class ExportModel(nn.Layer):
+    """
+    ExportModel: add softmax onto the model
+    """
+
+    def __init__(self, cfg, model):
+        super().__init__()
+        self.model = model
+        self.pruner = None
+        self.quanter = None
+        if cfg.get("infer_add_softmax", True):
+            self.out_act = nn.Softmax(axis=-1)
+        else:
+            self.out_act = None
+
+    def eval(self):
+        self.training = False
+        for layer in self.sublayers():
+            layer.training = False
+            layer.eval()
+
+    def forward(self, x):
+        x = self.model(x, mode='infer')
+        if isinstance(x, list):
+            x = x[0]
+        if self.out_act is not None:
+            x = self.out_act(x)
+        return x
