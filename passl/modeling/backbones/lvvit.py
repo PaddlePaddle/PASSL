@@ -396,7 +396,8 @@ class LVViT(nn.Layer):
         return x
 
     def forward_tokens(self, x):
-        B = x.shape[0]
+        # B = x.shape[0]
+        B = paddle.shape(x)[0]
         cls_tokens = self.cls_token.expand([B, -1, -1])
         x = paddle.concat([cls_tokens, x], axis=1)
         x = x + self.pos_embed

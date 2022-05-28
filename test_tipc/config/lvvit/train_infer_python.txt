@@ -1,4 +1,4 @@
-===========================pre_train_params===========================
+===========================train_params===========================
 model_name:lvvit_tiny
 python:python3.7
 gpu_list:0|0,1
@@ -20,12 +20,12 @@ distill_train:null
 null:null
 null:null
 ##
-===========================extrct_params=========================== 
+===========================extrct_params===========================
 extract:tools/extract_weight.py
 --prefix:backbone
 --output:ext.pd
 ##
-===========================linear_eval_params=========================== 
+===========================eval params===========================
 linear:null
 pretrained:null
 -o lr_scheduler.milestones:[1,]
@@ -45,7 +45,7 @@ infer_export:True
 infer_quant:Fasle
 inference:python/predict_cls.py -c configs/inference_cls.yaml
 -o use_gpu:True|False
--o enable_mkldnn:False|False
+-o enable_mkldnn:False
 -o cpu_num_threads:1|6
 -o batch_size:1|4
 -o use_tensorrt:False
