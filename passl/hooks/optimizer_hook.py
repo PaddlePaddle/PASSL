@@ -34,9 +34,11 @@ class OptimizerHook(Hook):
         if trainer.use_amp:
             scaled_loss = trainer.scaler.scale(loss)
             scaled_loss.backward()
-            trainer.scaler.step(trainer.optimizer)
-            trainer.scaler.update()
-
+            if 'lars' in trainer.optimizer.type:
+                trainer.scaler.minimize(trainer.optimizer, scaled_loss)
+            else:
+                trainer.scaler.step(trainer.optimizer)
+                trainer.scaler.update()
         else:
             loss.backward()
             if 'lars' in trainer.optimizer.type:
@@ -79,10 +81,13 @@ class SimsiamOptimizerHook(Hook):
         if trainer.use_amp:
             scaled_loss = trainer.scaler.scale(loss)
             scaled_loss.backward()
-            trainer.scaler.step(trainer.optimizer)
-            trainer.scaler.step(trainer.predictor_optimizer)
-            trainer.scaler.update()
-
+            if 'lars' in trainer.optimizer.type:
+                trainer.scaler.minimize(trainer.optimizer, scaled_loss)
+                trainer.scaler.minimize(trainer.predictor_optimizer, scaled_loss)
+            else:
+                trainer.scaler.step(trainer.optimizer)
+                trainer.scaler.step(trainer.predictor_optimizer)
+                trainer.scaler.update()
         else:
             loss.backward()
             if 'lars' in trainer.optimizer.type:
