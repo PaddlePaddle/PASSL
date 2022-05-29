@@ -447,7 +447,7 @@ class Trainer:
         if export:
             state_dict_ = dict()
             for k, v in state_dict.items():
-                state_dict_['model.backbone.' + k] = v
+                state_dict_['model.' + k] = v
             state_dict = state_dict_
         self.model.set_state_dict(state_dict)
 

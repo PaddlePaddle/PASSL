@@ -353,9 +353,10 @@ else
                     # run export model
                     save_infer_path="${save_log}"
 		    if [[ $FILENAME == *GeneralRecognition* ]]; then
-		        set_eval_pretrain=$(func_set_params "${pretrain_model_key}" "${save_log}/RecModel/${ext_value2}")
+		        set_eval_pretrain=$(func_set_params "${pretrain_model_key}" "${save_log}/RecModel/${train_model_name}")
 		    else
-		        set_export_weight=$(func_set_params "${export_weight}" "${save_log}/${model_name}/${ext_value2}")
+			cls_model_name=$(echo $norm_export | sed 's/.*configs\/.*\/\(.*\).yaml/\1/')
+		        set_export_weight=$(func_set_params "${export_weight}" "${save_log}/${cls_model_name}/${train_model_name}")
 		    fi
                     set_save_infer_key=$(func_set_params "${save_infer_key}" "${save_infer_path}")
                     export_cmd="${python} ${run_export} ${set_export_weight} ${set_save_infer_key} ${set_lin_lr}"
