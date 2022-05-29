@@ -24,6 +24,7 @@ from .mb_head import MBHead
 from .mlp_mixer_head import MlpMixerClsHead
 from .pixpro_head import PixProHead
 from .simclr_contrastive_head import SimCLRContrastiveHead
+from .simsiam_contrastive_head import SimSiamContrastiveHead
 from .swin_transformer_head import SwinTransformerClsHead
 from .t2t_vit_head import T2TViTClsHead
 from .vision_transformer_head import VisionTransformerClsHead

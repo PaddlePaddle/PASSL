@@ -17,6 +17,7 @@ from .byol_clas import ByolClassification
 from .clas import Classification
 from .moco import MoCo
 from .simclr import SimCLR
+from .simsiam import SimSiam
 from .pixpro import PixPro
 
 from .BEiTWrapper import BEiTWrapper, BEiTPTWrapper, BEiTFTWrapper
