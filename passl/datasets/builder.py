@@ -20,7 +20,7 @@ from paddle.io import DistributedBatchSampler
 
 from ..utils.registry import Registry, build_from_config
 from .preprocess.builder import build_transforms
-from .preprocess.mixup import Mixup
+from .preprocess.builder import build_mixup
 
 DATASETS = Registry("DATASET")
 
@@ -100,16 +100,6 @@ def build_dataloader(cfg, device):
                                       **loader_cfg)
 
     #setup mixup / cutmix
-    mixup_fn = None
-    if mixup_cfg is not None:
-        mixup_cfg = mixup_cfg[0]
-        mixup_active = mixup_cfg['mixup_alpha'] > 0 or mixup_cfg[
-            'cutmix_alpha'] > 0. or mixup_cfg['cutmix_minmax'] != ''  # noqa
-        if mixup_active:
-            mixup_fn = Mixup(mixup_alpha=mixup_cfg['mixup_alpha'],
-                             cutmix_alpha=mixup_cfg['cutmix_alpha'],
-                             prob=mixup_cfg['prob'],
-                             switch_prob=mixup_cfg['switch_prob'],
-                             mode=mixup_cfg['mode'])
+    mixup_fn = build_mixup(mixup_cfg)
 
     return dataloader, mixup_fn

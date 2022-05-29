@@ -82,12 +82,18 @@ if [[ $FILENAME == *use_dali* ]];then
 fi
 
 if [ ${MODE} = "lite_train_lite_infer" ] || [ ${MODE} = "lite_train_whole_infer" ];then
+    if [[ $model_name == *lvvit* ]];then
+        data_name="whole_chain_little_train_lvvit.tar"
+    else
+        data_name="whole_chain_little_train.tar"
+    fi
+
     # pretrain lite train data
-    mkdir data
+    mkdir -p data
     cd data
-    rm -rf ILSVRC2012
-    wget -nc https://passl.bj.bcebos.com/tipc/whole_chain_little_train.tar
-    tar xf whole_chain_little_train.tar
+    rm -rf ILSVRC2012 whole_chain_little_train
+    wget -nc https://passl.bj.bcebos.com/tipc/$data_name
+    tar xf $data_name
     ln -s whole_chain_little_train ILSVRC2012
     cd ../../
 fi

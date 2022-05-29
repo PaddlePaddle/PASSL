@@ -33,3 +33,4 @@ from .MlpMixerWrapper import MlpMixerWrapper
 from .SwinWrapper import SwinWrapper
 from .T2TViTWrapper import T2TViTWrapper
 from .ViTWrapper import ViTWrapper
+from .LVViTWrapper import LVViTWrapper
