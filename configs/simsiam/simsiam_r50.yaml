@@ -1,6 +1,5 @@
 epochs: 100
 use_simclr_iters: True
-use_simsiam_optimizer: True
 global_batch_size: 512
 output_dir: output_dir
 seed: 0

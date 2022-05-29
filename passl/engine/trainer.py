@@ -125,8 +125,6 @@ class Trainer:
         self.use_byol_iters = use_byol_iters
         use_simclr_iters = cfg.get('use_simclr_iters', False)
         self.use_simclr_iters = use_simclr_iters
-        use_simsiam_optimizer = cfg.get('use_simsiam_optimizer', False)
-        self.use_simsiam_optimizer = use_simsiam_optimizer
         self.epochs = cfg.get('epochs', None)
         self.timestamp = cfg.timestamp
         self.logs = OrderedDict()
@@ -167,14 +165,8 @@ class Trainer:
             self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
                                                    self.iters_per_epoch)
 
-        if self.use_simsiam_optimizer:
-            self.optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler,
-                                             [self.model.encoder])
-            self.predictor_optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler.get_lr(),
-                                                       [self.model.predictor])
-        else:
-            self.optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler,
-                                             [self.model])
+        self.optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler,
+                                         [self.model])
 
         # distributed settings
         if dist.get_world_size() > 1:

@@ -14,6 +14,7 @@
 
 from .hook import Hook
 from .builder import HOOKS
+from ..solver.builder import build_optimizer
 
 
 @HOOKS.register()
@@ -51,6 +52,18 @@ class OptimizerHook(Hook):
 class SimsiamOptimizerHook(Hook):
     def __init__(self, priority=1):
         self.priority = priority
+
+    def run_begin(self, trainer):
+        if hasattr(trainer.model, '_layers'):
+            model = trainer.model._layers
+        else:
+            model = trainer.model
+
+        # build simsiam optimizer
+        trainer.optimizer = build_optimizer(
+            trainer.cfg.optimizer, trainer.lr_scheduler, [model.encoder])
+        trainer.predictor_optimizer = build_optimizer(
+            trainer.cfg.optimizer, trainer.lr_scheduler.get_lr(), [model.predictor])
         
     def train_iter_end(self, trainer):
         if 'Lars' in trainer.cfg['optimizer']['name']:
