@@ -31,8 +31,10 @@ from .masking_generator import MaskingGenerator, RandomMaskingGenerator
 from .constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, DEFAULT_CROP_PCT
 from .auto_augment import rand_augment_transform, augment_and_mix_transform, auto_augment_transform
 from .cv2_trans import ByolRandomHorizontalFlip, ByolColorJitter, ByolRandomGrayscale, ByolNormalize, \
-         ToCHW, ByolToRGB, ByolCenterCrop, ByolRandomCrop
+    ToCHW, ByolToRGB, ByolCenterCrop, ByolRandomCrop
 from .img_pil_pixpro_transforms import RandomResizedCropCoord, RandomHorizontalFlipCoord
+from .lvvit import LVViTRandomHorizontalFlip, LVViTRandomResizedCropAndInterpolation, LVViTToTensor, \
+    LVViTNormalize, LVViTRandomErasing, LVViTAutoAugment
 
 TRANSFORMS.register(PT.RandomResizedCrop)
 TRANSFORMS.register(PT.ColorJitter)
@@ -62,6 +64,14 @@ TRANSFORMS.register(RandomHorizontalFlipCoord)
 
 # BEiT
 TRANSFORMS.register(MaskingGenerator)
+
+# LVViT
+TRANSFORMS.register(LVViTRandomHorizontalFlip)
+TRANSFORMS.register(LVViTRandomResizedCropAndInterpolation)
+TRANSFORMS.register(LVViTToTensor)
+TRANSFORMS.register(LVViTNormalize)
+TRANSFORMS.register(LVViTRandomErasing)
+TRANSFORMS.register(LVViTAutoAugment)
 
 _RANDOM_INTERPOLATION = ('bilinear', 'bicubic')
 

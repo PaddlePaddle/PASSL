@@ -1,0 +1,135 @@
+epochs: 300
+output_dir: output_dir
+seed: 0
+device: gpu
+# used for static mode and model export
+image_shape: [3, 224, 224]
+save_inference_dir: ./inference
+
+use_amp: True
+AMP:
+   level: 'O1'
+   save_dtype: 'float32'
+   optimizers: None
+   scale_loss: 65536.0
+   auto_cast:
+     enable: True
+     level: 'O1'
+
+model:
+  name: LVViTWrapper
+  architecture:
+      name: LVViT
+      img_size: 224
+      patch_size: 16
+      embed_dim: 240
+      depth: 12
+      num_heads: 4
+      mlp_ratio: 3
+      p_emb: pe4_2
+      skip_lam: 1
+      return_dense: True
+      mix_token: True
+      class_num: 1000
+      drop_rate: 0.0
+      drop_path_rate : 0.1
+
+dataloader:
+  train:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 128  # for 8 gpus
+      shuffle: True
+      drop_last: True
+    dataset:
+      name: LVViT_ImageNet
+      dataroot: data/ILSVRC2012/train/
+      labelroot: data/label_top5_train_nfnet/
+      transforms:
+        - name: LVViTRandomHorizontalFlip
+        - name: LVViTAutoAugment
+          config_str: 'rand-m9-mstd0.5-inc1'
+          interpolation: 'random'
+          img_size: 224
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+        - name: LVViTRandomResizedCropAndInterpolation
+          size: 224
+          interpolation: 'random'
+        - name: LVViTToTensor
+        - name: LVViTNormalize
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+        - name: LVViTRandomErasing
+          prob: 0.25
+          mode: 'pixel'
+          max_count: 1
+      batch_transforms:
+        - name: LVViTMixup
+          lam: 1.
+          smoothing: 0.1
+          label_size: 14
+          num_classes: 1000
+
+  val:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 250
+      shuffle: False
+      drop_last: False
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/val
+      return_label: True
+      transforms:
+        - name: ToRGB
+          return_type: numpy
+        - name: ResizeImage
+          resize_short: 248
+          interpolation: 'bicubic'
+          backend: pil
+        - name: CenterCrop
+          size: 224
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+
+lr_config:
+  name: LRSchedulerHook
+  unit: 'epoch'
+
+lr_scheduler:
+  name: TimmCosine
+  learning_rate: 1.6e-3  # for total batch size 1024
+  eta_min: 1e-5
+  warmup_epoch: 5
+  warmup_start_lr: 1e-6
+  last_epoch: 0
+  T_max: 300
+
+optimizer:
+  name: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1e-8
+  weight_decay: 0.05
+  exclude_from_weight_decay: ["cls_token", "pos_embed", ".bias", "norm"]
+
+log_config:
+    name: LogHook
+    interval: 20
+
+checkpoint:
+  name: CheckpointHook
+  by_epoch: true
+  interval: 1
+  max_keep_ckpts: 5
+
+custom_config:
+  - name: EvaluateHook
