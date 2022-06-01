@@ -39,7 +39,8 @@ class DINOHook(Hook):
         # update weight decay
         self.wd_schedule.step()
         cur_wd = self.wd_schedule.get_lr()
-        trainer.optimizer.regularization = L2Decay(cur_wd)
+        trainer.optimizer._coeff = cur_wd
+        trainer.last_layer_optimizer._coeff = cur_wd
 
         # update teacher momentum
         self.mm_schedule.step()

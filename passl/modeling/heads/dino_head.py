@@ -31,7 +31,7 @@ class DINOHead(nn.Layer):
         self.n_crops = n_crops
         self.student_temp = student_temp
         self.center_momentum = center_momentum
-        self.register_buffer('center', paddle.ones((1, out_dim)))
+        self.register_buffer('center', paddle.zeros((1, out_dim)))
         # we apply a warm up for the teacher temperature because
         # a too high temperature makes the training instable at the beginning
         self.teacher_temp_schedule = np.concatenate((

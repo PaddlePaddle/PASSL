@@ -14,6 +14,7 @@
 
 from .hook import Hook
 from .builder import HOOKS
+from ..solver.builder import build_optimizer
 
 
 @HOOKS.register()
@@ -54,12 +55,28 @@ class DINOOptimizerHook(Hook):
     def __init__(self, freeze_last_layer, priority=1):
         self.priority = priority
         self.freeze_last_layer = freeze_last_layer
+
+    def run_begin(self, trainer):
+        if hasattr(trainer.model, '_layers'):
+            model = trainer.model._layers
+        else:
+            model = trainer.model
+
+        # build dino optimizer
+        self.optimizer = build_optimizer(
+            trainer.cfg.optimizer, trainer.lr_scheduler,
+            [model.student[0], model.student[1].mlp])
+        self.last_layer_optimizer = build_optimizer(
+            trainer.cfg.optimizer, trainer.lr_scheduler,
+            [model.student[1].last_layer])
         
     def train_iter_end(self, trainer):
         if 'Lars' in trainer.cfg['optimizer']['name']:
             trainer.optimizer.clear_gradients()
+            trainer.last_layer_optimizer.clear_gradients()
         else:
             trainer.optimizer.clear_grad()
+            trainer.last_layer_optimizer.clear_grad()
 
         loss = 0
         loss = trainer.outputs['loss']
@@ -78,9 +95,7 @@ class DINOOptimizerHook(Hook):
             model = trainer.model
 
         if trainer.current_epoch < self.freeze_last_layer:
-            for n, p in model.student.named_parameters():
-                if "last_layer" in n:
-                    p.clear_gradient()
+            trainer.last_layer_optimizer.clear_grad()
 
         # update student parameters
         if trainer.use_amp:
@@ -94,6 +109,9 @@ class DINOOptimizerHook(Hook):
                 trainer.optimizer.minimize(loss)
             else:
                 trainer.optimizer.step()
+
+            if trainer.current_epoch >= self.freeze_last_layer:
+                trainer.last_layer_optimizer.step()
 
         # EMA update for the teacher
         model.momentum_update_teacher()

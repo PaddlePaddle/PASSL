@@ -68,3 +68,19 @@ class Classification(nn.Layer):
             return self.backbone(*inputs)
         else:
             raise Exception("No such mode: {}".format(mode))
+
+
+@MODELS.register()
+class DINOClassification(Classification):
+    """
+    Image classification for DINO.
+    """
+
+    def __init__(self, backbone, with_sobel=False, head=None, n_last_blocks=1):
+        super(DINOClassification, self).__init__(backbone, with_sobel, head)
+        self.n_last_blocks = n_last_blocks
+
+    def backbone_forward(self, x):
+        inter_output = self.backbone.get_intermediate_layers(x, self.n_last_blocks)
+        output = paddle.concat([x[:, 0] for x in inter_output], axis=-1)
+        return output

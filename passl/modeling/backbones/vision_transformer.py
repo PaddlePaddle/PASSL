@@ -21,6 +21,7 @@ from paddle.nn.layer.transformer import _convert_attention_mask
 from paddle.nn.initializer import TruncatedNormal, Constant, Normal
 
 from .base_transformer import QuickGELU
+from ...utils.logger import get_logger
 
 __all__ = ["VisionTransformer"]
 
@@ -284,6 +285,8 @@ class VisionTransformer(nn.Layer):
                  output_cls_token=True,
                  patch_bias=True,
                  epsilon=1e-5,
+                 frozen_weights=False,
+                 pretrained=None,
                  **args):
         super().__init__()
         self.class_dim = class_dim
@@ -337,6 +340,23 @@ class VisionTransformer(nn.Layer):
         trunc_normal_(self.class_embedding)
         self.apply(self._init_weights)
 
+        if pretrained is not None:
+            state_dict = paddle.load(pretrained)
+            if 'state_dict' in state_dict:
+                state_dict = state_dict['state_dict']
+
+            self.set_state_dict(state_dict)
+            logger = get_logger()
+            logger.info(
+                'Load pretrained backbone weight from {} success!'.format(
+                    pretrained))
+
+        if frozen_weights:
+            for param in self.parameters():
+                param.stop_gradient = True
+            logger = get_logger()
+            logger.info('The model weights have been frozen!')
+
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight)
@@ -367,21 +387,24 @@ class VisionTransformer(nn.Layer):
         patch_pos_embed = patch_pos_embed.transpose((0, 2, 3, 1)).reshape((1, -1, dim))
         return paddle.concat((class_pos_embed.unsqueeze(0), patch_pos_embed), axis=1)
 
-    def forward_features(self, x):
-        B, nc, w, h = x.shape
+    def prepare_tokens(self, x):
+        B, _, w, h = x.shape
         x = self.patch_embed(x)
 
         class_embedding = self.class_embedding.expand((B, -1, -1))
         x = paddle.concat((class_embedding, x), axis=1)
         x = x + self.interpolate_pos_encoding(x, w, h)
-        
+
+        x = self.pos_drop(x)
+        x = self.norm_pre(x)
+        return x
+
+    def forward_features(self, x):
+        x = self.prepare_tokens(x)
         patch_resolution = [
             int(math.sqrt(x.shape[1] - 1)), int(math.sqrt(x.shape[1] - 1))
         ]
 
-        x = self.pos_drop(x)
-        x = self.norm_pre(x)
-        
         for i, blk in enumerate(self.blocks):
             x = blk(x)
 
@@ -406,3 +429,13 @@ class VisionTransformer(nn.Layer):
     def forward(self, x):
         x = self.forward_features(x)
         return x
+
+    def get_intermediate_layers(self, x, n=1):
+        x = self.prepare_tokens(x)
+        # return the output tokens from the `n` last blocks
+        output = []
+        for i, blk in enumerate(self.blocks):
+            x = blk(x)
+            if len(self.blocks) - i <= n:
+                output.append(self.norm_post(x))
+        return output
