@@ -51,9 +51,6 @@ def build_lr_scheduler_simclr(cfg, iters_per_epoch, batch_size, epochs,
         cfg.T_max *= iters_per_epoch
     elif cfg.name == 'MultiStepDecay':
         cfg.milestones = [x * iters_per_epoch for x in cfg.milestones]
-    elif cfg.name == 'Cosinesimclr':
-        cfg.iters_per_epoch = iters_per_epoch
-        cfg.epochs = epochs
     elif cfg.name == 'simclrCosineWarmup':
         cfg.step_each_epoch = iters_per_epoch
         cfg.epochs = epochs

@@ -135,6 +135,7 @@ class Trainer:
 
         n_parameters = sum(p.numel() for p in self.model.parameters()
                            if not p.stop_gradient).item()
+
         i = int(math.log(n_parameters, 10) // 3)
         size_unit = ['', 'K', 'M', 'B', 'T', 'Q']
         self.logger.info("Number of Parameters is {:.2f}{}.".format(
@@ -163,6 +164,7 @@ class Trainer:
         else:
             self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
                                                    self.iters_per_epoch)
+
         self.optimizer = build_optimizer(cfg.optimizer, self.lr_scheduler,
                                          [self.model])
 
@@ -437,9 +439,8 @@ class Trainer:
         if export:
             state_dict_ = dict()
             for k, v in state_dict.items():
-                state_dict_['model.backbone.' + k] = v
+                state_dict_['model.' + k] = v
             state_dict = state_dict_
-
         self.model.set_state_dict(state_dict)
 
     def export(self, ckpt):

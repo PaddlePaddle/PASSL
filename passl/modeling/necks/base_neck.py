@@ -106,13 +106,14 @@ class NonLinearNeckV2(nn.Layer):
                  in_channels,
                  hid_channels,
                  out_channels,
+                 with_bias=True,
                  with_avg_pool=True):
         super(NonLinearNeckV2, self).__init__()
         self.with_avg_pool = with_avg_pool
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
 
-        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels),
+        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels, bias_attr=with_bias),
                                  nn.BatchNorm1D(hid_channels), nn.ReLU(),
                                  nn.Linear(hid_channels, out_channels))
 
@@ -239,6 +240,41 @@ class NonLinearNeckfc3(nn.Layer):
 
 
 @NECKS.register()
+class NonLinearNeckfc3V2(nn.Layer):
+    """The non-linear neck in simsiam: fc-relu-fc-relu-fc, but not use bias in fc layers.
+    """
+
+    def __init__(self,
+                 in_channels,
+                 hid_channels,
+                 out_channels,
+                 with_bias=False,
+                 with_avg_pool=True,
+                 with_last_bn_affine=False):
+        super(NonLinearNeckfc3V2, self).__init__()
+        self.with_avg_pool = with_avg_pool
+        if with_avg_pool:
+            self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
+        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels, bias_attr=with_bias),
+                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, hid_channels, bias_attr=with_bias),
+                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
+                                 nn.Linear(hid_channels, out_channels, bias_attr=with_bias),
+                                 nn.BatchNorm1D(out_channels,
+                                     weight_attr=with_last_bn_affine, bias_attr=with_last_bn_affine))
+
+        init_backbone_weight_simclr(self.mlp)
+
+    def init_parameters(self, init_linear='normal'):
+        _init_parameters(self, init_linear)
+
+    def forward(self, x):
+        if self.with_avg_pool:
+            x = self.avgpool(x)
+        return self.mlp(x.reshape([x.shape[0], -1]))
+
+
+@NECKS.register()
 class SwAVNeck(nn.Layer):
     """The non-linear neck in SwAV: fc-bn-relu-fc-normalization.
     """
@@ -284,7 +320,6 @@ class SwAVNeck(nn.Layer):
         feat_vec = feat_vec.reshape([feat_vec.shape[0], -1])
         output = self.forward_projection(feat_vec)
         return output
-
 
 
 @NECKS.register()

@@ -17,6 +17,7 @@ from .byol_clas import ByolClassification
 from .clas import Classification
 from .moco import MoCo
 from .simclr import SimCLR
+from .simsiam import SimSiam
 from .pixpro import PixPro
 from .swav import SwAV
 
@@ -33,3 +34,4 @@ from .MlpMixerWrapper import MlpMixerWrapper
 from .SwinWrapper import SwinWrapper
 from .T2TViTWrapper import T2TViTWrapper
 from .ViTWrapper import ViTWrapper
+from .LVViTWrapper import LVViTWrapper
