@@ -16,6 +16,7 @@ from .builder import build_hook
 from .hook import Hook
 from .lr_scheduler_hook import LRSchedulerHook
 from .optimizer_hook import OptimizerHook
+from .optimizer_hook import SwAVOptimizerHook
 from .timer_hook import IterTimerHook
 from .log_hook import LogHook
 from .checkpoint_hook import CheckpointHook

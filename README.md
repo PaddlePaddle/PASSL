@@ -46,7 +46,8 @@ PASSL implements a series of self-supervised learning algorithms, See **Document
 | MoCo-BYOL | 300    | 71.56            | 72.10         | ResNet-50 | [download](https://passl.bj.bcebos.com/models/mocobyol_r50_ep300_ckpt.pdparams) | [Train MoCo-BYOL](docs/Train_MoCo-BYOL_model.md) |
 | BYOL      | 300    | 72.50            | 71.62         | ResNet-50 | [download](https://passl.bj.bcebos.com/models/byol_r50_300.pdparams) | [Train BYOL](docs/Train_BYOL_model.md)           |
 | PixPro    | 100    | 55.1(fp16)       | 57.2(fp32)    | ResNet-50 | [download](https://passl.bj.bcebos.com/models/pixpro_r50_ep100_no_instance_with_linear.pdparams) | [Train PixPro](docs/Train_PixPro_model.md)       |
-| SimSiam   | 100    | 68.3             | 68.4          | ResNet-50 | [download](https://drive.google.com/file/d/1kaAm8-tlvB570kzI4fo9h4dwGQFf_4FE/view?usp=sharing) | [Train SimSiam](docs/Train_SimSiam_model.md)      |
+| SimSiam   | 100    | 68.3             | 68.4          | ResNet-50 | [download](https://drive.google.com/file/d/1kaAm8-tlvB570kzI4fo9h4dwGQFf_4FE/view?usp=sharing) | [Train SimSiam](docs/Train_SimSiam_model.md)     |
+| SwAV      | 100    | 72.1             | 72.4          | ResNet-50 | [download](https://drive.google.com/file/d/1budFSoQqZz1Idyej-R4E6kUnL8CGtdyu/view?usp=sharing) | [Train SwAV](docs/Train_SwAV_model.md)           |
 
 > Benchmark Linear Image Classification on ImageNet-1K.
 

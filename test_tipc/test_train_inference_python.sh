@@ -332,6 +332,7 @@ else
                     status_check $? "${ext_cmd}" "${status_log}" "${model_name}"
                     sleep 5
                 fi
+
                 # run linear eval
                 if [ ${lin_py} != "null" ]; then
                     set_lin_eval=$(func_set_params "${lin_key1}" "${save_log}/${model_name}/${ext_value2}")

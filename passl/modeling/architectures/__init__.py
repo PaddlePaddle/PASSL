@@ -19,6 +19,7 @@ from .moco import MoCo
 from .simclr import SimCLR
 from .simsiam import SimSiam
 from .pixpro import PixPro
+from .swav import SwAV
 
 from .BEiTWrapper import BEiTWrapper, BEiTPTWrapper, BEiTFTWrapper
 from .BYOL import BYOL
