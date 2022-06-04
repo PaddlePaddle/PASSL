@@ -19,4 +19,5 @@ from .lvdataset import LVViT_ImageNet
 from .cifar import CIFAR10, CIFAR100
 
 from .textimagedataset import TextImageDataset
+from .multicropdataset import MultiCropDataset
 from .builder import build_dataset, build_dataloader

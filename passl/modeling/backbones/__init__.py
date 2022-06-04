@@ -14,6 +14,7 @@ from .regnet import RegNet
 from .resnet import ResNet
 from .resnetcifar import ResNet as ResNetCifar
 from .resnetsimclr import ResNetsimclr
+from .resnetswav import ResNetswav
 from .swin_transformer import SwinTransformer
 from .t2t_vit import T2TViT
 from .vision_transformer import VisionTransformer
