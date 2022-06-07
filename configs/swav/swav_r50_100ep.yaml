@@ -1,0 +1,65 @@
+epochs: 100
+output_dir: output_dir
+seed: 0
+device: gpu
+
+model:
+  name: SwAV
+  backbone:
+    name: ResNetswav
+    depth: 50
+  neck:
+    name: SwAVNeck
+    in_channels: 2048
+    hid_channels: 2048
+    out_channels: 128
+    with_l2norm: True
+    with_avg_pool: True
+  head:
+    name: SwAVHead
+    feat_dim: 128
+    sinkhorn_iterations: 3
+    epsilon: 0.05
+    temperature: 0.1
+    crops_for_assign: [0, 1]
+    num_crops: [2, 6]
+    num_prototypes: 3000
+
+dataloader:
+  train:
+    loader:
+      num_workers: 16
+      use_shared_memory: True
+    sampler:
+      batch_size: 128
+      shuffle: true
+      drop_last: true
+    dataset:
+      name: MultiCropDataset
+      dataroot: data/ILSVRC2012/train
+      size_crops: [224, 96]
+      num_crops: [2, 6]
+      min_scale_crops: [0.14, 0.05]
+      max_scale_crops: [1., 0.14]
+
+lr_scheduler:
+  name: CosineWarmup
+  learning_rate: 4.8
+  T_max: 31200
+  warmup_steps: 3120
+  start_lr: 0.3
+  end_lr: 4.8
+  eta_min: 0.0048
+
+optimizer:
+  name: LarsMomentumOptimizer
+  momentum: 0.9
+  lars_weight_decay: 1e-6
+
+optimizer_config:
+  name: SwAVOptimizerHook
+  freeze_prototypes_iters: 313
+
+log_config:
+    name: LogHook
+    interval: 50

@@ -117,6 +117,7 @@ function func_inference(){
     _log_path=$4
     _img_dir=$5
     _flag_quant=$6
+    _status_log="${_log_path}/results_python.log"
     # inference 
     for use_gpu in ${use_gpu_list[*]}; do
         if [ ${use_gpu} = "False" ] || [ ${use_gpu} = "cpu" ]; then
@@ -137,7 +138,7 @@ function func_inference(){
                         eval $command
                         last_status=${PIPESTATUS[0]}
                         eval "cat ${_save_log_path}"
-                        status_check $last_status "${command}" "${status_log}" "${model_name}"
+                        status_check $last_status "${command}" "${_status_log}" "${model_name}"
                     done
                 done
             done
@@ -162,7 +163,7 @@ function func_inference(){
                         eval $command
                         last_status=${PIPESTATUS[0]}
                         eval "cat ${_save_log_path}"
-                        status_check $last_status "${command}" "${status_log}" "${model_name}"
+                        status_check $last_status "${command}" "${_status_log}" "${model_name}"
                     done
                 done
             done
@@ -331,6 +332,7 @@ else
                     status_check $? "${ext_cmd}" "${status_log}" "${model_name}"
                     sleep 5
                 fi
+
                 # run linear eval
                 if [ ${lin_py} != "null" ]; then
                     set_lin_eval=$(func_set_params "${lin_key1}" "${save_log}/${model_name}/${ext_value2}")
@@ -355,7 +357,8 @@ else
 		    if [[ $FILENAME == *GeneralRecognition* ]]; then
 		        set_eval_pretrain=$(func_set_params "${pretrain_model_key}" "${save_log}/RecModel/${train_model_name}")
 		    else
-		        set_export_weight=$(func_set_params "${export_weight}" "${save_log}/${model_name}/${train_model_name}")
+			cls_model_name=$(echo $norm_export | sed 's/.*configs\/.*\/\(.*\).yaml/\1/')
+		        set_export_weight=$(func_set_params "${export_weight}" "${save_log}/${cls_model_name}/${train_model_name}")
 		    fi
                     set_save_infer_key=$(func_set_params "${save_infer_key}" "${save_infer_path}")
                     export_cmd="${python} ${run_export} ${set_export_weight} ${set_save_infer_key} ${set_lin_lr}"
