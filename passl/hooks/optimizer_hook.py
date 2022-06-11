@@ -63,10 +63,10 @@ class DINOOptimizerHook(Hook):
             model = trainer.model
 
         # build dino optimizer
-        self.optimizer = build_optimizer(
+        trainer.optimizer = build_optimizer(
             trainer.cfg.optimizer, trainer.lr_scheduler,
             [model.student[0], model.student[1].mlp])
-        self.last_layer_optimizer = build_optimizer(
+        trainer.last_layer_optimizer = build_optimizer(
             trainer.cfg.optimizer, trainer.lr_scheduler,
             [model.student[1].last_layer])
         
