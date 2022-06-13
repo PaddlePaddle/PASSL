@@ -1,5 +1,5 @@
 opencv-python==4.4.0.46
-pillow
+pillow>=9.0.1
 tqdm
 visualdl >= 2.2.0
 scipy

@@ -18,7 +18,9 @@ from .clas import Classification
 from .moco import MoCo
 from .simclr import SimCLR
 from .pixpro import PixPro
+from .simsiam import SimSiam
 from .densecl import DenseCL
+from .swav import SwAV
 
 from .BEiTWrapper import BEiTWrapper, BEiTPTWrapper, BEiTFTWrapper
 from .BYOL import BYOL
@@ -33,3 +35,4 @@ from .MlpMixerWrapper import MlpMixerWrapper
 from .SwinWrapper import SwinWrapper
 from .T2TViTWrapper import T2TViTWrapper
 from .ViTWrapper import ViTWrapper
+from .LVViTWrapper import LVViTWrapper
