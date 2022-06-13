@@ -1,6 +1,6 @@
 ===========================pre_train_params===========================
 model_name:swav_r50_100ep
-python:python3.8
+python:python3.7
 gpu_list:0|0,1
 -o device:gpu
 -o auto_cast:null
