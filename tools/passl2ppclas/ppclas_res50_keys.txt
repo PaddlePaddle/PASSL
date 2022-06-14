@@ -263,5 +263,3 @@ blocks.15.conv2.bn.weight
 blocks.15.conv2.bn.bias
 blocks.15.conv2.bn._mean
 blocks.15.conv2.bn._variance
-fc.weight
-fc.bias
