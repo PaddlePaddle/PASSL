@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument('--type', type=str, help='model type', default='res50')
     parser.add_argument('--checkpoint', help='checkpoint file')
     parser.add_argument('--output', type=str, help='destination file name')
+    parser.add_argument('--ppclas', type=str, help='paddleclas keys')
+    parser.add_argument('--passl', type=str, help='passals keys')
     args = parser.parse_args()
     return args
 
@@ -44,9 +46,9 @@ def main():
 
     if args.type == 'res50':
         ppclas_res18_keys = get_ppclas_keys('ppclas_res50_keys.txt')
-
-        for i, weight in enumerate(ckpt.values()):
-            new_weight_dict[ppclas_res18_keys[i]] = weight
+        passl = get_ppclas_keys(args.ppclas)
+        for i, weight in enumerate(passl):
+            new_weight_dict[ppclas_res18_keys[i]] = ckpt['state_dict'][weight]
 
     else:
         raise ValueError(f'Invalid keywords "{args.type}"')
