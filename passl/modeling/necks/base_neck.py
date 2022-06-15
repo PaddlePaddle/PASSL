@@ -357,3 +357,45 @@ class MLP2d(nn.Layer):
         x = self.linear2(x)
 
         return x
+
+
+@NECKS.register()
+class DenseCLNeck(nn.Layer):
+    """The non-linear neck in DenseCL: fc-relu-fc, conv-relu-conv.
+    """
+    def __init__(self,
+                 in_channels,
+                 hid_channels,
+                 out_channels,
+                 num_grid=None):
+        super(DenseCLNeck, self).__init__()
+        self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels,hid_channels), nn.ReLU(),
+            nn.Linear(hid_channels, out_channels))
+
+        self.with_pool = num_grid != None
+        if self.with_pool:
+            self.pool = nn.AdaptiveAvgPool2D((num_grid, num_grid))
+        self.mlp2 = nn.Sequential(
+            nn.Conv2D(in_channels, hid_channels, 1), nn.ReLU(),
+            nn.Conv2D(hid_channels, out_channels, 1))
+        self.avgpool2 = nn.AdaptiveAvgPool2D((1, 1))
+
+        # init_backbone_weight(self.mlp and self.mlp2)
+        self.init_parameters()
+
+    def init_parameters(self, init_linear='kaiming'):
+        _init_parameters(self, init_linear)
+
+    def forward(self, x):
+        avgpooled_x = self.avgpool(x)
+        avgpooled_x = self.mlp(avgpooled_x.reshape([avgpooled_x.shape[0], -1]))
+
+        if self.with_pool:
+            x = self.pool(x)
+        x = self.mlp2(x)
+        avgpooled_x2 = self.avgpool2(x)
+        x = x.reshape([x.shape[0], x.shape[1], -1])
+        avgpooled_x2 = avgpooled_x2.reshape([avgpooled_x2.shape[0], -1])
+        return avgpooled_x, x, avgpooled_x2

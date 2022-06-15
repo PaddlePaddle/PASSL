@@ -1,0 +1,100 @@
+epochs: 200
+output_dir: output_dir
+seed: 0
+device: gpu
+
+# used for static mode and model export
+image_shape: [3, 224, 224]
+save_inference_dir: ./inference
+
+model:
+  name: DenseCL
+  backbone:
+    name: ResNet
+    depth: 50
+  neck:
+    name: DenseCLNeck
+    in_channels: 2048
+    hid_channels: 2048
+    out_channels: 128
+    num_grid: None
+  head:
+    name: ContrastiveHead
+    temperature: 0.2
+    return_accuracy: False
+
+dataloader:
+  train:
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+    sampler:
+      batch_size: 32
+      shuffle: true
+      drop_last: true
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train
+      return_label: False
+      return_two_sample: True
+      transforms:
+        - name: RandomResizedCrop
+          size: 224
+          scale: [0.2, 1.]
+      view_trans1:
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
+        - name: RandomHorizontalFlip
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+      view_trans2:
+        - name: RandomApply
+          transforms:
+          - name: ColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            saturation: 0.4
+            hue: 0.1
+          p: 0.8
+        - name: RandomGrayscale
+          p: 0.2
+        - name: RandomApply
+          transforms:
+          - name: GaussianBlur
+            sigma: [0.1, 2.0]
+          p: 0.5
+        - name: RandomHorizontalFlip
+        - name: Transpose
+        - name: NormalizeImage
+          scale: 1.0/255.0
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+
+lr_scheduler:
+  name: CosineAnnealingDecay
+  learning_rate: 0.03
+  T_max: 200
+
+optimizer:
+  name: Momentum
+  weight_decay: 0.0001
+
+log_config:
+    name: LogHook
+    interval: 50

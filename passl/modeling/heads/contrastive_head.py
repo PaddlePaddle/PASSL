@@ -50,10 +50,14 @@ class ContrastiveHead(nn.Layer):
         labels = paddle.zeros((N, ), dtype='int64')
         outputs = dict()
         outputs['loss'] = self.criterion(logits, labels)
-        acc1, acc5 = accuracy(logits, labels, topk=(1, 5))
-        outputs['acc1'] = acc1
-        outputs['acc5'] = acc5
-        return outputs
+
+        if not self.return_accuracy:
+            return outputs
+        else:
+            acc1, acc5 = accuracy(logits, labels, topk=(1, 5))
+            outputs['acc1'] = acc1
+            outputs['acc5'] = acc5
+            return outputs
 
 
 def accuracy(output, target, topk=(1, )):

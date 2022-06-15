@@ -1,5 +1,5 @@
 ===========================pre_train_params===========================
-model_name:swav_r50_100ep
+model_name:densecl_r50
 python:python3.7
 gpu_list:0|0,1
 -o device:gpu
@@ -13,7 +13,7 @@ train_infer_img_dir:./data/ILSVRC2012/val
 null:null
 ##
 trainer:norm_train
-norm_train:tools/train.py -c configs/swav/swav_r50_100ep.yaml -o seed=1234 -o dataloader.train.sampler.shuffle=False -o dataloader.train.loader.num_workers=0 -o dataloader.train.loader.use_shared_memory=False 
+norm_train:tools/train.py -c configs/densecl/densecl_r50.yaml -o seed=1234 -o dataloader.train.sampler.shuffle=False -o dataloader.train.loader.num_workers=0 -o dataloader.train.loader.use_shared_memory=False 
 pact_train:null
 fpgm_train:null
 distill_train:null
@@ -26,14 +26,14 @@ extract:tools/extract_weight.py
 --output:ext.pd
 ##
 ===========================linear_eval_params=========================== 
-linear:tools/train.py -c configs/swav/swav_clas_r50.yaml -o seed=1234 -o dataloader.train.sampler.shuffle=False -o dataloader.train.loader.num_workers=0 -o dataloader.train.loader.use_shared_memory=False 
+linear:tools/train.py -c configs/moco/moco_clas_r50.yaml -o seed=1234 -o dataloader.train.sampler.shuffle=False -o dataloader.train.loader.num_workers=0 -o dataloader.train.loader.use_shared_memory=False 
 pretrained:null
--o lr_scheduler.T_max:1
+-o lr_scheduler.milestones:[1,]
 ##
 ===========================infer_params==========================
 -o save_inference_dir:./inference
 --export:null
-norm_export:tools/train.py -c configs/swav/swav_clas_r50.yaml
+norm_export:tools/train.py -c configs/moco/moco_clas_r50.yaml
 quant_export:null
 fpgm_export:null
 distill_export:null
