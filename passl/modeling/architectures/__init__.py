@@ -17,8 +17,9 @@ from .byol_clas import ByolClassification
 from .clas import Classification
 from .moco import MoCo
 from .simclr import SimCLR
-from .simsiam import SimSiam
 from .pixpro import PixPro
+from .simsiam import SimSiam
+from .densecl import DenseCL
 from .swav import SwAV
 
 from .BEiTWrapper import BEiTWrapper, BEiTPTWrapper, BEiTFTWrapper
