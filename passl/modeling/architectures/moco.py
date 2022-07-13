@@ -29,6 +29,7 @@ class MoCo(nn.Layer):
     Build a MoCo model with: a query encoder, a key encoder, and a queue
     https://arxiv.org/abs/1911.05722
     """
+
     def __init__(self,
                  backbone,
                  neck=None,
@@ -56,10 +57,10 @@ class MoCo(nn.Layer):
 
         # create the encoders
         # num_classes is the output fc dimension
-        self.encoder_q = nn.Sequential(build_backbone(backbone),
-                                       build_neck(neck))
-        self.encoder_k = nn.Sequential(build_backbone(backbone),
-                                       build_neck(neck))
+        self.encoder_q = nn.Sequential(
+            build_backbone(backbone), build_neck(neck))
+        self.encoder_k = nn.Sequential(
+            build_backbone(backbone), build_neck(neck))
 
         self.backbone = self.encoder_q[0]
 
@@ -162,6 +163,7 @@ class MoCo(nn.Layer):
             self._momentum_update_key_encoder()  # update the key encoder
 
             # shuffle for making use of BN
+            img_k = paddle.to_tensor(img_k)
             im_k, idx_unshuffle = self._batch_shuffle_ddp(img_k)
 
             k = self.encoder_k(im_k)  # keys: NxC
@@ -205,4 +207,4 @@ def concat_all_gather(tensor):
     paddle.distributed.all_gather(tensors_gather, tensor)
 
     output = paddle.concat(tensors_gather, axis=0)
-    return output 
+    return output

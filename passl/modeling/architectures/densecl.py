@@ -28,6 +28,7 @@ class DenseCL(nn.Layer):
     Build a DenseCL model with: a query encoder, a key encoder, and a queue.
     https://arxiv.org/abs/2011.09157.
     """
+
     def __init__(self,
                  backbone,
                  neck=None,
@@ -57,10 +58,10 @@ class DenseCL(nn.Layer):
 
         # create the encoders
         # num_classes is the output fc dimension
-        self.encoder_q = nn.Sequential(build_backbone(backbone),
-                                       build_neck(neck))
-        self.encoder_k = nn.Sequential(build_backbone(backbone),
-                                       build_neck(neck))
+        self.encoder_q = nn.Sequential(
+            build_backbone(backbone), build_neck(neck))
+        self.encoder_k = nn.Sequential(
+            build_backbone(backbone), build_neck(neck))
 
         self.backbone = self.encoder_q[0]
         self.head = build_head(head)
@@ -187,6 +188,7 @@ class DenseCL(nn.Layer):
             self._momentum_update_key_encoder()  # update the key encoder
 
             # shuffle for making use of BN
+            img_k = paddle.to_tensor(img_k)
             im_k, idx_unshuffle = self._batch_shuffle_ddp(img_k)
 
             k_b = self.encoder_k[0](im_k)
@@ -215,11 +217,12 @@ class DenseCL(nn.Layer):
         backbone_sim_matrix = paddle.matmul(q_b.transpose((0, 2, 1)), k_b)
         densecl_sim_ind = backbone_sim_matrix.argmax(axis=2)  # NxS^2
 
-        gather_index = densecl_sim_ind.unsqueeze(1).expand((-1, k_grid.shape[1], -1))
+        gather_index = densecl_sim_ind.unsqueeze(1).expand(
+            (-1, k_grid.shape[1], -1))
         indexed_k_grid = paddle_gather(k_grid, dim=2, index=gather_index)
         densecl_sim_q = (q_grid * indexed_k_grid).sum(1)  # NxS^2
 
-        l_pos_dense = densecl_sim_q.reshape((-1, )).unsqueeze(-1) # NS^2X1
+        l_pos_dense = densecl_sim_q.reshape((-1, )).unsqueeze(-1)  # NS^2X1
 
         q_grid = q_grid.transpose((0, 2, 1))
         q_grid = q_grid.reshape((-1, q_grid.shape[2]))
@@ -229,7 +232,8 @@ class DenseCL(nn.Layer):
         loss_dense = self.head(l_pos_dense, l_neg_dense)['loss']
 
         outputs = dict()
-        outputs['loss'] = loss_single * (1 - self.loss_lambda) + loss_dense * self.loss_lambda
+        outputs['loss'] = loss_single * (1 - self.loss_lambda
+                                         ) + loss_dense * self.loss_lambda
 
         self._dequeue_and_enqueue(k)
         self._dequeue_and_enqueue2(k2)
@@ -258,8 +262,11 @@ def paddle_gather(x, dim, index):
         else:
             reshape_shape = [1] * len(x.shape)
             reshape_shape[k] = x.shape[k]
-            dim_index = paddle.expand(paddle.reshape(paddle.arange(x.shape[k], dtype=index.dtype), reshape_shape),
-                                      index_shape).flatten()
+            dim_index = paddle.expand(
+                paddle.reshape(
+                    paddle.arange(
+                        x.shape[k], dtype=index.dtype), reshape_shape),
+                index_shape).flatten()
             nd_index.append(dim_index)
     ind2 = paddle.transpose(paddle.stack(nd_index), [1, 0])
     paddle_out = paddle.gather_nd(x, ind2).reshape(index_shape)
