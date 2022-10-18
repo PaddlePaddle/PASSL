@@ -1,8 +1,10 @@
 epochs: 300
 output_dir: output_dir
+seed: 0
+device: gpu
 
 model:
-  name: BeitWrapper
+  name: BEiTWrapper
   architecture:
       name: Beit
       img_size: 224
@@ -14,14 +16,16 @@ model:
       use_abs_pos_emb: False
       use_rel_pos_bias: True
       init_values: 0.1
-    head:
-      name: BeitClsHead
+  head:
+      name: BEiTClsHead
       num_classes: 1000
       in_channels: 768
 
 dataloader:
   train:
-    num_workers: 8
+    loader:
+      num_workers: 8
+      use_shared_memory: True
     sampler:
       batch_size: 128
       shuffle: true
