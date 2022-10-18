@@ -14,8 +14,10 @@
 
 import paddle
 import paddle.nn as nn
-from .resnetcifar import ResNet
-from .resnetcifar import BasicBlock, BottleneckBlock
+# from .resnetcifar import ResNet
+# from .resnetcifar import BasicBlock, BottleneckBlock
+from .resnetimagenet import ResNet
+from .resnetimagenet import BasicBlock, BottleneckBlock
 
 from .builder import BACKBONES
 from ...modules import init, freeze

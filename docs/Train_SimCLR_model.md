@@ -41,7 +41,7 @@ python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c c
 ##### Cifar10
 
 ```
-python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/simclr/simclr_r50_IM.yaml
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/simclr/simclr_r18_cifar10.yaml
 ```
 
 
@@ -68,12 +68,12 @@ python tools/passl2ppclas/convert.py --type res50 --checkpoint ${CHECKPOINT} --o
 
 #### Train:
 ```
-python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_clas_r50.yaml --pretrained ${WEIGHT_FILE}
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/simclr/simclr_clas_r50.yaml --pretrained ${WEIGHT_FILE}
 ```
 
 #### Evaluate:
 ```
-python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/moco/moco_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only
+python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c configs/simclr/simclr_clas_r50.yaml --load ${CLS_WEGHT_FILE} --evaluate-only
 ```
 
 The trained linear weights in conjuction with the backbone weights can be found at [SimCLR linear](https://passl.bj.bcebos.com/models/simclr_r50_ep100_ckpt.pdparam).
