@@ -8,3 +8,4 @@ regex
 ftfy
 einops
 test
+test2
