@@ -31,7 +31,6 @@ function before_hook() {
     export http_proxy=${proxy};
     export https_proxy=${proxy};
     python -m pip install -r requirements.txt --force-reinstall
-    python -m pip install protobuf==3.20 --force-reinstall
     python setup.py develop
 
     

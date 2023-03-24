@@ -12,4 +12,3 @@ opencv-python>=4.2.0.32
 onnxruntime-gpu==1.10.0
 onnx==1.9.0
 paddle2onnx==0.9.4
-setuptools==50.3.2
