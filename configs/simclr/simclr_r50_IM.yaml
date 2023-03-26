@@ -23,7 +23,7 @@ model:
 dataloader:
   train:
     loader:
-      num_workers: 6
+      num_workers: 4
       use_shared_memory: True
     sampler:
       batch_size: 32
@@ -90,7 +90,7 @@ dataloader:
       num_workers: 4
       use_shared_memory: True
     sampler:
-      batch_size: 512
+      batch_size: 256
       shuffle: false
       drop_last: false
     dataset:
@@ -110,18 +110,18 @@ dataloader:
 
 lr_scheduler:
   name: simclrCosineWarmup
-  learning_rate_scaling: sqrt
+  learning_rate_scaling: linear
   total_images: 1281167
   warmup_epochs: 10
   start_lr: 0
-  end_lr: 1.0
+  end_lr: 0.3
   T_max: 200
 
 
 optimizer:
   name: LarsMomentumOptimizer
   momentum: 0.9
-  lars_weight_decay: 0.0001
+  lars_weight_decay: 1e-6
   exclude_from_weight_decay: ["scale","offset",".bias"]
   
 log_config:
