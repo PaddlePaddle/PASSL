@@ -161,8 +161,8 @@ def batch_random_blur_solariza_normalize_chw(view1,
 @MODELS.register()
 class BYOL(nn.Layer):
     """
-    Build a MoCo model with: a query encoder, a key encoder, and a queue
-    https://arxiv.org/abs/1911.05722
+    Build a BYOL model referenced from paper
+    https://arxiv.org/abs/2006.07733
     """
 
     def __init__(self,
