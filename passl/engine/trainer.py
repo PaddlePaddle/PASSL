@@ -145,21 +145,17 @@ class Trainer:
         self.train_dataloader, self.mixup_fn = build_dataloader(
             cfg.dataloader.train, self.device)
         self.iters_per_epoch = len(self.train_dataloader)
-
+        self.batch_size = cfg.dataloader.train.sampler.batch_size
+        self.global_batch_size = self.batch_size * dist.get_world_size()
         # use byol iters
         if self.use_byol_iters:
-            self.global_batch_size = cfg.global_batch_size
             self.byol_total_iters = self.epochs * cfg.total_images // self.global_batch_size
-
-        if self.use_byol_iters:
             self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
                                                    self.byol_total_iters)
         elif self.use_simclr_iters:
-            self.batch_size = cfg.dataloader.train.sampler.batch_size
-            self.global_batch_size = cfg.global_batch_size
             self.epochs = cfg.epochs
             self.lr_scheduler = build_lr_scheduler_simclr(
-                cfg.lr_scheduler, self.iters_per_epoch, self.batch_size * 8,
+                cfg.lr_scheduler, self.iters_per_epoch, self.global_batch_size,
                 cfg.epochs, self.current_iter)
         else:
             self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
@@ -224,7 +220,7 @@ class Trainer:
         self.add_train_hooks()
         self.add_custom_hooks()
         self.hooks = sorted(self.hooks, key=lambda x: x.priority)
-
+        print("hooks: ", self.hooks)
         if self.epochs:
             self.total_iters = self.epochs * self.iters_per_epoch
             self.by_epoch = True

@@ -1,5 +1,5 @@
 epochs: 300
-use_byol_iters: True
+use_simclr_iters: True
 total_images: 1281167
 global_batch_size: 4096
 output_dir: output_dir
@@ -84,12 +84,13 @@ dataloader:
 
 
 lr_scheduler:
-  name: CosineWarmup
-  learning_rate: 4.8
-  T_max: 93835
-  warmup_steps: 3127
-  start_lr: 0.0001
-  end_lr: 4.8
+  name: simclrCosineWarmup
+  learning_rate_scaling: linear
+  total_images: 1281167
+  warmup_epochs: 10
+  start_lr: 0
+  end_lr: 0.3
+  T_max: 300
 
 
 optimizer:

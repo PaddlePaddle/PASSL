@@ -80,9 +80,9 @@ class NonLinearNeckV1(nn.Layer):
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
 
-        self.mlp = nn.Sequential(nn.Linear(in_channels,
-                                           hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, out_channels))
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels, hid_channels),
+            nn.ReLU(), nn.Linear(hid_channels, out_channels))
 
         # init_backbone_weight(self.mlp)
         self.init_parameters()
@@ -113,9 +113,12 @@ class NonLinearNeckV2(nn.Layer):
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
 
-        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels, bias_attr=with_bias),
-                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, out_channels))
+        self.mlp = nn.Sequential(
+            nn.Linear(
+                in_channels, hid_channels, bias_attr=with_bias),
+            nn.BatchNorm1D(hid_channels),
+            nn.ReLU(),
+            nn.Linear(hid_channels, out_channels))
 
         # init_backbone_weight(self.mlp)
         # self.init_parameters()
@@ -190,9 +193,9 @@ class ConvNonLinearNeck(nn.Layer):
 
         self.conv = BottleneckBlock(in_channels, in_channels // 4)
 
-        self.mlp = nn.Sequential(nn.Linear(in_channels,
-                                           hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, out_channels))
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels, hid_channels),
+            nn.ReLU(), nn.Linear(hid_channels, out_channels))
 
         init_backbone_weight(self.mlp)
 
@@ -220,12 +223,14 @@ class NonLinearNeckfc3(nn.Layer):
         self.with_avg_pool = with_avg_pool
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
-        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels),
-                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, hid_channels),
-                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, out_channels),
-                                 nn.BatchNorm1D(out_channels))
+        self.mlp = nn.Sequential(
+            nn.Linear(in_channels, hid_channels),
+            nn.BatchNorm1D(hid_channels),
+            nn.ReLU(),
+            nn.Linear(hid_channels, hid_channels),
+            nn.BatchNorm1D(hid_channels),
+            nn.ReLU(),
+            nn.Linear(hid_channels, out_channels), nn.BatchNorm1D(out_channels))
 
         init_backbone_weight_simclr(self.mlp)
 
@@ -233,9 +238,9 @@ class NonLinearNeckfc3(nn.Layer):
         _init_parameters(self, init_linear)
 
     def forward(self, x):
-        x = layers.squeeze(x, axes=[])
+        x = paddle.squeeze(x)
         hidden = self.mlp(x)
-        hidden = layers.l2_normalize(hidden, -1)
+        hidden = paddle.nn.functional.normalize(hidden, axis=-1)
         return hidden
 
 
@@ -255,13 +260,21 @@ class NonLinearNeckfc3V2(nn.Layer):
         self.with_avg_pool = with_avg_pool
         if with_avg_pool:
             self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
-        self.mlp = nn.Sequential(nn.Linear(in_channels, hid_channels, bias_attr=with_bias),
-                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, hid_channels, bias_attr=with_bias),
-                                 nn.BatchNorm1D(hid_channels), nn.ReLU(),
-                                 nn.Linear(hid_channels, out_channels, bias_attr=with_bias),
-                                 nn.BatchNorm1D(out_channels,
-                                     weight_attr=with_last_bn_affine, bias_attr=with_last_bn_affine))
+        self.mlp = nn.Sequential(
+            nn.Linear(
+                in_channels, hid_channels, bias_attr=with_bias),
+            nn.BatchNorm1D(hid_channels),
+            nn.ReLU(),
+            nn.Linear(
+                hid_channels, hid_channels, bias_attr=with_bias),
+            nn.BatchNorm1D(hid_channels),
+            nn.ReLU(),
+            nn.Linear(
+                hid_channels, out_channels, bias_attr=with_bias),
+            nn.BatchNorm1D(
+                out_channels,
+                weight_attr=with_last_bn_affine,
+                bias_attr=with_last_bn_affine))
 
         init_backbone_weight_simclr(self.mlp)
 
@@ -278,6 +291,7 @@ class NonLinearNeckfc3V2(nn.Layer):
 class SwAVNeck(nn.Layer):
     """The non-linear neck in SwAV: fc-bn-relu-fc-normalization.
     """
+
     def __init__(self,
                  in_channels,
                  hid_channels,
@@ -297,9 +311,8 @@ class SwAVNeck(nn.Layer):
         else:
             self.projection_neck = nn.Sequential(
                 nn.Linear(in_channels, hid_channels),
-                nn.BatchNorm1D(hid_channels), nn.ReLU(),
-                nn.Linear(hid_channels, out_channels)
-            )
+                nn.BatchNorm1D(hid_channels),
+                nn.ReLU(), nn.Linear(hid_channels, out_channels))
 
     def forward_projection(self, x):
         if self.projection_neck is not None:
@@ -330,20 +343,22 @@ class MLP2d(nn.Layer):
     def __init__(self, in_channels, hid_channels=4096, out_channels=256):
         super(MLP2d, self).__init__()
 
-        self.linear1 = nn.Conv2D(in_channels,
-                                 hid_channels,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0,
-                                 bias_attr=True)
+        self.linear1 = nn.Conv2D(
+            in_channels,
+            hid_channels,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=True)
         self.bn1 = nn.BatchNorm2D(hid_channels)
         self.relu1 = nn.ReLU()
-        self.linear2 = nn.Conv2D(hid_channels,
-                                 out_channels,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0,
-                                 bias_attr=True)
+        self.linear2 = nn.Conv2D(
+            hid_channels,
+            out_channels,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias_attr=True)
         self.init_parameters()
 
     def init_parameters(self, init_linear='kaiming'):
@@ -363,23 +378,20 @@ class MLP2d(nn.Layer):
 class DenseCLNeck(nn.Layer):
     """The non-linear neck in DenseCL: fc-relu-fc, conv-relu-conv.
     """
-    def __init__(self,
-                 in_channels,
-                 hid_channels,
-                 out_channels,
-                 num_grid=None):
+
+    def __init__(self, in_channels, hid_channels, out_channels, num_grid=None):
         super(DenseCLNeck, self).__init__()
         self.avgpool = nn.AdaptiveAvgPool2D((1, 1))
         self.mlp = nn.Sequential(
-            nn.Linear(in_channels,hid_channels), nn.ReLU(),
-            nn.Linear(hid_channels, out_channels))
+            nn.Linear(in_channels, hid_channels),
+            nn.ReLU(), nn.Linear(hid_channels, out_channels))
 
         self.with_pool = num_grid != None
         if self.with_pool:
             self.pool = nn.AdaptiveAvgPool2D((num_grid, num_grid))
         self.mlp2 = nn.Sequential(
-            nn.Conv2D(in_channels, hid_channels, 1), nn.ReLU(),
-            nn.Conv2D(hid_channels, out_channels, 1))
+            nn.Conv2D(in_channels, hid_channels, 1),
+            nn.ReLU(), nn.Conv2D(hid_channels, out_channels, 1))
         self.avgpool2 = nn.AdaptiveAvgPool2D((1, 1))
 
         # init_backbone_weight(self.mlp and self.mlp2)
