@@ -105,6 +105,3 @@ ENV/
 # logs and output
 **/output/
 **/log/
-
-# dataset
-**/dataset/
