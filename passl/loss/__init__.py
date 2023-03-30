@@ -19,7 +19,6 @@ import paddle.nn as nn
 
 from passl.utils import logger
 from .celoss import CELoss, ViTCELoss
-from .marginloss import MarginLoss
 
 
 class CombinedLoss(nn.Layer):
