@@ -30,7 +30,7 @@ function before_hook() {
     echo ---------- install passl ----------
     export http_proxy=${proxy};
     export https_proxy=${proxy};
-    python -m pip install -r requirements.txt --force-reinstall
+    pip install -r requirements.txt
     python setup.py develop
 
     
