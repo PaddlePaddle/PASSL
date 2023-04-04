@@ -23,9 +23,9 @@ tar -zxf ILSVRC2012.tgz
 cd -
 
 # pretrained
-mkdir -p pretrained/convmae && cd pretrained/convmae
-wget https://passl.bj.bcebos.com/models/convmae/v2.5/convmae_convvit_base_pretrained_1599ep.pd
-cd -
-mkdir -p pretrained/mae && cd pretrained/mae
-wget https://passl.bj.bcebos.com/models/mae/v2.4/mae_pretrain_vit_base_1599ep.pd
+mkdir -p pretrained && cd pretrained
+cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/convmae ./
+cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/mae ./
+cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/cae ./
+cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/dalle-weights ./
 cd -

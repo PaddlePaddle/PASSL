@@ -24,6 +24,6 @@ tar -zxf ILSVRC2012.tgz
 cd -
 
 # pretrained
-mkdir -p pretrained/ViT_base_patch16_224 && cd pretrained/ViT_base_patch16_224
-wget https://passl.bj.bcebos.com/models/vit/v2.4/imagenet2012-ViT-B_16-224.pdparams
+mkdir -p pretrained && cd pretrained
+cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/ViT_base_patch16_224 ./
 cd -
