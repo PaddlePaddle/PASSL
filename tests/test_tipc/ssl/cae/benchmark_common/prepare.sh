@@ -24,8 +24,9 @@ cd -
 
 # pretrained
 mkdir -p pretrained && cd pretrained
-cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/convmae ./
-cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/mae ./
 cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/cae ./
 cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/dalle-weights ./
 cd -
+
+FLAGS_cudnn_exhaustive_search=True
+export FLAGS_gemm_use_half_precision_compute_type=False
