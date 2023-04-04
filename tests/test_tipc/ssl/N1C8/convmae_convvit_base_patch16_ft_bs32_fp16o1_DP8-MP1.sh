@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model_item=convmae_convvit_base_patch16_lp
+model_item=convmae_convvit_base_patch16_ft
 fp_item=fp16o1
-bs_item=128
-run_mode=DP8
+bs_item=32
+run_mode=DP8-MP1
 device_num=N1C8
-mode=lp
+mode=ft
 model=convvit_base_patch16
-max_iter=6254 # epoch=5
+max_iter=10007 #epoch=2
 PRETRAIN_CHKPT='pretrained/convmae/convmae_convvit_base_pretrained_1599ep.pd'
 
 bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh

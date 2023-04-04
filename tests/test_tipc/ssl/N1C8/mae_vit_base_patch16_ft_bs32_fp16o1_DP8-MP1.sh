@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model_item=mae_vit_base_patch16_lp
+model_item=mae_vit_base_patch16_ft
 fp_item=fp16o1
-bs_item=512
-run_mode=DP8
+bs_item=32
+run_mode=DP8-MP1
 device_num=N1C8
-mode=lp
+mode=ft
 model=maevit_base_patch16
-max_iter=1559 # epoch=5
+max_iter=5004 # epoch=1
 PRETRAIN_CHKPT='pretrained/mae/mae_pretrain_vit_base_1599ep.pd'
 
 bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh
