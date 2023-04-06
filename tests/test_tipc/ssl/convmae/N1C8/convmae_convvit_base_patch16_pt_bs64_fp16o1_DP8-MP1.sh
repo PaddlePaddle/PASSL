@@ -23,7 +23,7 @@ max_iter=5004 # epoch=2
 PRETRAIN_CHKPT=""
 accum_iter=2
 
-bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh
+bash ./tests/test_tipc/ssl/convmae/benchmark_common/prepare.sh
 # run
-bash ./tests/test_tipc/ssl/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
+bash ./tests/test_tipc/ssl/convmae/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
 ${mode} ${model} ${max_iter} ${accum_iter} 2>&1;

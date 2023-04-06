@@ -22,7 +22,7 @@ model=cae_base_patch16_224_8k_vocab
 max_iter=5003 # epoch=2
 PRETRAIN_CHKPT='pretrained/dalle-weights'
 
-bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh
+bash ./tests/test_tipc/ssl/cae/benchmark_common/prepare.sh
 # run
-bash ./tests/test_tipc/ssl/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
+bash ./tests/test_tipc/ssl/cae/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
 ${mode} ${model} ${max_iter} ${PRETRAIN_CHKPT} 2>&1;

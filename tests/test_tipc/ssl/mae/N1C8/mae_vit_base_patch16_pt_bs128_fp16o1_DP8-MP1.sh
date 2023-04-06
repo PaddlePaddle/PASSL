@@ -21,7 +21,7 @@ mode=pt
 model=mae_vit_base_patch16
 max_iter=6254 # epoch=5
 
-bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh
+bash ./tests/test_tipc/ssl/mae/benchmark_common/prepare.sh
 # run
-bash ./tests/test_tipc/ssl/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
+bash ./tests/test_tipc/ssl/mae/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
 ${mode} ${model} ${max_iter} 2>&1;

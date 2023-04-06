@@ -22,7 +22,7 @@ model=cae_base_patch16_224
 max_iter=1559 # epoch=5
 PRETRAIN_CHKPT='pretrained/cae/cae_base_patch16_224_8k_vocab_pretrained_800ep.pd'
 
-bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh
+bash ./tests/test_tipc/ssl/cae/benchmark_common/prepare.sh
 # run
-bash ./tests/test_tipc/ssl/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
+bash ./tests/test_tipc/ssl/cae/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
 ${mode} ${model} ${max_iter} ${PRETRAIN_CHKPT} 2>&1;
