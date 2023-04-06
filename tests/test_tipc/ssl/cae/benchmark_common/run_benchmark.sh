@@ -98,7 +98,7 @@ function _train(){
                     --output_dir ./output/linprobe_ep90_fp16o1 --model ${model} --finetune ${PRETRAIN_CHKPT} \
                     --nb_classes 1000 --batch_size ${global_batch_size} --epochs 90 --blr 0.1 --weight_decay 0.0 \
                     --dist_eval --enable_linear_eval --use_cls --save_freq 50 --disable_rel_pos_bias \
-                    --linear_type standard -exp_name linprobe_ep90_fp16o1 "
+                    --linear_type standard --exp_name linprobe_ep90_fp16o1 "
         workerlog_id=0
         ;;
     pt) echo "run run_mode: ${mode}_${run_mode}"
