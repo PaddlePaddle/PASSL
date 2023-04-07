@@ -1,0 +1,131 @@
+# global configs
+Global:
+  checkpoint: null
+  finetune: True
+  pretrained_model: ./pretrained/ViT_base_patch16_224/best_model
+  output_dir: ./output/
+  device: gpu
+  save_interval: 1
+  max_num_latest_checkpoint: 0
+  eval_during_train: True
+  eval_interval: 1
+  eval_unit: "epoch"
+  accum_steps: 2
+  epochs: 8
+  print_batch_step: 10
+  use_visualdl: False
+  seed: 2021
+
+# FP16 setting
+FP16:
+  level: O2
+  GradScaler:
+    init_loss_scaling: 65536.0
+
+DistributedStrategy:
+  data_parallel: True
+
+# model architecture
+Model:
+  name: ViT_base_patch16_384
+  class_num: 1000
+  drop_rate: 0.1
+
+# loss function config for traing/eval process
+Loss:
+  Train:
+    - ViTCELoss:
+        type: softmax
+        weight: 1.0
+  Eval:
+    - CELoss:
+        weight: 1.0
+
+LRScheduler:
+  name: ViTLRScheduler
+  learning_rate: 0.003 # Note(GuoxiaWang): Affect the key role of accuracy.
+  decay_type: cosine
+  warmup_steps: 500
+
+Optimizer:
+  name: Momentum
+  weight_decay: 0.0001 # Note(GuoxiaWang): Affect the key role of accuracy.
+  momentum: 0.9
+  grad_clip:
+    name: ClipGradByGlobalNorm
+    clip_norm: 0.5 # Note(GuoxiaWang): Affect the key role of accuracy.
+
+# data loader for train and eval
+DataLoader:
+  Train:
+    dataset:
+      name: ImageNetDataset
+      image_root: ./dataset/ILSVRC2012/
+      cls_label_path: ./dataset/ILSVRC2012/train_list.txt
+      transform_ops:
+        - DecodeImage:
+            to_rgb: True
+            channel_first: False
+        - RandCropImage:
+            size: 384
+            scale: [0.05, 1.0]
+            interpolation: bilinear
+            backend: pil
+        - RandFlipImage:
+            flip_code: 1
+        - NormalizeImage:
+            scale: 1.0/255.0
+            mean: [0.5, 0.5, 0.5]
+            std: [0.5, 0.5, 0.5]
+            order: ''
+        - ToCHWImage:
+
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 64 # total batchsize 512
+      drop_last: True
+      shuffle: True
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+
+  Eval:
+    dataset:
+      name: ImageNetDataset
+      image_root: ./dataset/ILSVRC2012/
+      cls_label_path: ./dataset/ILSVRC2012/val_list.txt
+      transform_ops:
+        - DecodeImage:
+            to_rgb: True
+            channel_first: False
+        - ResizeImage:
+            size: 384
+            interpolation: bilinear
+            backend: pil
+        - NormalizeImage:
+            scale: 1.0/255.0
+            mean: [0.5, 0.5, 0.5]
+            std: [0.5, 0.5, 0.5]
+            order: ''
+        - ToCHWImage:
+
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 32
+      drop_last: False
+      shuffle: False
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+
+Metric:
+  Train:
+    - TopkAcc:
+        topk: [1, 5]
+  Eval:
+    - TopkAcc:
+        topk: [1, 5]
+
+Export:
+  export_type: paddle
+  input_shape: [None, 3, 384, 384]
