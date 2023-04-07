@@ -76,12 +76,6 @@ function _train(){
     else
         PADDLE_RANK_OPTION=""
     fi
-    
-    if [ ${model} = "convvit_base_patch16" ];then
-        args="--global_pool"
-    else
-        args="--cls_token"
-    fi
 
     # 以下为通用执行命令，无特殊可不用修改
     case ${mode} in
@@ -101,7 +95,7 @@ function _train(){
                     --devices=0,1,2,3,4,5,6,7 ${PADDLE_RANK_OPTION} \
                     ./tasks/ssl/mae/main_linprobe.py \
                     --accum_iter ${accum_iter} --print_freq 1 --max_train_step ${max_iter} \
-                    --batch_size ${global_batch_size} --model ${model} ${args} --finetune ${PRETRAIN_CHKPT} \
+                    --batch_size ${global_batch_size} --model ${model} --global_pool --finetune ${PRETRAIN_CHKPT} \
                     --epochs 90 --blr 0.1 --weight_decay 0.0 \
                     --dist_eval --data_path ./dataset/ILSVRC2012/ "
         workerlog_id=0

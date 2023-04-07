@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model_item=mae_vit_base_patch16_lp
+model_item=convmae_convvit_base_patch16_ft
 fp_item=fp16o1
-bs_item=512
-run_mode=DP8
+bs_item=32
+run_mode=DP8-MP1
 device_num=N1C8
-mode=lp
-model=maevit_base_patch16
-max_iter=1559 # epoch=5
-PRETRAIN_CHKPT='pretrained/mae/mae_pretrain_vit_base_1599ep.pd'
+mode=ft
+model=convvit_base_patch16
+max_iter=10007 #epoch=2
+PRETRAIN_CHKPT='pretrained/convmae/convmae_convvit_base_pretrained_1599ep.pd'
 
-bash ./tests/test_tipc/ssl/benchmark_common/prepare.sh
+bash ./tests/test_tipc/ssl/convmae/benchmark_common/prepare.sh
 # run
-bash ./tests/test_tipc/ssl/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
+bash ./tests/test_tipc/ssl/convmae/benchmark_common/run_benchmark.sh ${model_item} ${fp_item} ${bs_item} ${run_mode} ${device_num} \
 ${mode} ${model} ${max_iter} ${PRETRAIN_CHKPT} 2>&1;
