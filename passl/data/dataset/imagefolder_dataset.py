@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
-import numpy as np
 import os
+import numpy as np
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import paddle
 
+from passl.core import manager
 from passl.data.dataset import default_loader
 
 IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif",
                   ".tiff", ".webp")
 
-
+@manager.DATASETS.add_component
 class ImageFolder(paddle.io.Dataset):
     """ Code ref from https://github.com/pytorch/vision/blob/main/torchvision/datasets/folder.py
 
@@ -38,9 +39,9 @@ class ImageFolder(paddle.io.Dataset):
     the same methods can be overridden to customize the dataset.
     Args:
         root (string): Root directory path.
-        transform (callable, optional): A function/transform that  takes in an numpy image
+        transforms (callable, optional): A function/transforms that  takes in an numpy image
             and returns a transformed version. E.g, ``transforms.RandomCrop``
-        target_transform (callable, optional): A function/transform that takes in the
+        target_transforms (callable, optional): A function/transforms that takes in the
             target and transforms it.
         loader (callable, optional): A function to load an image given its path.
         is_valid_file (callable, optional): A function that takes path of an Image file
@@ -53,8 +54,8 @@ class ImageFolder(paddle.io.Dataset):
 
     def __init__(self,
                  root,
-                 transform=None,
-                 target_transform=None,
+                 transforms=None,
+                 target_transforms=None,
                  loader=default_loader,
                  extensions=IMG_EXTENSIONS):
 
@@ -70,8 +71,8 @@ class ImageFolder(paddle.io.Dataset):
         self.imgs = samples
         self.targets = [s[1] for s in samples]
 
-        self.transform = transform
-        self.target_transform = target_transform
+        self.transforms = transforms
+        self.target_transforms = target_transforms
 
         self.loader = loader
 
@@ -185,10 +186,10 @@ class ImageFolder(paddle.io.Dataset):
     def __getitem__(self, idx):
         path, target = self.imgs[idx]
         sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
+        if self.transforms is not None:
+            sample = self.transforms(sample)
+        if self.target_transforms is not None:
+            target = self.target_transforms(target)
         return (sample, np.int32(target))
 
     def __len__(self) -> int:

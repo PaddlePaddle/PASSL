@@ -31,6 +31,7 @@ from paddle.vision.transforms import ColorJitter as PPColorJitter
 from paddle.vision.transforms import ToTensor, Normalize
 
 from passl.utils import logger
+from passl.core import manager
 
 __all__ = [
     "Compose",
@@ -65,7 +66,7 @@ class OperatorParamError(ValueError):
     """
     pass
 
-
+@manager.TRANSFORMS.add_component
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
@@ -84,6 +85,7 @@ class Compose(object):
         return format_string
 
 
+@manager.TRANSFORMS.add_component
 class TwoViewsTransform(object):
     """Take two random crops of one image"""
 
@@ -97,6 +99,7 @@ class TwoViewsTransform(object):
         return [im1, im2]
 
 
+@manager.TRANSFORMS.add_component
 class DecodeImage(object):
     """ decode image """
 
@@ -182,6 +185,7 @@ def resize(img, size, interpolation=None, backend="cv2"):
 _RANDOM_INTERPOLATION = ('bilinear', 'bicubic')
 
 
+@manager.TRANSFORMS.add_component
 class UnifiedResize(object):
     def __init__(self, interpolation=None, backend="cv2"):
         if interpolation == 'random':
@@ -196,6 +200,7 @@ class UnifiedResize(object):
         return resize(img, size, interpolation, self.backend)
 
 
+@manager.TRANSFORMS.add_component
 class ResizeImage(object):
     """ resize image """
 
@@ -231,6 +236,7 @@ class ResizeImage(object):
         return self._resize_func(img, (w, h))
 
 
+@manager.TRANSFORMS.add_component
 class Resize(object):
     def __init__(self,
                  size,
@@ -303,7 +309,7 @@ class Resize(object):
                                                  self.max_size)
         return self._resize_func(img, (w, h))
 
-
+@manager.TRANSFORMS.add_component
 class CenterCropImage(object):
     """ crop image """
 
@@ -322,6 +328,7 @@ class CenterCropImage(object):
         return crop(img, h_start, w_start, h, w)
 
 
+@manager.TRANSFORMS.add_component
 class CenterCrop(object):
     """ center crop image, align torchvision """
 
@@ -369,6 +376,7 @@ class CenterCrop(object):
         return crop(img, crop_top, crop_left, crop_height, crop_width)
 
 
+@manager.TRANSFORMS.add_component
 class RandCropImage(object):
     """ random crop image """
 
@@ -469,6 +477,7 @@ def resized_crop(
     return img
 
 
+@manager.TRANSFORMS.add_component
 class RandomResizedCrop(object):
     def __init__(
             self,
@@ -559,6 +568,7 @@ class RandomResizedCrop(object):
             antialias=self.antialias)
 
 
+@manager.TRANSFORMS.add_component
 class RandomResizedCropWithTwoImages(RandomResizedCrop):
     def __init__(
             self,
@@ -626,11 +636,13 @@ class RandomResizedCropWithTwoImages(RandomResizedCrop):
                 antialias=self.antialias)
 
 
+@manager.TRANSFORMS.add_component
 class RandomResizedCropAndInterpolation(RandCropImage):
     """ only rename """
     pass
 
 
+@manager.TRANSFORMS.add_component
 class MAERandCropImage(RandCropImage):
     """
     RandomResizedCrop for matching TF/TPU implementation: no for-loop is used.
@@ -661,6 +673,7 @@ class MAERandCropImage(RandCropImage):
         return self._resize_func(img, size)
 
 
+@manager.TRANSFORMS.add_component
 class RandFlipImage(object):
     """ random flip image
         flip_code:
@@ -692,6 +705,7 @@ class RandFlipImage(object):
             return img
 
 
+@manager.TRANSFORMS.add_component
 class RandomHorizontalFlip(object):
     def __init__(self, p=0.5):
         self.p = p
@@ -703,6 +717,7 @@ class RandomHorizontalFlip(object):
             return img
 
 
+@manager.TRANSFORMS.add_component
 class NormalizeImage(object):
     """ normalize image such as substract mean, divide std
     """
@@ -752,6 +767,7 @@ class NormalizeImage(object):
         return img.astype(self.output_dtype)
 
 
+@manager.TRANSFORMS.add_component
 class ToCHWImage(object):
     """ convert hwc image to chw image
     """
@@ -766,6 +782,7 @@ class ToCHWImage(object):
         return img.transpose((2, 0, 1))
 
 
+@manager.TRANSFORMS.add_component
 class ColorJitter(PPColorJitter):
     """ColorJitter.
     """
@@ -786,6 +803,7 @@ class ColorJitter(PPColorJitter):
         return img
 
 
+@manager.TRANSFORMS.add_component
 class Pixels(object):
     def __init__(self, mode="const", mean=[0., 0., 0.]):
         self._mode = mode
@@ -804,6 +822,7 @@ class Pixels(object):
             )
 
 
+@manager.TRANSFORMS.add_component
 class RandomErasing(object):
     """RandomErasing.
     This code is adapted from https://github.com/zhunzhong07/Random-Erasing, and refer to Timm.
@@ -855,6 +874,7 @@ class RandomErasing(object):
         return img
 
 
+@manager.TRANSFORMS.add_component
 class RandomApply(object):
     def __init__(self, transforms, p=0.5):
         self.transforms = transforms
@@ -868,6 +888,7 @@ class RandomApply(object):
         return img
 
 
+@manager.TRANSFORMS.add_component
 class RandomGrayscale(object):
     def __init__(self, p=0.1):
         self.p = p
@@ -905,6 +926,7 @@ class RandomGrayscale(object):
         return img
 
 
+@manager.TRANSFORMS.add_component
 class SimCLRGaussianBlur(object):
     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
 
@@ -925,6 +947,7 @@ class SimCLRGaussianBlur(object):
         return img
 
 
+@manager.TRANSFORMS.add_component
 class BYOLSolarize(object):
     """Solarize augmentation from BYOL: https://arxiv.org/abs/2006.07733"""
 

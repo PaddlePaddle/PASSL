@@ -1,0 +1,82 @@
+batch_size: 4096 # this is the total batch size
+epochs: 300
+
+train_dataset:
+  type: ImageFolder
+  root: ./dataset/ILSVRC2012/train
+  transforms: 
+    - type: TwoViewsTransform
+        type: Compose
+          - type: RandomResizedCrop
+            size: 224
+            scale: [0.08, 1.0]
+          - type: RandomApply
+            - type: ColorJitter
+              p: 0.4
+              brightness: 0.4
+              contrast: 0.2
+              saturation: 0.1
+            p: 0.8
+          - type: RandomGrayscale
+            p: 0.2
+          - type: RandomApply
+            - type: SimCLRGaussianBlur
+              sigma: [.1, 2.]
+            p: 1.0        
+          - type: RandomHorizontalFlip
+          - type: ToTensor
+          - type: Normalize
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+        type: Compose
+          - type: RandomResizedCrop
+            size: 224
+            scale: [0.08, 1.0]
+          - type: RandomApply
+            - type: ColorJitter
+              p: 0.4
+              brightness: 0.4
+              contrast: 0.2
+              saturation: 0.1
+            p: 0.8
+          - type: RandomGrayscale
+            p: 0.2
+          - type: RandomApply
+            - type: SimCLRGaussianBlur
+              sigma: [.1, 2.]
+            p: 1.0       
+          - type: RandomApply
+            - type: BYOLSolarize
+            p: 0.2    
+          - type: RandomHorizontalFlip
+          - type: ToTensor
+          - type: Normalize
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+
+
+val_dataset:
+  type: ImageFolder
+  root: ./dataset/ILSVRC2012/train
+  transforms: 
+  
+  target_transforms:
+
+
+model:
+  type: MoCo_ViT
+  backbone:
+    type: moco_vit_base
+    stop_grad_conv1: True
+  dim: 256
+  mlp_dim: 4096
+  T: 0.2
+
+optimizer:
+  type: AdamW
+  weight_decay: 0.1
+  learning_rate: 1.5e-4
+
+special_config:
+  moco_m_cos: True
+  moco_m: 0.99
