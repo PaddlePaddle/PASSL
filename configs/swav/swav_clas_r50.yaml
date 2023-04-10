@@ -2,6 +2,7 @@ epochs: 100
 output_dir: output_dir
 seed: 0
 device: gpu
+total_iters: 51
 
 # used for static mode and model export
 image_shape: [3, 224, 224]
@@ -75,7 +76,7 @@ optimizer:
 
 log_config:
     name: LogHook
-    interval: 50
+    interval: 10
 
 custom_config:
   - name: EvaluateHook

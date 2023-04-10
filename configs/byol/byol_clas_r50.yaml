@@ -1,7 +1,10 @@
-epochs: 100
+epochs: 80
+use_simclr_iters: True
+global_batch_size: 1024
 output_dir: output_dir
 seed: 0
 device: gpu
+total_iters: 51
 
 model:
   name: ByolClassification
@@ -58,13 +61,9 @@ dataloader:
         - name: Clip
 
 lr_scheduler:
-  name: ByolLRScheduler
-  total_image: 1281167
-  total_batch: 1024
-  total_steps: 100
-  warmup_steps: 0
-  start_lr: 0.0001
-  end_lr: 1.6
+  name: Cosinesimclr
+  learning_rate: 0.4
+  T_max: 80
 
 optimizer:
   name: Momentum
@@ -73,6 +72,10 @@ optimizer:
 log_config:
     name: LogHook
     interval: 10
+
+lr_config:
+  name: LRSchedulerHook
+  unit: epoch
 
 custom_config:
   - name: EvaluateHook

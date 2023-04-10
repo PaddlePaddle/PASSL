@@ -55,22 +55,24 @@ class SimCLRContrastiveHead(nn.Layer):
         hidden1_large = hidden1
         hidden2_large = hidden2
         labels = F.one_hot(
-            paddle.reshape(paddle.arange(0, batch_size, 1, "int32"),
-                           [batch_size]), batch_size * 2)
+            paddle.reshape(
+                paddle.arange(0, batch_size, 1, "int32"), [batch_size]),
+            batch_size * 2)
         masks = F.one_hot(
-            paddle.reshape(paddle.arange(0, batch_size, 1, "int32"),
-                           [batch_size]), batch_size)
+            paddle.reshape(
+                paddle.arange(0, batch_size, 1, "int32"), [batch_size]),
+            batch_size)
 
-        logits_aa = paddle.matmul(hidden1, hidden1_large,
-                                  transpose_y=True) / self.temperature
+        logits_aa = paddle.matmul(
+            hidden1, hidden1_large, transpose_y=True) / self.temperature
         logits_aa = logits_aa - masks * LARGE_NUM
-        logits_bb = paddle.matmul(hidden2, hidden2_large,
-                                  transpose_y=True) / self.temperature
+        logits_bb = paddle.matmul(
+            hidden2, hidden2_large, transpose_y=True) / self.temperature
         logits_bb = logits_bb - masks * LARGE_NUM
-        logits_ab = paddle.matmul(hidden1, hidden2_large,
-                                  transpose_y=True) / self.temperature
-        logits_ba = paddle.matmul(hidden2, hidden1_large,
-                                  transpose_y=True) / self.temperature
+        logits_ab = paddle.matmul(
+            hidden1, hidden2_large, transpose_y=True) / self.temperature
+        logits_ba = paddle.matmul(
+            hidden2, hidden1_large, transpose_y=True) / self.temperature
 
         loss_a = paddle.nn.functional.softmax_with_cross_entropy(
             paddle.concat([logits_ab, logits_aa], 1), labels, soft_label=True)
@@ -91,10 +93,10 @@ class SimCLRContrastiveHead(nn.Layer):
         co2_loss = 1 * (kl_1 + kl_2)
 
         total_contrast_loss = contrast_loss + 3 * co2_loss
-        loss = layers.reduce_mean(total_contrast_loss)
+        loss = paddle.mean(total_contrast_loss)
         contrastive_label = paddle.unsqueeze(paddle.argmax(labels, axis=1), 1)
 
-        acc1 = layers.accuracy(input=logits_ab, label=contrastive_label)
+        acc1 = paddle.metric.accuracy(input=logits_ab, label=contrastive_label)
         outputs = dict()
         outputs['loss'] = loss
         outputs['acc1'] = acc1

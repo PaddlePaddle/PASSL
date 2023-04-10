@@ -1,7 +1,10 @@
 epochs: 100
+use_simclr_iters: True
+global_batch_size: 256
 output_dir: output_dir
 seed: 0
 device: gpu
+total_iters: 51
 
 model:
   name: SwAV
@@ -28,10 +31,10 @@ model:
 dataloader:
   train:
     loader:
-      num_workers: 16
+      num_workers: 8
       use_shared_memory: True
     sampler:
-      batch_size: 128
+      batch_size: 32
       shuffle: true
       drop_last: true
     dataset:
@@ -43,13 +46,13 @@ dataloader:
       max_scale_crops: [1., 0.14]
 
 lr_scheduler:
-  name: CosineWarmup
-  learning_rate: 4.8
-  T_max: 31200
-  warmup_steps: 3120
-  start_lr: 0.3
-  end_lr: 4.8
-  eta_min: 0.0048
+  name: simclrCosineWarmup
+  learning_rate_scaling: linear
+  total_images: 1281167
+  warmup_epochs: 10
+  start_lr: 0
+  end_lr: 0.3
+  T_max: 300
 
 optimizer:
   name: LarsMomentumOptimizer

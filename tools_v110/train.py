@@ -19,10 +19,10 @@ cur_path = os.path.abspath(os.path.dirname(__file__))
 root_path = os.path.split(cur_path)[0]
 sys.path.append(root_path)
 
-from passl.utils.options import parse_args
-from passl.utils.config import get_config
-from passl.utils.setup import setup
-from passl.engine.trainer import Trainer
+from passl_v110.utils.options import parse_args
+from passl_v110.utils.config import get_config
+from passl_v110.utils.setup import setup
+from passl_v110.engine.trainer import Trainer
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
