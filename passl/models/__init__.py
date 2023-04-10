@@ -24,6 +24,7 @@ from .convmae import *
 from .swin_transformer import *
 from .cae import *
 from .convnext import *
+from .mocov3 import *
 
 __all__ = ["build_model"]
 

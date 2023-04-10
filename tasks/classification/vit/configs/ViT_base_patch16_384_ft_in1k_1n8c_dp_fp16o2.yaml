@@ -1,5 +1,8 @@
 # global configs
 Global:
+  task_type: classification
+  train_loop: ClassificationTrainingEpochLoop
+  validate_loop: ClassificationEvaluationLoop
   checkpoint: null
   finetune: True
   pretrained_model: ./pretrained/ViT_base_patch16_224/best_model

@@ -1,5 +1,8 @@
 # global configs
 Global:
+  task_type: classification
+  train_loop: ClassificationTrainingEpochLoop
+  validate_loop: ClassificationEvaluationLoop
   checkpoint: null
   pretrained_model: null
   output_dir: ./output/
