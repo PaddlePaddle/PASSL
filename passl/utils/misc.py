@@ -149,7 +149,7 @@ class SmoothedValue(object):
             global_avg=self.global_avg,
             max=self.max,
             value=self.value)
-    
+
 
 class AttrDict(dict):
     def __getattr__(self, key):

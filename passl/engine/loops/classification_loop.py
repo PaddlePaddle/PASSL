@@ -29,10 +29,10 @@ from passl.utils import logger
 from .loop import _Loop, TrainingEpochLoop
 
 class ClassificationTrainingEpochLoop(TrainingEpochLoop):
-    
+
     def __init__(self, trainer, epochs, max_train_step=None, val_loop=None):
         super().__init__(trainer, epochs, max_train_step=max_train_step, val_loop=val_loop)
-                        
+
     def forward_backward(self, batch):
         # Gradient Merge(GuoxiaWang): Accumulate gradient over multiple
         # steps to save on memory.
@@ -57,7 +57,7 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
                 out = self.trainer.model(data)
                 final_out.append(out)
-                
+
             loss_dict = self.trainer.train_loss_func(out, label)
 
             for key in loss_dict:
@@ -72,9 +72,9 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
         out = paddle.concat(final_out, axis=0)
         return out, final_loss_dict
-    
+
     def train_one_step(self, batch):
-        
+
         # do forward and backward
         out, loss_dict = self.forward_backward(batch)
 
@@ -91,25 +91,25 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
         if self.trainer.lr_decay_unit == 'step':
             self.trainer.optimizer.lr_step(self.global_step)
-            
+
         return out, loss_dict
 
 
 class ClassificationEvaluationLoop(_Loop):
     def __init__(self, trainer):
         super().__init__(trainer)
-        
+
     def run(self):
         assert self.trainer.mode in ["train", "eval"]
         assert self.trainer.validating == True
-        
+
         output_info = self.eval_one_dataset(self.trainer.eval_dataloader)
-        
+
         self.validating = False
         return output_info
-        
+
     def eval_one_dataset(self, eval_dataloader):
-        
+
         metric_key = None
         tic = time.time()
         accum_samples = 0

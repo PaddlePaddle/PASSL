@@ -83,8 +83,8 @@ class BaseAveragedModel(nn.Layer):
             for b_avg, b_src in zip(self.model.buffers(), model.buffers()):
                 b_avg.copy_(b_src, False)
         self.steps += 1
-        
-        
+
+
 class ExponentialMovingAverage(BaseAveragedModel):
     def __init__(self,
                  model,
@@ -114,8 +114,8 @@ class ExponentialMovingAverage(BaseAveragedModel):
         """
         with paddle.amp.auto_cast(False):
             averaged_param.copy_(paddle.lerp(averaged_param, source_param, self.momentum), False)
-        
-        
+
+
 class CosineEMA(ExponentialMovingAverage):
     r"""CosineEMA is implemented for updating momentum parameter, used in BYOL,
     MoCoV3, etc.
@@ -174,13 +174,13 @@ class CosineEMA(ExponentialMovingAverage):
         Returns:
             Tensor: The averaged parameters.
         """
-        
+
         max_steps = self.max_steps
         if max_steps is None:
             max_steps = runtime_info_hub.max_steps
-        
+
         cosine_annealing = (math.cos(math.pi * steps / float(max_steps)) + 1) / 2
         momentum = self.end_momentum - (self.end_momentum -
-                                        self.momentum) * cosine_annealing        
+                                        self.momentum) * cosine_annealing
         with paddle.amp.auto_cast(False):
             averaged_param.copy_(averaged_param * (1.0 - momentum) + source_param * momentum, False)

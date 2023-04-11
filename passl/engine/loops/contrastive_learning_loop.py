@@ -29,10 +29,10 @@ from passl.utils import logger
 from .loop import TrainingEpochLoop
 
 class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
-    
+
     def __init__(self, trainer, epochs, max_train_step=None, val_loop=None):
         super().__init__(trainer, epochs, max_train_step=max_train_step, val_loop=val_loop)
-                        
+
     def forward_backward(self, batch):
         # Gradient Merge(GuoxiaWang): Accumulate gradient over multiple
         # steps to save on memory.
@@ -68,12 +68,12 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
             scaled.backward()
 
         return final_loss_dict
-    
+
     def train_one_step(self, batch):
-        
+
         # remove label
         batch = batch[0]
-        
+
         # do forward and backward
         loss_dict = self.forward_backward(batch)
 
@@ -90,5 +90,5 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
 
         if self.trainer.lr_decay_unit == 'step':
             self.trainer.optimizer.lr_step(self.global_step)
-            
+
         return None, loss_dict

@@ -80,8 +80,8 @@ class MoCoV3ViT(VisionTransformer):
         self.pos_embed = self.create_parameter(shape=pos_embed.shape)
         self.pos_embed.set_value(pos_embed)
         self.pos_embed.stop_gradient = True
-        
-        
+
+
 class MoCoV3Pretrain(Model):
     """
     Build a MoCo model with a base encoder, a momentum encoder, and two MLPs
@@ -101,7 +101,7 @@ class MoCoV3Pretrain(Model):
         # build encoders
         self.base_encoder = base_encoder(class_num=mlp_dim)
         self._build_projector_and_predictor_mlps(dim, mlp_dim)
-        
+
         # create momentum model
         self.momentum_encoder = CosineEMA(
             nn.Sequential(self.base_encoder, self.predictor), momentum=base_momentum)
@@ -140,8 +140,8 @@ class MoCoV3Pretrain(Model):
 
         # predictor
         self.predictor = self._build_mlp(2, dim, mlp_dim, dim)
-        
-        
+
+
     # utils
     @paddle.no_grad()
     def concat_all_gather(self, tensor):
@@ -179,7 +179,7 @@ class MoCoV3Pretrain(Model):
         Output:
             loss
         """
-        
+
         assert isinstance(inputs, list)
         x1 = inputs[0]
         x2 = inputs[1]
@@ -198,8 +198,8 @@ class MoCoV3Pretrain(Model):
             k2 = self.momentum_encoder(x2)
 
         return self.contrastive_loss(q1, k2) + self.contrastive_loss(q2, k1)
-        
-        
+
+
 def mocov3_vit_base(**kwargs):
     model = MoCoV3ViT(
         patch_size=16,

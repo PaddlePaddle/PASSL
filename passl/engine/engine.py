@@ -55,7 +55,7 @@ class Engine(object):
                                                           10)
         self.save_interval = self.config["Global"].get("save_interval", 1)
         self.accum_steps = self.config["Global"].get("accum_steps", 1)
-        
+
         self.enabled_ema = True if "EMA" in self.config else False
 
         assert isinstance(self.accum_steps, int) and self.accum_steps > 0, \
@@ -293,13 +293,13 @@ class Engine(object):
                 )
             self.ema = EMA(self.optimizer._param_groups, **ema_cfg)
             self.ema.register()
-            
+
         # build train_loop and eval_loop
         validate_loop_name = self.config['Global'].get("validate_loop", None)
         self.validate_loop = None
         if validate_loop_name is not None:
             self.validate_loop = eval('loops.{}'.format(validate_loop_name))(self)
-            
+
         train_loop_name = self.config['Global'].get("train_loop")
         self.train_loop = eval('loops.{}'.format(train_loop_name))(
             self,
@@ -307,10 +307,10 @@ class Engine(object):
             max_train_step=self.max_train_step,
             val_loop=self.validate_loop,
         )
-        
+
         self.init_runtime_info_hub()
-        
-        
+
+
     def init_runtime_info_hub(self):
         runtime_info_hub.epochs = self.train_loop.epochs
         runtime_info_hub.max_steps = self.train_loop.max_steps
