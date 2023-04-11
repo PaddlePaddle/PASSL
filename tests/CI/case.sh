@@ -18,6 +18,14 @@ set -e
 export passl_path=/paddle/PASSL/tests/CI
 export log_path=/paddle/log_passl
 passl_gpu_model_list=( \
+    simclr_r50_pt_in1k_1n8c_dp_fp32 \
+    simclr_r50_lp_in1k_1n8c_dp_fp32 \
+    byol_r50_pt_in1k_1n8c_dp_fp32 \
+    byol_r50_lp_in1k_1n8c_dp_fp32 \
+    simsiam_r50_pt_in1k_1n8c_dp_fp32 \
+    simsiam_r50_lp_in1k_1n8c_dp_fp32 \
+    swav_r50_pt_in1k_1n8c_dp_fp32 \
+    swav_r50_lp_in1k_1n8c_dp_fp32 \
     ViT_base_patch16_224_in1k_1n8c_dp_fp16o2 \
     ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2 \
     DeiT_base_patch16_224_in1k_1n8c_dp_fp32 \
@@ -34,14 +42,6 @@ passl_gpu_model_list=( \
     cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1 \
     cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1 \
     cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1 \
-    simclr_r50_IM_pretrain \
-    simclr_r50_IM_linear \
-    byol_r50_IM_pretrain \
-    byol_r50_IM_linear \
-    simsiam_r50_IM_pretrain \
-    simsiam_r50_IM_linear \
-    swav_r50_IM_pretrain \
-    swav_r50_IM_linear \
 )
 
 
@@ -211,69 +211,69 @@ function cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     check_result 6.7196 ${loss} 1.07848 ${ips} $FUNCNAME
 }
 ####### SimCLR ######
-function simclr_r50_IM_pretrain(){
+function simclr_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/simclr/simclr_r50_IM_pretrain.sh
+    bash ./ssl/simclr/simclr_r50_pt_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f17 `
     check_result 2.8107e+01 ${loss%?} $FUNCNAME
 }
 
-function simclr_r50_IM_linear(){
+function simclr_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/simclr/simclr_r50_IM_linear.sh
+    bash ./ssl/simclr/simclr_r50_lp_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f17 `
     check_result 6.8498e+00 ${loss%?} $FUNCNAME
 }
 
 ###### BYOL ######
-function byol_r50_IM_pretrain(){
+function byol_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/byol/byol_r50_IM_pretrain.sh
+    bash ./ssl/byol/byol_r50_pt_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/1251" | cut -d " " -f33 `
     check_result 8.9050e+00 ${loss%?} $FUNCNAME
 }
 
-function byol_r50_IM_linear(){
+function byol_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/byol/byol_r50_IM_linear.sh
+    bash ./ssl/byol/byol_r50_lp_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/1252" | cut -d " " -f15 `
     check_result 1.0264e+08 ${loss%?} $FUNCNAME
 }
 
 ###### SimSiam ######
-function simsiam_r50_IM_pretrain(){
+function simsiam_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/simsiam/simsiam_r50_IM_pretrain.sh
+    bash ./ssl/simsiam/simsiam_r50_pt_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/2502" | cut -d " " -f17 `
     check_result -3.9680e-01 ${loss%?} $FUNCNAME
 }
 
-function simsiam_r50_IM_linear(){
+function simsiam_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/simsiam/simsiam_r50_IM_linear.sh
+    bash ./ssl/simsiam/simsiam_r50_lp_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f17 `
     check_result 6.8936e+00 ${loss%?} $FUNCNAME
 }
 
 ###### SWAV ######
-function swav_r50_IM_pretrain(){
+function swav_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/swav/swav_r50_IM_pretrain.sh
+    bash ./ssl/swav/swav_r50_pt_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f17 `
     check_result 8.3500e+00 ${loss%?} $FUNCNAME
 }
 
-function swav_r50_IM_linear(){
+function swav_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
-    bash ./ssl/swav/swav_r50_IM_linear.sh
+    bash ./ssl/swav/swav_r50_lp_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f17 `
     check_result 4.7808e+00 ${loss%?} $FUNCNAME
 }

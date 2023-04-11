@@ -1,6 +1,7 @@
 pillow
 numpy
 easydict
+einops
 scikit-image
 scipy
 requests
