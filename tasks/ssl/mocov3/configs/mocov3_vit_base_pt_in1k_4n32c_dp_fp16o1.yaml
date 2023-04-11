@@ -1,0 +1,108 @@
+# global configs
+Global:
+  task_type: ContrastiveLearning
+  train_loop: ContrastiveLearningTrainingEpochLoop
+  validate_loop: None
+  checkpoint: null
+  pretrained_model: null
+  output_dir: ./output/
+  device: gpu
+  save_interval: 1
+  max_num_latest_checkpoint: 0
+  eval_during_train: False
+  eval_interval: 1
+  eval_unit: "epoch"
+  accum_steps: 1
+  epochs: 300
+  print_batch_step: 10
+  use_visualdl: False
+  seed: 2023
+
+# FP16 setting
+FP16:
+  level: O1
+  GradScaler:
+    init_loss_scaling: 65536.0
+    incr_every_n_steps: 2000
+
+DistributedStrategy:
+  data_parallel: True
+
+# model architecture
+Model:
+  name: mocov3_pretrain_vit_base
+
+LRScheduler:
+    name: TimmCosine
+    learning_rate: 0.0024
+    eta_min: 0.0
+    warmup_epoch: 40
+    warmup_start_lr: 0.0
+    decay_unit: step
+    warmup_prefix: True
+
+Optimizer:
+  name: AdamW
+  betas: (0.9, 0.999)
+  eps: 1e-8
+  weight_decay: 0.1
+  use_master_param: True
+  exp_avg_force_fp32: True
+
+# data loader for train and eval
+DataLoader:
+  Train:
+    dataset:
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/train
+      transform:
+        - TwoViewsTransform:
+            base_transform1:
+              - RandomResizedCrop:
+                  size: 224
+                  scale: [0.08, 1.0]
+                  interpolation: bicubic
+              - ColorJitter:
+                  p: 0.8
+                  brightness: 0.4
+                  contrast: 0.4
+                  saturation: 0.2
+                  hue: 0.1
+              - RandomGrayscale:
+                  p: 0.2
+              - SimCLRGaussianBlur:
+                  p: 1.0
+                  sigma: [.1, 2.]
+              - RandomHorizontalFlip:
+              - ToTensor:
+              - Normalize:
+                  mean: [0.485, 0.456, 0.406]
+                  std: [0.229, 0.224, 0.225]
+            base_transform2:
+              - RandomResizedCrop:
+                  size: 224
+                  scale: [0.08, 1.0]
+                  interpolation: bicubic
+              - ColorJitter:
+                  p: 0.8
+                  brightness: 0.4
+                  contrast: 0.4
+                  saturation: 0.2
+                  hue: 0.1
+              - RandomGrayscale:
+                  p: 0.2
+              - BYOLSolarize:
+                  p: 0.2
+              - RandomHorizontalFlip:
+              - ToTensor:
+              - Normalize:
+                  mean: [0.485, 0.456, 0.406]
+                  std: [0.229, 0.224, 0.225]
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 128 # accum_steps: 1, total batchsize: 4096
+      drop_last: False
+      shuffle: True
+    loader:
+      num_workers: 8
+      use_shared_memory: True

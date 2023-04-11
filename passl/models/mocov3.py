@@ -22,6 +22,7 @@ from operator import mul
 from passl.models.base_model import Model
 from passl.models.vision_transformer import VisionTransformer, PatchEmbed, to_2tuple
 from passl.nn import init
+from passl.models.utils.averaged_model import CosineEMA
 
 
 class MoCoV3ViT(VisionTransformer):
@@ -81,7 +82,7 @@ class MoCoV3ViT(VisionTransformer):
         self.pos_embed.stop_gradient = True
         
         
-class MoCoV3(Model):
+class MoCoV3Pretrain(Model):
     """
     Build a MoCo model with a base encoder, a momentum encoder, and two MLPs
     https://arxiv.org/abs/1911.05722
@@ -98,7 +99,7 @@ class MoCoV3(Model):
         self.T = T
 
         # build encoders
-        self.base_encoder = base_encoder(num_classes=mlp_dim)
+        self.base_encoder = base_encoder(class_num=mlp_dim)
         self._build_projector_and_predictor_mlps(dim, mlp_dim)
         
         # create momentum model
@@ -169,7 +170,7 @@ class MoCoV3(Model):
             N, dtype=paddle.int64) + N * paddle.distributed.get_rank())
         return nn.CrossEntropyLoss()(logits, labels) * (2 * self.T)
 
-    def forward(self, x1, x2, m):
+    def forward(self, inputs):
         """
         Input:
             x1: first views of images
@@ -178,6 +179,10 @@ class MoCoV3(Model):
         Output:
             loss
         """
+        
+        assert isinstance(inputs, list)
+        x1 = inputs[0]
+        x2 = inputs[1]
 
         # compute features
         q1 = self.predictor(self.base_encoder(x1))
@@ -195,7 +200,7 @@ class MoCoV3(Model):
         return self.contrastive_loss(q1, k2) + self.contrastive_loss(q2, k1)
         
         
-def moco_vit_base(**kwargs):
+def mocov3_vit_base(**kwargs):
     model = MoCoV3ViT(
         patch_size=16,
         embed_dim=768,
@@ -209,17 +214,13 @@ def moco_vit_base(**kwargs):
     return model
 
 
-def moco_vit_conv_small(**kwargs):
-    # minus one ViT block
-    model = MoCoV3ViT(
-        patch_size=16,
-        embed_dim=384,
-        depth=11,
-        num_heads=12,
-        mlp_ratio=4,
-        qkv_bias=True,
-        norm_layer=partial(
-            nn.LayerNorm, epsilon=1e-6),
-        embed_layer=ConvStem,
+def mocov3_pretrain_vit_base(**kwargs):
+    base_encoder = partial(mocov3_vit_base, stop_grad_conv1=True)
+    model = MoCoV3Pretrain(
+        base_encoder=base_encoder,
+        dim=256,
+        mlp_dim=4096,
+        T=0.2,
+        base_momentum=0.99,
         **kwargs)
     return model

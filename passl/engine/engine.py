@@ -39,6 +39,7 @@ from passl.optimizer import build_optimizer
 from passl.utils import io
 from passl.core import recompute_warp, GradScaler, param_sync
 from passl.models.utils import EMA
+from passl.utils.infohub import runtime_info_hub
 from . import loops
 
 
@@ -140,20 +141,23 @@ class Engine(object):
                 worker_init_fn)
 
         # build loss
-        if self.mode == "train":
-            loss_info = self.config["Loss"]["Train"]
-            self.train_loss_func = build_loss(loss_info)
-        if self.mode == "eval" or (self.mode == "train" and
-                                   self.config["Global"]["eval_during_train"]):
-            loss_config = self.config.get("Loss", None)
-            if loss_config is not None:
-                loss_config = loss_config.get("Eval")
+        self.train_loss_func = None
+        self.eval_loss_func = None
+        if 'Loss' in self.config:
+            if self.mode == "train":
+                loss_info = self.config["Loss"]["Train"]
+                self.train_loss_func = build_loss(loss_info)
+            if self.mode == "eval" or (self.mode == "train" and
+                                       self.config["Global"]["eval_during_train"]):
+                loss_config = self.config.get("Loss", None)
                 if loss_config is not None:
-                    self.eval_loss_func = build_loss(loss_config)
+                    loss_config = loss_config.get("Eval")
+                    if loss_config is not None:
+                        self.eval_loss_func = build_loss(loss_config)
+                    else:
+                        self.eval_loss_func = None
                 else:
                     self.eval_loss_func = None
-            else:
-                self.eval_loss_func = None
 
         # build metric
         self.train_metric_func = None
@@ -303,6 +307,13 @@ class Engine(object):
             max_train_step=self.max_train_step,
             val_loop=self.validate_loop,
         )
+        
+        self.init_runtime_info_hub()
+        
+        
+    def init_runtime_info_hub(self):
+        runtime_info_hub.epochs = self.train_loop.epochs
+        runtime_info_hub.max_steps = self.train_loop.max_steps
 
     def train(self):
         assert self.mode == "train"

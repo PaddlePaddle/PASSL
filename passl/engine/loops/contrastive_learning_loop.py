@@ -37,15 +37,14 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
         # Gradient Merge(GuoxiaWang): Accumulate gradient over multiple
         # steps to save on memory.
 
-        assert batch[0].shape[
-            0] % self.trainer.accum_steps == 0, f'Bad accum_steps {self.trainer.accum_steps} for batch size {batch[0].shape[0]}. This may be caused by two reasons: 1) the batch size setting is unreasonable and cannot be divisible, 2) drop_last in the sampler configuration is not set to True.'
-        step_size = batch[0].shape[0] // self.trainer.accum_steps
+        self.batch_size = batch[0].shape[0]
+        assert self.batch_size % self.trainer.accum_steps == 0, f'Bad accum_steps {self.trainer.accum_steps} for batch size {self.batch_size}. This may be caused by two reasons: 1) the batch size setting is unreasonable and cannot be divisible, 2) drop_last in the sampler configuration is not set to True.'
+        step_size = self.batch_size // self.trainer.accum_steps
 
         final_loss_dict = collections.defaultdict(float)
 
         for idx in range(self.trainer.accum_steps):
-            data = batch[0][idx * step_size:(idx + 1) * step_size]
-            label = batch[1][idx * step_size:(idx + 1) * step_size]
+            sub_batch = [b[idx * step_size:(idx + 1) * step_size] for b in batch]
 
             # do cast if using fp16 otherwise do nothing
             with paddle.amp.auto_cast(
@@ -54,7 +53,9 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
                     custom_black_list=self.trainer.fp16_custom_black_list,
                     level=self.trainer.fp16_level):
 
-                loss_dict = self.trainer.model(data)
+                loss_dict = self.trainer.model(sub_batch)
+                if isinstance(loss_dict, paddle.Tensor):
+                    loss_dict = {'loss': loss_dict}
 
             for key in loss_dict:
                 loss_dict[key] = loss_dict[key] / self.trainer.accum_steps
@@ -69,6 +70,9 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
         return final_loss_dict
     
     def train_one_step(self, batch):
+        
+        # remove label
+        batch = batch[0]
         
         # do forward and backward
         loss_dict = self.forward_backward(batch)

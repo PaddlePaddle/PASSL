@@ -1,6 +1,6 @@
 # global configs
 Global:
-  task_type: classification
+  task_type: Classification
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null

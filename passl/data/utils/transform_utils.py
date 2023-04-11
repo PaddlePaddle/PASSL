@@ -32,7 +32,14 @@ def create_preprocess_operators(params):
                           dict) and len(operator) == 1, "yaml format error"
         op_name = list(operator)[0]
         param = {} if operator[op_name] is None else operator[op_name]
-        op = getattr(preprocess, op_name)(**param)
+        recursive = any(['transform' in key for key in param])
+        if recursive:
+            parsed_param = {}
+            for key, value in param.items():
+                parsed_param[key] = create_preprocess_operators(value)
+            op = getattr(preprocess, op_name)(**parsed_param)
+        else:
+            op = getattr(preprocess, op_name)(**param)
         ops.append(op)
 
     if len(ops) > 0:

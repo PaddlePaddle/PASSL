@@ -58,7 +58,7 @@ class _Loop:
         
         return epoch_mode_flag or step_mode_flag
     
-    def update_metric(self, out, batch, batch_size):
+    def update_metric(self, out, batch):
         if out is None:
             return
         
@@ -69,18 +69,18 @@ class _Loop:
                 if key not in self.output_info:
                     self.output_info[key] = SmoothedValue(
                         window_size=self.trainer.print_batch_step)
-                self.output_info[key].update(metric_dict[key], batch_size)
+                self.output_info[key].update(metric_dict[key], self.batch_size)
         
         
-    def update_loss(self, loss_dict, batch_size):
+    def update_loss(self, loss_dict):
         # update_output_info
         for key in loss_dict:
             if key not in self.output_info:
                 self.output_info[key] = SmoothedValue(
                     window_size=self.trainer.print_batch_step)
-            self.output_info[key].update(loss_dict[key].item(), batch_size)
+            self.output_info[key].update(loss_dict[key].item(), self.batch_size)
             
-    def log_info(self, batch_size):
+    def log_info(self):
         
         lr_msg = "lr: {:.6f}".format(self.trainer.optimizer.get_lr())
 
@@ -89,14 +89,12 @@ class _Loop:
             for key in self.output_info
         ])
         
-        time_msg = "s, ".join([
+        time_msg = ", ".join([
             "{}: {:.5f}".format(key, self.time_info[key].avg)
             for key in self.time_info
         ])
-        
 
-
-        total_batch_size = batch_size * self.trainer.config["Global"]["world_size"]
+        total_batch_size = self.batch_size * self.trainer.config["Global"]["world_size"]
         ips_msg = "ips: {:.5f} images/sec".format(
             total_batch_size / self.time_info["batch_cost"].avg)
         eta_sec = ((self.epochs - self.cur_epoch_id + 1) * self.total_batch_idx - self.cur_batch_idx) * self.time_info["batch_cost"].avg
@@ -105,7 +103,7 @@ class _Loop:
         if paddle.is_compiled_with_cuda():        
             GB = 1024.0 * 1024.0 * 1024.0
             max_memory_allocated = paddle.device.cuda.max_memory_allocated() / GB
-            mem_msg = "max mem: {:.2f}GB".format(max_memory_allocated)
+            mem_msg = "max mem: {:.2f} GB".format(max_memory_allocated)
             logger.info("[Train][Epoch {}/{}][Iter: {}/{}] {}, {}, {}, {}, {}, {}".format(
                 self.cur_epoch_id, self.epochs, self.cur_batch_idx, self.total_batch_idx,
                 lr_msg, metric_msg, time_msg, ips_msg, mem_msg, eta_msg))
@@ -137,6 +135,11 @@ class TrainingEpochLoop(_Loop):
         self.max_train_step = max_train_step
         self.val_loop = val_loop
         
+    @property
+    def max_steps(self) -> int:
+        return self.epochs * (len(self.trainer.train_dataloader) - 1 if platform.system(
+        ) == "Windows" else len(self.trainer.train_dataloader))
+        
     def run(self):
         assert self.trainer.mode == "train"
         assert self.trainer.training == True
@@ -163,9 +166,9 @@ class TrainingEpochLoop(_Loop):
                 for key in self.output_info
             ])
             logger.info("[Train][Epoch {}/{}][Avg]{}".format(
-                epoch_id, self.config["Global"]["epochs"], metric_msg))
+                epoch_id, self.epochs, metric_msg))
             self.output_info.clear()
-            
+
             if self._should_check_val():
                 self.trainer.validating = True
                 self.val_loop.run()
@@ -202,7 +205,7 @@ class TrainingEpochLoop(_Loop):
                     paddle.to_tensor(batch[0]['data']),
                     paddle.to_tensor(batch[0]['label'])
                 ]
-            batch_size = batch[0].shape[0]
+            
             self.global_step += 1
 
             # do forward and backward
@@ -212,12 +215,12 @@ class TrainingEpochLoop(_Loop):
 
             # below code just for logging
             # update metric_for_logger
-            self.update_metric(out, batch, batch_size)
+            self.update_metric(out, batch)
             # update_loss_for_logger
-            self.update_loss(loss_dict, batch_size)
+            self.update_loss(loss_dict)
             
             if batch_idx % self.trainer.print_batch_step == 0:
-                self.log_info(batch_size)
+                self.log_info()
             
             tic = time.time()
             # ema update

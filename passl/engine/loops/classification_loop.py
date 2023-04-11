@@ -37,9 +37,9 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         # Gradient Merge(GuoxiaWang): Accumulate gradient over multiple
         # steps to save on memory.
 
-        assert batch[0].shape[
-            0] % self.trainer.accum_steps == 0, f'Bad accum_steps {self.trainer.accum_steps} for batch size {batch[0].shape[0]}. This may be caused by two reasons: 1) the batch size setting is unreasonable and cannot be divisible, 2) drop_last in the sampler configuration is not set to True.'
-        step_size = batch[0].shape[0] // self.trainer.accum_steps
+        self.batch_size = batch[0].shape[0]
+        assert self.batch_size % self.trainer.accum_steps == 0, f'Bad accum_steps {self.trainer.accum_steps} for batch size {self.batch_size}. This may be caused by two reasons: 1) the batch size setting is unreasonable and cannot be divisible, 2) drop_last in the sampler configuration is not set to True.'
+        step_size = self.batch_size // self.trainer.accum_steps
 
         final_loss_dict = collections.defaultdict(float)
         final_out = []

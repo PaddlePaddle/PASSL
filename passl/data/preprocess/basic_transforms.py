@@ -94,7 +94,7 @@ class TwoViewsTransform(object):
     def __call__(self, x):
         im1 = self.base_transform1(x)
         im2 = self.base_transform2(x)
-        return [im1, im2]
+        return im1, im2
 
 
 class DecodeImage(object):
