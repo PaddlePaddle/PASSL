@@ -92,7 +92,7 @@ class LogHook(Hook):
             log_items.append(val)
 
         log_str += ', '.join(log_items)
-
+        print(log_str)
         trainer.logger.info(log_str)
 
     def _round_float(self, items):
@@ -151,6 +151,7 @@ class LogHook(Hook):
             trainer.logs[k].update(float(v))
 
         if self.by_epoch and self.every_n_inner_iters(trainer, self.interval):
+            print('train_iter_end >>>>>>>>>>>>>.')
             self.print_log(trainer)
 
     def train_epoch_end(self, trainer):

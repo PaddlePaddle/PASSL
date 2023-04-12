@@ -16,6 +16,7 @@ import copy
 import numpy as np
 import math
 import paddle
+import random
 from paddle.io import DistributedBatchSampler
 
 from ..utils.registry import Registry, build_from_config
@@ -92,11 +93,17 @@ def build_dataloader(cfg, device):
 
     sampler_name = sampler_cfg.pop('name', 'DistributedBatchSampler')
 
+    def worker_init_fn(worker_id):
+        """ set seed in subproces for dataloader when num_workers > 0"""
+        np.random.seed(cfg.seed + worker_id)
+        random.seed(cfg.seed + worker_id)
+
     sampler = eval("{}".format(sampler_name))(dataset, **sampler_cfg)
 
     dataloader = paddle.io.DataLoader(dataset,
                                       batch_sampler=sampler,
                                       places=device,
+                                      worker_init_fn=worker_init_fn,
                                       **loader_cfg)
 
     #setup mixup / cutmix

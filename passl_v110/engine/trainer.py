@@ -116,7 +116,7 @@ class Trainer:
         self.log_interval = cfg.log_config.interval
 
         # set seed
-        seed = cfg.get('seed', False)
+        seed = cfg.get('seed', 2023)
         if seed:
             seed += dp_rank
             paddle.seed(seed)
@@ -309,7 +309,8 @@ class Trainer:
             self.inner_iter = self.current_iter % self.iters_per_epoch
             self.current_iter += 1
             self.current_epoch = iter_loader.epoch
-
+            if hasattr(self.train_dataloader.batch_sampler, "set_epoch"):
+                self.train_dataloader.batch_sampler.set_epoch(self.current_epoch)
             data = next(iter_loader)
 
             self.call_hook('train_iter_begin')

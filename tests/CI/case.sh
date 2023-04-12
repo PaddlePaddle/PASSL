@@ -215,16 +215,16 @@ function simclr_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/simclr/simclr_r50_pt_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f17 `
-    check_result 2.8107e+01 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "20/5004" | cut -d " " -f11 `
+    check_result 2.8602e+01 ${loss} 0 0 $FUNCNAME
 }
 
 function simclr_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/simclr/simclr_r50_lp_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f17 `
-    check_result 6.8498e+00 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f13 `
+    check_result 6.8497e+00 ${loss} 0 0 $FUNCNAME
 }
 
 ###### BYOL ######
@@ -232,16 +232,16 @@ function byol_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/byol/byol_r50_pt_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/1251" | cut -d " " -f33 `
-    check_result 8.9050e+00 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "20/1251" | cut -d " " -f27 `
+    check_result 1.0883e+01 ${loss} 0 0 $FUNCNAME
 }
 
 function byol_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/byol/byol_r50_lp_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/1252" | cut -d " " -f15 `
-    check_result 1.0264e+08 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "50/1252" | cut -d " " -f12 `
+    check_result 8.6801e+07 ${loss} 0 0 $FUNCNAME
 }
 
 ###### SimSiam ######
@@ -249,16 +249,16 @@ function simsiam_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/simsiam/simsiam_r50_pt_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/2502" | cut -d " " -f17 `
-    check_result -3.9680e-01 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "20/2502" | cut -d " " -f12 `
+    check_result -3.9680e-01 ${loss} 0 0 $FUNCNAME
 }
 
 function simsiam_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/simsiam/simsiam_r50_lp_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f17 `
-    check_result 6.8936e+00 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f14 `
+    check_result 6.8936e+00 ${loss} 0 0 $FUNCNAME
 }
 
 ###### SWAV ######
@@ -266,16 +266,16 @@ function swav_r50_pt_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/swav/swav_r50_pt_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f17 `
-    check_result 8.3500e+00 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f11 `
+    check_result 8.3689e+00 ${loss} 0 0 $FUNCNAME
 }
 
 function swav_r50_lp_in1k_1n8c_dp_fp32(){
     cd ${passl_path}
     rm -rf log
     bash ./ssl/swav/swav_r50_lp_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f17 `
-    check_result 4.7808e+00 ${loss%?} $FUNCNAME
+    loss=`tail log/workerlog.0 | grep "50/5004" | cut -d " " -f11 `
+    check_result 4.6752e+00 ${loss} 0 0 $FUNCNAME
 }
 
 

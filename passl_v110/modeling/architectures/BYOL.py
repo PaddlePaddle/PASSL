@@ -54,7 +54,7 @@ def single_random_gaussian_blur(image, height, width, p=1.0):
     x = paddle.arange(-radius, radius + 1, 1, "float32")
     blur_filter = paddle.exp(-paddle.pow(x, 2.0) /
                              (2.0 * paddle.pow(sigma, 2.0)))
-    blur_filter /= layers.nn.reduce_sum(blur_filter)
+    blur_filter /= paddle.sum(blur_filter)
     blur_v = paddle.reshape(blur_filter, [1, 1, kernel_size, 1])
     blur_h = paddle.reshape(blur_filter, [1, 1, 1, kernel_size])
     num_channels = 3

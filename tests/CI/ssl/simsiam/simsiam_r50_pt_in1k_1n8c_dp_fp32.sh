@@ -13,6 +13,7 @@
 # limitations under the License.
 
 FLAGS_cudnn_exhaustive_search=0
+FLAGS_cudnn_deterministic=1
 export PADDLE_NNODES=1
 export PADDLE_MASTER="127.0.0.1:12538"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
