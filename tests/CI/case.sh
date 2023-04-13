@@ -168,7 +168,7 @@ function ConvNeXt_base_224_in1k_1n8c_dp_fp32() {
     rm -rf log
     bash ./classification/convnext/ConvNeXt_base_224_in1k_1n8c_dp_fp32.sh
     loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f21 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     check_result 6.91436 ${loss%?} 708.5226 ${ips} $FUNCNAME
 }
 
