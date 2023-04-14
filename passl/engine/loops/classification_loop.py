@@ -16,6 +16,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from copy import deepcopy
+
 import sys
 import time
 import collections
@@ -99,16 +101,56 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 class ClassificationEvaluationLoop(_Loop):
     def __init__(self, trainer):
         super().__init__(trainer)
+        self.best_model_metric = None
+        self.best_model_to_save = False
+        self.latest_model_metric = None
+
+        self.best_ema_model_metric = None
+        self.best_ema_model_to_save = False
+        self.latest_ema_model_metric = None
+
+    def reset_state(self):
+        self.best_model_to_save = False
+        self.best_ema_model_to_save = False
+
+    def update_best_model_metric_info(self):
+        assert isinstance(self.latest_model_metric, dict)
+        if self.best_model_metric is None:
+            self.best_model_metric = deepcopy(self.latest_model_metric)
+        else:
+            if 'metric' in self.latest_model_metric and self.latest_model_metric['metric'] > self.best_model_metric['metric']:
+                self.best_model_metric = deepcopy(self.latest_model_metric)
+                self.best_model_to_save = True
+            else:
+                self.best_model_metric = deepcopy(self.latest_model_metric)
+
+    def update_best_ema_model_metric_info(self):
+        assert isinstance(self.latest_ema_model_metric, dict)
+        if self.best_ema_model_metric is None:
+            self.best_ema_model_metric = deepcopy(self.latest_ema_model_metric)
+        else:
+            if 'metric' in self.latest_ema_model_metric and self.latest_ema_model_metric['metric'] > self.best_ema_model_metric['metric']:
+                self.best_ema_model_metric = deepcopy(self.latest_ema_model_metric)
+                self.best_ema_model_to_save = True
+            else:
+                self.best_ema_model_metric = deepcopy(self.latest_ema_model_metric)
 
     def run(self):
         assert self.trainer.mode in ["train", "eval"]
         assert self.trainer.validating == True
+        self.reset_state()
 
+        self.latest_model_metric = self.eval_one_dataset(self.trainer.eval_dataloader)
+        self.update_best_model_metric_info()
 
-        output_info = self.eval_one_dataset(self.trainer.eval_dataloader)
+        if self.trainer.enabled_ema and self.trainer.ema_eval and self.trainer.cur_epoch_id > self.trainer.ema_eval_start_epoch:
+            self.trainer.ema.apply_shadow()
+            self.latest_ema_model_metric = self.eval_one_dataset(self.trainer.eval_dataloader)
+            self.trainer.ema.restore()
+
+            self.update_best_ema_model_metric_info()
 
         self.validating = False
-        return output_info
 
     @paddle.no_grad()
     def eval_one_dataset(self, eval_dataloader):

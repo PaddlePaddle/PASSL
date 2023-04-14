@@ -99,7 +99,6 @@ class Engine(object):
         paddle.set_flags(RELATED_FLAGS_SETTING)
 
         # init logger
-        self.output_dir = self.config['Global']['output_dir']
         log_file = os.path.join(self.output_dir, self.config["Model"]["name"],
                                 f"{mode}.log")
         logger.init_logger(log_file=log_file)
@@ -320,6 +319,22 @@ class Engine(object):
     @property
     def epochs(self):
         return self.train_loop.epochs
+
+    @property
+    def model_name(self):
+        return self.config["Model"]["name"]
+
+    @property
+    def max_num_checkpoint(self):
+        return self.config["Global"]["max_num_latest_checkpoint"]
+
+    @property
+    def output_dir(self):
+        return self.config['Global']['output_dir']
+
+    @property
+    def checkpoint(self):
+        return self.config["Global"]["checkpoint"]
 
     def init_runtime_info_hub(self):
         runtime_info_hub.epochs = self.train_loop.epochs

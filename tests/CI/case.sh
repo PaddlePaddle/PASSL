@@ -34,6 +34,7 @@ passl_gpu_model_list=( \
     cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1 \
     cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1 \
     cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1 \
+    mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1 \
     mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1 \
     mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1 \
 )
@@ -207,13 +208,23 @@ function cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
 
 
 ###### MoCoV3 ######
+function mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
+    cd ${passl_path}
+    rm -rf log
+    bash ./ssl/mocov3/mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1.sh
+    loss=`tail log/workerlog.0 | grep "49/1251" | cut -d " " -f11 `
+    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f17 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    check_result 4.90439 ${loss} 1213.74 ${ips} $FUNCNAME
+}
+
+
 function mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1() {
     cd ${passl_path}
     rm -rf log
     bash ./ssl/mocov3/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.sh
     loss=`tail log/workerlog.0 | grep "49/1251" | cut -d " " -f13 `
     ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.90807 ${loss} 3130.63 ${ips} $FUNCNAME
+    check_result 6.90772 ${loss} 1536 ${ips} $FUNCNAME
 }
 
 

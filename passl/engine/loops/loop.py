@@ -16,10 +16,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from copy import deepcopy
+
 import time
 import platform
 import datetime
 import paddle
+
+from passl.utils import io
 from passl.utils import logger
 from passl.utils.misc import SmoothedValue
 
@@ -131,6 +135,7 @@ class TrainingEpochLoop(_Loop):
         super().__init__(trainer)
         self.start_eopch = 0
         self.epochs = epochs
+        self.cur_epoch_id = 0
         self.global_step = 0
         self.max_train_step = max_train_step
         self.val_loop = val_loop
@@ -138,16 +143,77 @@ class TrainingEpochLoop(_Loop):
     @property
     def max_steps(self) -> int:
         return self.epochs * (len(self.trainer.train_dataloader) - 1 if platform.system(
-        ) == "Windows" else len(self.trainer.train_dataloader))
+            ) == "Windows" else len(self.trainer.train_dataloader))
+
+    @property
+    def best_model_metric(self):
+        if self.val_loop is not None:
+            return self.val_loop.best_model_metric
+
+    @best_model_metric.setter
+    def best_model_metric(self, metric):
+        if self.val_loop is not None:
+            self.val_loop.best_model_metric = deepcopy(metric)
+
+    @property
+    def best_model_to_save(self):
+        if self.val_loop is not None:
+            return self.val_loop.best_model_to_save
+
+    @best_model_to_save.setter
+    def best_model_to_save(self, val):
+        if self.val_loop is not None:
+            self.val_loop.best_model_to_save = val
+
+    @property
+    def latest_model_metric(self):
+        if self.val_loop is not None:
+            return self.val_loop.latest_model_metric
+
+    @property
+    def best_ema_model_metric(self):
+        if self.val_loop is not None:
+            return self.val_loop.best_ema_model_metric
+
+    @best_ema_model_metric.setter
+    def best_ema_model_metric(self, metric):
+        if self.val_loop is not None:
+            self.val_loop.best_ema_model_metric = deepcopy(metric)
+
+    @property
+    def best_ema_model_to_save(self):
+        if self.val_loop is not None:
+            return self.val_loop.best_ema_model_to_save
+
+    @best_ema_model_to_save.setter
+    def best_ema_model_to_save(self, val):
+        if self.val_loop is not None:
+            self.val_loop.best_ema_model_to_save = val
+
+    @property
+    def latest_ema_model_metric(self):
+        if self.val_loop is not None:
+            return self.val_loop.latest_ema_model_metric
+
+
+    def reset_state(self):
+        self.best_model_to_save = False
+        self.latest_model_to_save = self.cur_epoch_id % self.trainer.save_interval == 0 or self.cur_epoch_id == self.epochs
+
+    def _should_to_save(self):
+        return self.best_model_to_save or self.latest_model_to_save or self.best_ema_model_to_save
 
     def run(self):
         assert self.trainer.mode == "train"
         assert self.trainer.training == True
 
+        self.resume()
+
         self.total_batch_idx = len(self.trainer.train_dataloader) - 1 if platform.system(
         ) == "Windows" else len(self.trainer.train_dataloader)
         for epoch_id in range(self.start_eopch + 1, self.epochs + 1):
             self.cur_epoch_id = epoch_id
+            self.reset_state()
 
             if hasattr(self.trainer.train_dataloader.batch_sampler, "set_epoch"):
                 self.trainer.train_dataloader.batch_sampler.set_epoch(epoch_id)
@@ -173,6 +239,19 @@ class TrainingEpochLoop(_Loop):
                 self.trainer.validating = True
                 self.val_loop.run()
                 self.trainer.training = True
+                self.latest_model_to_save = True
+
+                if self.best_model_metric is not None and 'metric' in self.best_model_metric:
+                    logger.info("[Eval][Epoch {}][best metric: {}]".format(
+                        self.cur_epoch_id, self.best_model_metric["metric"]))
+                    logger.scaler(
+                        name="eval_metric",
+                        value=self.best_model_metric["metric"],
+                        step=self.cur_epoch_id,
+                        writer=self.trainer.vdl_writer)
+
+            if self._should_to_save():
+                self.save_checkpoint()
 
         # end of training
         self.trainer.training = False
@@ -233,3 +312,63 @@ class TrainingEpochLoop(_Loop):
 
     def train_one_step(self, batch):
         raise NotImplementedError
+
+    def save_checkpoint(self):
+        if self.best_model_to_save:
+            metric_info = self.best_model_metric
+        elif self.latest_model_metric is not None:
+            metric_info = self.latest_model_metric
+        else:
+            metric_info = {}
+
+        metric_info.update({
+            "epoch": self.cur_epoch_id,
+            "global_step": self.global_step,
+        })
+
+        io.save_checkpoint(
+            self.trainer.model,
+            self.trainer.optimizer,
+            self.trainer.scaler,
+            metric_info,
+            self.trainer.output_dir,
+            model_name=self.trainer.model_name,
+            prefix="epoch_{}".format(self.cur_epoch_id),
+            max_num_checkpoint=self.trainer.max_num_checkpoint,
+            is_latest=self.latest_model_to_save,
+            is_best=self.best_model_to_save, )
+
+        if self.trainer.enabled_ema:
+            self.trainer.ema.apply_shadow()
+
+            io.save_ema_checkpoint(
+                self.trainer.model,
+                self.trainer.ema,
+                self.trainer.output_dir,
+                self.best_ema_model_metric if self.best_ema_model_to_save else None,
+                model_name=self.trainer.model_name,
+                prefix="epoch_{}_ema".format(self.cur_epoch_id),
+                max_num_checkpoint=self.trainer.max_num_checkpoint,
+                is_latest=self.latest_model_to_save,
+                is_best=self.best_ema_model_to_save, )
+
+            self.trainer.ema.restore()
+
+    def resume(self):
+        # load checkpoint and resume
+        if self.trainer.checkpoint is not None:
+            if self.trainer.enabled_ema:
+                ema_metric_info = io.load_ema_checkpoint(
+                    self.trainer.checkpoint + '_ema', self.trainer.ema)
+                if ema_metric_info is not None and self.trainer.ema_eval:
+                    self.ema_best_metric = deepcopy(ema_metric_info)
+
+            metric_info = io.load_checkpoint(
+                self.trainer.checkpoint, self.trainer.model,
+                self.trainer.optimizer, self.trainer.scaler)
+            if metric_info is not None:
+                self.best_model_metric = deepcopy(metric_info)
+            if "global_step" in metric_info:
+                self.global_step = metric_info["global_step"]
+            if "epoch" in metric_info:
+                self.start_eopch = metric_info["epoch"]

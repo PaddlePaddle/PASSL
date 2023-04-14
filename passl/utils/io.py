@@ -119,7 +119,9 @@ def save_checkpoint(net,
                     model_path,
                     model_name="",
                     prefix='passl',
-                    max_num_checkpoint=3):
+                    max_num_checkpoint=3,
+                    is_latest=False,
+                    is_best=False):
     """
     save model to the target path
     """
@@ -134,8 +136,18 @@ def save_checkpoint(net,
     })
     model_dir = os.path.join(model_path, model_name)
     _mkdir_if_not_exist(model_dir)
-    model_prefix = os.path.join(model_dir, prefix)
-    net.save(model_prefix, local_rank, rank)
+    model_prefixs = [os.path.join(model_dir, prefix)]
+
+    keep_prefixs = ['best', 'latest']
+
+    if prefix not in keep_prefixs:
+        if is_latest:
+            model_prefixs.append(os.path.join(model_dir, 'latest'))
+        if is_best:
+            model_prefixs.append(os.path.join(model_dir, 'best'))
+
+    for model_prefix in model_prefixs:
+        net.save(model_prefix, local_rank, rank)
 
     opt_state_dict = optimizer.state_dict()
 
@@ -145,15 +157,17 @@ def save_checkpoint(net,
     if local_rank == 0:
         if loss_scaler is not None:
             opt_state_dict['scaler_state'] = loss_scaler.state_dict()
-        paddle.save(opt_state_dict, model_prefix + ".pdopt")
-        paddle.save(metric_info, model_prefix + ".pdstates")
+        for model_prefix in model_prefixs:
+            paddle.save(opt_state_dict, model_prefix + ".pdopt")
+            paddle.save(metric_info, model_prefix + ".pdstates")
+
     if len(dist_opt_state_dict['state']) > 0:
-        paddle.save(dist_opt_state_dict,
-                    model_prefix + "_rank{}.pdopt".format(rank))
+        for model_prefix in model_prefixs:
+            paddle.save(dist_opt_state_dict,
+                        model_prefix + "_rank{}.pdopt".format(rank))
 
     logger.info("Already save {} model in {}".format(prefix, model_dir))
 
-    keep_prefixs = ['best', 'latest']
 
     if local_rank == 0:
         if all(p not in prefix
@@ -238,7 +252,9 @@ def save_ema_checkpoint(model,
                         metric_info=None,
                         model_name="",
                         prefix='passl',
-                        max_num_checkpoint=3):
+                        max_num_checkpoint=3,
+                        is_latest=False,
+                        is_best=False):
     """
     save ema state to the target path
     """
@@ -255,20 +271,28 @@ def save_ema_checkpoint(model,
     })
     model_dir = os.path.join(model_path, model_name)
     _mkdir_if_not_exist(model_dir)
-    model_prefix = os.path.join(model_dir, prefix)
+    model_prefixs = [os.path.join(model_dir, prefix)]
 
-    model.save(model_prefix, local_rank, rank)
+    keep_prefixs = ['best_ema', 'latest_ema']
+
+    if prefix not in keep_prefixs:
+        if is_latest:
+            model_prefixs.append(os.path.join(model_dir, 'latest_ema'))
+        if is_best:
+            model_prefixs.append(os.path.join(model_dir, 'best_ema'))
+
+    for model_prefix in model_prefixs:
+        model.save(model_prefix, local_rank, rank)
 
     ema_state_dict = ema.state_dict()
 
     local_rank = paddle.distributed.ParallelEnv().dev_id
     if local_rank == 0:
-        paddle.save(ema_state_dict, model_prefix + ".pdema")
-        paddle.save(metric_info, model_prefix + ".pdemastates")
+        for model_prefix in model_prefixs:
+            paddle.save(ema_state_dict, model_prefix + ".pdema")
+            paddle.save(metric_info, model_prefix + ".pdemastates")
 
     logger.info("Already save {} ema state in {}".format(prefix, model_dir))
-
-    keep_prefixs = ['best', 'latest']
 
     if local_rank == 0:
         if all(p not in prefix
