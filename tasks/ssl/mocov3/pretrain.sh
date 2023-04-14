@@ -14,18 +14,13 @@
 
 #unset PADDLE_TRAINER_ENDPOINTS
 #export PADDLE_NNODES=4
-#export PADDLE_MASTER="10.67.228.16:12538"
+#export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
 #export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export FLAGS_stop_check_timeout=3600
 
-IMAGENET_DIR=./dataset/ILSVRC2012/
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    main_moco.py \
-    -a moco_vit_base \
-    --optimizer=adamw --lr=1.5e-4 --weight-decay=.1 \
-    --epochs=300 --warmup-epochs=40 \
-    --stop-grad-conv1 --moco-m-cos --moco-t=.2 \
-    ${IMAGENET_DIR}
+    passl-train \
+    -c ./configs/mocov3_vit_base_patch16_224_pt_in1k_4n32c_dp_fp16o1.yaml

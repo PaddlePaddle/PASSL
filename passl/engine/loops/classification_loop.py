@@ -104,12 +104,15 @@ class ClassificationEvaluationLoop(_Loop):
         assert self.trainer.mode in ["train", "eval"]
         assert self.trainer.validating == True
 
+
         output_info = self.eval_one_dataset(self.trainer.eval_dataloader)
 
         self.validating = False
         return output_info
 
+    @paddle.no_grad()
     def eval_one_dataset(self, eval_dataloader):
+        self.trainer.model.eval()
 
         output_info = dict()
         metric_key = None

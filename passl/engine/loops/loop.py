@@ -58,13 +58,13 @@ class _Loop:
 
         return epoch_mode_flag or step_mode_flag
 
-    def update_metric(self, out, batch):
+    def update_metric(self, out, target):
         if out is None:
             return
 
         # calc metric
         if self.trainer.train_metric_func is not None:
-            metric_dict = self.trainer.train_metric_func(out, batch[-1])
+            metric_dict = self.trainer.train_metric_func(out, target)
             for key in metric_dict:
                 if key not in self.output_info:
                     self.output_info[key] = SmoothedValue(
@@ -215,7 +215,7 @@ class TrainingEpochLoop(_Loop):
 
             # below code just for logging
             # update metric_for_logger
-            self.update_metric(out, batch)
+            self.update_metric(out, batch[-1])
             # update_loss_for_logger
             self.update_loss(loss_dict)
 

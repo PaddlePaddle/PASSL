@@ -25,7 +25,4 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
-    -c ./configs/DeiT_base_patch16_224_in1k_1n8c_dp_fp16o1.yaml \
-    -o Global.epochs=150 \
-    -o Global.pretrained_model=pretrained/moco_vit_base \
-    -o Global.finetune=True
+    -c ./configs/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.yaml

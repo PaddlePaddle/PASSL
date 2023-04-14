@@ -30,7 +30,7 @@ DistributedStrategy:
 
 # model architecture
 Model:
-  name: mocov3_pretrain_vit_base
+  name: mocov3_vit_base_pretrain
 
 LRScheduler:
     name: TimmCosine
