@@ -117,7 +117,7 @@ class ClassificationEvaluationLoop(_Loop):
         assert isinstance(self.latest_model_metric, dict)
         if self.best_model_metric is None:
             self.best_model_metric = deepcopy(self.latest_model_metric)
-            if 'metric' in self.latest_model_metric
+            if 'metric' in self.latest_model_metric:
                 self.best_model_to_save = True
         else:
             if 'metric' in self.latest_model_metric and self.latest_model_metric['metric'] > self.best_model_metric['metric']:
