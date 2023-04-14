@@ -66,7 +66,6 @@ class Engine(object):
         assert self.max_train_step is None or (
             isinstance(self.max_train_step, int) and self.max_train_step > 0
         ), "max_train_step must be int dtype and greater than 0"
-        self.global_step = 0
 
         # init distribution env
         self.config["Global"]["distributed"] = dist.get_world_size() != 1
@@ -310,6 +309,17 @@ class Engine(object):
 
         self.init_runtime_info_hub()
 
+    @property
+    def cur_epoch_id(self):
+        return self.train_loop.cur_epoch_id
+
+    @property
+    def global_step(self):
+        return self.train_loop.global_step
+
+    @property
+    def epochs(self):
+        return self.train_loop.epochs
 
     def init_runtime_info_hub(self):
         runtime_info_hub.epochs = self.train_loop.epochs

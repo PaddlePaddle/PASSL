@@ -24,6 +24,7 @@ import paddle
 from passl.core import grad_sync, param_sync
 from passl.utils import io
 
+from passl.utils.misc import AverageMeter
 from passl.utils import profiler
 from passl.utils import logger
 from .loop import _Loop, TrainingEpochLoop
@@ -110,6 +111,7 @@ class ClassificationEvaluationLoop(_Loop):
 
     def eval_one_dataset(self, eval_dataloader):
 
+        output_info = dict()
         metric_key = None
         tic = time.time()
         accum_samples = 0
@@ -190,19 +192,19 @@ class ClassificationEvaluationLoop(_Loop):
 
             if batch_idx % self.trainer.print_batch_step == 0:
                 time_msg = "s, ".join([
-                    "{}: {:.5f}".format(key, time_info[key].avg)
-                    for key in time_info
+                    "{}: {:.5f}".format(key, self.time_info[key].avg)
+                    for key in self.time_info
                 ])
 
                 ips_msg = "ips: {:.5f} images/sec".format(
-                    batch_size / time_info["batch_cost"].avg)
+                    batch_size / self.time_info["batch_cost"].avg)
 
                 metric_msg = ", ".join([
                     "{}: {:.5f}".format(key, output_info[key].val)
                     for key in output_info
                 ])
                 logger.info("[Eval][Epoch {}][Iter: {}/{}]{}, {}, {}".format(
-                    epoch_id, batch_idx,
+                    self.trainer.cur_epoch_id, batch_idx,
                     len(eval_dataloader), metric_msg, time_msg, ips_msg))
 
             tic = time.time()
@@ -216,7 +218,7 @@ class ClassificationEvaluationLoop(_Loop):
                 output_info[key] = output_info[key].avg
 
         metric_msg = logger.dict_format(output_info)
-        logger.info("[Eval][Epoch {}][Avg]{}".format(epoch_id, metric_msg))
+        logger.info("[Eval][Epoch {}][Avg]{}".format(self.trainer.cur_epoch_id, metric_msg))
 
         if self.trainer.eval_metric_func is None:
             return None

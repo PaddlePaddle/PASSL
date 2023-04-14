@@ -49,12 +49,12 @@ class _Loop:
             return False
 
         epoch_mode_flag = self.trainer.config["Global"]["eval_unit"] == 'epoch' and self.trainer.config[
-                "Global"]["eval_during_train"] and self.cur_epoch_id % self.config[
-                    "Global"]["eval_interval"] == 0 and getattr(self.val_loop, None) is not None
+                "Global"]["eval_during_train"] and self.cur_epoch_id % self.trainer.config[
+                    "Global"]["eval_interval"] == 0 and getattr(self, 'val_loop', None) is not None
 
         step_mode_flag = self.trainer.config["Global"]["eval_unit"] == 'step' and self.trainer.config[
                 "Global"]["eval_during_train"] and self.global_step % self.trainer.config[
-                    "Global"]["eval_interval"] == 0 and getattr(self.val_loop, None) is not None
+                    "Global"]["eval_interval"] == 0 and getattr(self, 'val_loop', None) is not None
 
         return epoch_mode_flag or step_mode_flag
 

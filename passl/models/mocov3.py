@@ -24,6 +24,15 @@ from passl.models.vision_transformer import VisionTransformer, PatchEmbed, to_2t
 from passl.nn import init
 from passl.models.utils.averaged_model import CosineEMA
 
+__all__ = [
+    'mocov3_vit_base',
+    'mocov3_vit_base_linearprobe',
+    'mocov3_vit_base_pretrain',
+    'MoCoV3ViT',
+    'MoCoV3LinearProbe',
+    'MoCoV3Pretrain',
+]
+
 
 class MoCoV3ViT(VisionTransformer):
     def __init__(self, stop_grad_conv1=False, **kwargs):
@@ -80,6 +89,24 @@ class MoCoV3ViT(VisionTransformer):
         self.pos_embed = self.create_parameter(shape=pos_embed.shape)
         self.pos_embed.set_value(pos_embed)
         self.pos_embed.stop_gradient = True
+
+
+class MoCoV3LinearProbe(MoCoV3ViT):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # freeze all layers but the last fc
+        for name, param in self.named_parameters():
+            if name not in ['head.weight', 'head.bias']:
+                param.stop_gradient = True
+
+        # optimize only the linear classifier
+        parameters = list(
+            filter(lambda p: not p.stop_gradient, self.parameters()))
+        assert len(parameters) == 2  # weight, bias
+
+        init.normal_(self.head.weight, mean=0.0, std=0.01)
+        init.zeros_(self.head.bias)
 
 
 class MoCoV3Pretrain(Model):
@@ -199,6 +226,38 @@ class MoCoV3Pretrain(Model):
 
         return self.contrastive_loss(q1, k2) + self.contrastive_loss(q2, k1)
 
+    def load_pretrained(self, path, rank=0, finetune=False):
+        if not os.path.exists(path + '.pdparams'):
+            raise ValueError("Model pretrain path {} does not "
+                             "exists.".format(path))
+
+        state_dict = self.state_dict()
+        param_state_dict = paddle.load(path + ".pdparams")
+
+        # for FP16 saving pretrained weight
+        for key, value in param_state_dict.items():
+            if key in param_state_dict and key in state_dict and param_state_dict[
+                    key].dtype != state_dict[key].dtype:
+                param_state_dict[key] = param_state_dict[key].astype(
+                    state_dict[key].dtype)
+
+        self.set_dict(param_state_dict)
+
+    def save(self, path, local_rank=0, rank=0):
+        paddle.save(self.state_dict(), path + ".pdparams")
+
+        # rename moco pre-trained keys
+        state_dict = self.state_dict()
+        for k in list(state_dict.keys()):
+            # retain only base_encoder up to before the embedding layer
+            if k.startswith('base_encoder') and not k.startswith(
+                    'base_encoder.head'):
+                # remove prefix
+                state_dict[k[len("base_encoder."):]] = state_dict[k]
+            # delete renamed or unused k
+            del state_dict[k]
+
+        paddle.save(state_dict(), path + "_base_encoder.pdparams")
 
 def mocov3_vit_base(**kwargs):
     model = MoCoV3ViT(
@@ -213,8 +272,20 @@ def mocov3_vit_base(**kwargs):
         **kwargs)
     return model
 
+def mocov3_vit_base_linearprobe(**kwargs):
+    model = MoCoV3LinearProbe(
+        patch_size=16,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        mlp_ratio=4,
+        qkv_bias=True,
+        norm_layer=partial(
+            nn.LayerNorm, epsilon=1e-6),
+        **kwargs)
+    return model
 
-def mocov3_pretrain_vit_base(**kwargs):
+def mocov3_vit_base_pretrain(**kwargs):
     base_encoder = partial(mocov3_vit_base, stop_grad_conv1=True)
     model = MoCoV3Pretrain(
         base_encoder=base_encoder,
