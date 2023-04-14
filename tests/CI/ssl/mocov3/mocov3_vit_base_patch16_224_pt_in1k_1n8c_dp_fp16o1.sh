@@ -25,4 +25,5 @@ python -m paddle.distributed.launch \
     -o Global.print_batch_step=1 \
     -o Global.max_train_step=50 \
     -o Global.flags.FLAGS_cudnn_exhaustive_search=0 \
-    -o Global.flags.FLAGS_cudnn_deterministic=1
+    -o Global.flags.FLAGS_cudnn_deterministic=1 \
+    -o DataLoader.Train.sampler.batch_size=64
