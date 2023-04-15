@@ -31,17 +31,12 @@ export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export FLAGS_stop_check_timeout=3600
 
-IMAGENET_DIR=./dataset/ILSVRC2012/
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    main_moco.py \
-    -a moco_vit_base \
-    --optimizer=adamw --lr=1.5e-4 --weight-decay=.1 \
-    --epochs=300 --warmup-epochs=40 \
-    --stop-grad-conv1 --moco-m-cos --moco-t=.2 \
-    ${IMAGENET_DIR}
+    passl-train \
+    -c ./configs/mocov3_vit_base_patch16_224_pt_in1k_4n32c_dp_fp16o1.yaml
 ```
 
 ## How to Linear Classification
@@ -55,16 +50,12 @@ export PADDLE_MASTER="127.0.0.1:12538"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export FLAGS_stop_check_timeout=3600
 
-IMAGENET_DIR=./dataset/ILSVRC2012/
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    main_lincls.py \
-    -a moco_vit_base \
-    --lr=3 \
-    --pretrained pretrained/checkpoint_0299.pd \
-    ${IMAGENET_DIR}
+    passl-train \
+    -c ./configs/mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml
 ```
 
 ## How to End-to-End Fine-tuning
@@ -90,19 +81,19 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
-    -c ./configs/DeiT_base_patch16_224_in1k_1n8c_dp_fp16o1.yaml \
-    -o Global.epochs=150 \
-    -o Global.pretrained_model=pretrained/moco_vit_base \
-    -o Global.finetune=True
+    -c ./configs/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.yaml
 ```
+
+## Other Configurations
+We provide more directly runnable configurations, see [MoCoV3 Configurations](./configs/).
 
 ## Models
 
 ### ViT-Base
 | Model         | Phase       | Dataset      | Configs                                                      | GPUs       | Epochs | Top1 Acc | Checkpoint                                                   |
 | ------------- | ----------- | ------------ | ------------------------------------------------------------ | ---------- | ------ | -------- | ------------------------------------------------------------ |
-| moco_vit_base | pretrain    | ImageNet2012 | -                                                            | A100*N4C32 | 300    | -        | [download](https://plsc.bj.bcebos.com/models/mocov3/v2.4/moco_vit_base_in1k_300ep.pd) |
-| moco_vit_base | linear prob | ImageNet2012 | -                                                            | A100*N1C8  | 90     | 0.7662   |                                                              |
+| moco_vit_base | pretrain    | ImageNet2012 | [config](./configs/mocov3_vit_base_patch16_224_pt_in1k_4n32c_dp_fp16o1.yaml) | A100*N4C32 | 300    | -        | [download](https://plsc.bj.bcebos.com/models/mocov3/v2.4/moco_vit_base_in1k_300ep.pd) |
+| moco_vit_base | linear prob | ImageNet2012 | [config](./configs/mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml) | A100*N1C8  | 90     | 0.7662   |                                                              |
 | moco_vit_base | finetune    | ImageNet2012 | [config](./configs/DeiT_base_patch16_224_in1k_1n8c_dp_fp16o1.yaml) | A100*N1C8  | 150    | 0.8288   |                                                              |
 
 ## Citations

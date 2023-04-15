@@ -16,42 +16,9 @@ import os
 import copy
 import argparse
 import yaml
+from passl.utils.misc import AttrDict
 from passl.utils import logger
 __all__ = ['get_config']
-
-
-class AttrDict(dict):
-    def __getattr__(self, key):
-        return self[key]
-
-    def __setattr__(self, key, value):
-        if key in self.__dict__:
-            self.__dict__[key] = value
-        else:
-            self[key] = value
-
-    def __copy__(self):
-        cls = self.__class__
-        result = cls.__new__(cls)
-        result.__dict__.update(self.__dict__)
-        return result
-
-    def __deepcopy__(self, memo):
-        cls = self.__class__
-        result = cls.__new__(cls)
-        memo[id(self)] = result
-        for k, v in self.__dict__.items():
-            setattr(result, k, copy.deepcopy(v, memo))
-        for k, v in self.items():
-            setattr(result, k, copy.deepcopy(v, memo))
-        return result
-
-    def setdefault(self, k, default=None):
-        if k not in self or self[k] is None:
-            self[k] = default
-            return default
-        else:
-            return self[k]
 
 
 def create_attr_dict(yaml_config):

@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Note: Set the following environment variables 
-# and then need to run the script on each node.
-unset PADDLE_TRAINER_ENDPOINTS
 export PADDLE_NNODES=1
 export PADDLE_MASTER="127.0.0.1:12538"
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export FLAGS_stop_check_timeout=3600
 
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
-    -c ./configs/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.yaml
+    -c ../../tasks/ssl/mocov3/configs/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.yaml \
+    -o Global.print_batch_step=1 \
+    -o Global.max_train_step=50 \
+    -o Global.flags.FLAGS_cudnn_exhaustive_search=0 \
+    -o Global.flags.FLAGS_cudnn_deterministic=1 \
+    -o Global.pretrained_model=./pretrained/mocov3/mocov3_vit_base_in1k_300ep_pretrained

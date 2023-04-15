@@ -4,7 +4,8 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: null
+  pretrained_model: ./pretrained/mocov3/mocov3_vit_base_in1k_300ep_pretrained
+  finetune: True
   output_dir: ./output/
   device: gpu
   save_interval: 1
@@ -13,14 +14,14 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 300
+  epochs: 150
   print_batch_step: 10
   use_visualdl: False
-  seed: 2021
+  seed: 2022
 
 # FP16 setting
 FP16:
-  level: O2
+  level: O1
   GradScaler:
     init_loss_scaling: 65536.0
 
@@ -56,7 +57,7 @@ Optimizer:
   betas: (0.9, 0.999)
   eps: 1e-8
   weight_decay: 0.05
-  no_weight_decay_name: ["cls_token", "pos_embed", "norm"]
+  no_weight_decay_name: ["cls_token", "pos_embed", "norm", "bias"]
   use_master_param: True
   exp_avg_force_fp32: True
 
@@ -64,19 +65,13 @@ Optimizer:
 DataLoader:
   Train:
     dataset:
-      name: ImageNetDataset
-      image_root: ./dataset/ILSVRC2012/
-      cls_label_path: ./dataset/ILSVRC2012/train_list.txt
-      transform_ops:
-        - DecodeImage:
-            to_rgb: True
-            channel_first: False
-        - RandCropImage:
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/train
+      transform:
+        - RandomResizedCrop:
             size: 224
             interpolation: bicubic
-            backend: pil
-        - RandFlipImage:
-            flip_code: 1
+        - RandomHorizontalFlip:
         - TimmAutoAugment:
             config_str: rand-m9-mstd0.5-inc1
             interpolation: bicubic
@@ -96,7 +91,7 @@ DataLoader:
             use_log_aspect: True
             mode: pixel
         - ToCHWImage:
-      batch_transform_ops:
+      batch_transform:
         - TransformOpSampler:
             Mixup:
               alpha: 0.8
@@ -110,7 +105,7 @@ DataLoader:
               class_num: 1000
     sampler:
       name: RepeatedAugSampler
-      batch_size: 64
+      batch_size: 128 # accum_steps: 1, total batchsize: 1024
       drop_last: False
       shuffle: True
     loader:
@@ -119,18 +114,14 @@ DataLoader:
 
   Eval:
     dataset:
-      name: ImageNetDataset
-      image_root: ./dataset/ILSVRC2012/
-      cls_label_path: ./dataset/ILSVRC2012/val_list.txt
-      transform_ops:
-        - DecodeImage:
-            to_rgb: True
-            channel_first: False
-        - ResizeImage:
-            resize_short: 256
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/val
+      transform:
+        - Resize:
+            size: 256
             interpolation: bicubic
             backend: pil
-        - CenterCropImage:
+        - CenterCrop:
             size: 224
         - NormalizeImage:
             scale: 1.0/255.0

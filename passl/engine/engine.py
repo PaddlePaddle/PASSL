@@ -39,7 +39,8 @@ from passl.optimizer import build_optimizer
 from passl.utils import io
 from passl.core import recompute_warp, GradScaler, param_sync
 from passl.models.utils import EMA
-from . import classification
+from passl.utils.infohub import runtime_info_hub
+from . import loops
 
 
 class Engine(object):
@@ -55,6 +56,8 @@ class Engine(object):
         self.save_interval = self.config["Global"].get("save_interval", 1)
         self.accum_steps = self.config["Global"].get("accum_steps", 1)
 
+        self.enabled_ema = True if "EMA" in self.config else False
+
         assert isinstance(self.accum_steps, int) and self.accum_steps > 0, \
             "accum_steps must be int dtype and greater than 0"
 
@@ -63,7 +66,6 @@ class Engine(object):
         assert self.max_train_step is None or (
             isinstance(self.max_train_step, int) and self.max_train_step > 0
         ), "max_train_step must be int dtype and greater than 0"
-        self.global_step = 0
 
         # init distribution env
         self.config["Global"]["distributed"] = dist.get_world_size() != 1
@@ -97,21 +99,10 @@ class Engine(object):
         paddle.set_flags(RELATED_FLAGS_SETTING)
 
         # init logger
-        self.output_dir = self.config['Global']['output_dir']
         log_file = os.path.join(self.output_dir, self.config["Model"]["name"],
                                 f"{mode}.log")
         logger.init_logger(log_file=log_file)
         print_config(config)
-
-        # init train_func and eval_func
-        train_epoch_func_name = self.config['Global'].get(
-            "train_epoch_func", 'default_train_one_epoch')
-        self.train_epoch_func = getattr(
-            eval('{}'.format(self.task_type)), train_epoch_func_name)
-
-        eval_func_name = self.config['Global'].get("eval_func", 'default_eval')
-        self.eval_func = getattr(
-            eval('{}'.format(self.task_type)), eval_func_name)
 
         # for visualdl
         self.vdl_writer = None
@@ -148,20 +139,23 @@ class Engine(object):
                 worker_init_fn)
 
         # build loss
-        if self.mode == "train":
-            loss_info = self.config["Loss"]["Train"]
-            self.train_loss_func = build_loss(loss_info)
-        if self.mode == "eval" or (self.mode == "train" and
-                                   self.config["Global"]["eval_during_train"]):
-            loss_config = self.config.get("Loss", None)
-            if loss_config is not None:
-                loss_config = loss_config.get("Eval")
+        self.train_loss_func = None
+        self.eval_loss_func = None
+        if 'Loss' in self.config:
+            if self.mode == "train":
+                loss_info = self.config["Loss"]["Train"]
+                self.train_loss_func = build_loss(loss_info)
+            if self.mode == "eval" or (self.mode == "train" and
+                                       self.config["Global"]["eval_during_train"]):
+                loss_config = self.config.get("Loss", None)
                 if loss_config is not None:
-                    self.eval_loss_func = build_loss(loss_config)
+                    loss_config = loss_config.get("Eval")
+                    if loss_config is not None:
+                        self.eval_loss_func = build_loss(loss_config)
+                    else:
+                        self.eval_loss_func = None
                 else:
                     self.eval_loss_func = None
-            else:
-                self.eval_loss_func = None
 
         # build metric
         self.train_metric_func = None
@@ -283,7 +277,6 @@ class Engine(object):
                 self.data_parallel_recompute = self.config[
                     "DistributedStrategy"].get("recompute", None) is not None
 
-        self.enabled_ema = True if "EMA" in self.config else False
         if self.enabled_ema and self.mode == 'train':
             ema_cfg = self.config.get("EMA", {})
             self.ema_eval = ema_cfg.pop('ema_eval', False)
@@ -299,178 +292,59 @@ class Engine(object):
             self.ema = EMA(self.optimizer._param_groups, **ema_cfg)
             self.ema.register()
 
+        # build train_loop and eval_loop
+        validate_loop_name = self.config['Global'].get("validate_loop", None)
+        self.validate_loop = None
+        if validate_loop_name is not None:
+            self.validate_loop = eval('loops.{}'.format(validate_loop_name))(self)
+
+        train_loop_name = self.config['Global'].get("train_loop")
+        self.train_loop = eval('loops.{}'.format(train_loop_name))(
+            self,
+            epochs=self.config["Global"]["epochs"],
+            max_train_step=self.max_train_step,
+            val_loop=self.validate_loop,
+        )
+
+        self.init_runtime_info_hub()
+
+    @property
+    def cur_epoch_id(self):
+        return self.train_loop.cur_epoch_id
+
+    @property
+    def global_step(self):
+        return self.train_loop.global_step
+
+    @property
+    def epochs(self):
+        return self.train_loop.epochs
+
+    @property
+    def model_name(self):
+        return self.config["Model"]["name"]
+
+    @property
+    def max_num_checkpoint(self):
+        return self.config["Global"]["max_num_latest_checkpoint"]
+
+    @property
+    def output_dir(self):
+        return self.config['Global']['output_dir']
+
+    @property
+    def checkpoint(self):
+        return self.config["Global"]["checkpoint"]
+
+    def init_runtime_info_hub(self):
+        runtime_info_hub.epochs = self.train_loop.epochs
+        runtime_info_hub.max_steps = self.train_loop.max_steps
+
     def train(self):
         assert self.mode == "train"
-        self.best_metric = {
-            "metric": 0.0,
-            "epoch": 0,
-            "global_step": 0,
-        }
-
-        if self.enabled_ema and self.ema_eval:
-            self.ema_best_metric = {
-                "metric": 0.0,
-                "epoch": 0,
-                "global_step": 0,
-            }
-        # key:
-        # val: metrics list word
-        self.output_info = dict()
-        self.time_info = {
-            "batch_cost": SmoothedValue(window_size=self.print_batch_step),
-            "reader_cost": SmoothedValue(window_size=self.print_batch_step),
-        }
-
-        # load checkpoint and resume
-        if self.config["Global"]["checkpoint"] is not None:
-            if self.enabled_ema:
-                ema_metric_info = io.load_ema_checkpoint(
-                    self.config["Global"]["checkpoint"] + '_ema', self.ema)
-                if ema_metric_info is not None and self.ema_eval:
-                    self.ema_best_metric.update(ema_metric_info)
-
-            metric_info = io.load_checkpoint(
-                self.config["Global"]["checkpoint"], self.model,
-                self.optimizer, self.scaler)
-            if metric_info is not None:
-                self.best_metric.update(metric_info)
-            if "global_step" in metric_info:
-                self.global_step = metric_info["global_step"]
-
-        self.max_iter = len(self.train_dataloader) - 1 if platform.system(
-        ) == "Windows" else len(self.train_dataloader)
-        for epoch_id in range(self.best_metric["epoch"] + 1,
-                              self.config["Global"]["epochs"] + 1):
-            acc = 0.0
-            # for one epoch train
-            self.train_epoch_func(self, epoch_id)
-
-            if self.lr_decay_unit == 'epoch':
-                self.optimizer.lr_step(epoch_id)
-
-            if self.use_dali:
-                self.train_dataloader.reset()
-            metric_msg = ", ".join([
-                "{}: {:.5f}".format(key, self.output_info[key].global_avg)
-                for key in self.output_info
-            ])
-            logger.info("[Train][Epoch {}/{}][Avg]{}".format(
-                epoch_id, self.config["Global"]["epochs"], metric_msg))
-            self.output_info.clear()
-
-            # eval model and save model if possible
-            eval_metric_info = {
-                "epoch": epoch_id,
-                "global_step": self.global_step,
-            }
-            if self.config["Global"]["eval_unit"] == 'epoch' and self.config[
-                    "Global"]["eval_during_train"] and epoch_id % self.config[
-                        "Global"][
-                            "eval_interval"] == 0 and self.eval_metric_func is not None:
-                eval_metric_info = self.eval(epoch_id)
-                assert isinstance(eval_metric_info, dict)
-                if eval_metric_info["metric"] > self.best_metric["metric"]:
-                    self.best_metric = eval_metric_info.copy()
-                    io.save_checkpoint(
-                        self.model,
-                        self.optimizer,
-                        self.scaler,
-                        self.best_metric,
-                        self.output_dir,
-                        model_name=self.config["Model"]["name"],
-                        prefix="best_model",
-                        max_num_checkpoint=self.config["Global"][
-                            "max_num_latest_checkpoint"], )
-
-                logger.info("[Eval][Epoch {}][best metric: {}]".format(
-                    epoch_id, self.best_metric["metric"]))
-                logger.scaler(
-                    name="eval_metric",
-                    value=eval_metric_info["metric"],
-                    step=epoch_id,
-                    writer=self.vdl_writer)
-
-                if self.enabled_ema and self.ema_eval and epoch_id > self.ema_eval_start_epoch:
-                    self.ema.apply_shadow()
-                    ema_eval_metric_info = self.eval(epoch_id)
-
-                    if ema_eval_metric_info["metric"] > self.ema_best_metric[
-                            "metric"]:
-                        self.ema_best_metric = ema_eval_metric_info.copy()
-                        io.save_ema_checkpoint(
-                            self.model,
-                            self.ema,
-                            self.output_dir,
-                            self.ema_best_metric,
-                            model_name=self.config["Model"]["name"],
-                            prefix="best_model_ema",
-                            max_num_checkpoint=self.config["Global"][
-                                "max_num_latest_checkpoint"], )
-
-                    logger.info("[Eval][Epoch {}][ema best metric: {}]".format(
-                        epoch_id, self.ema_best_metric["metric"]))
-                    logger.scaler(
-                        name="ema_eval_metric",
-                        value=eval_metric_info["metric"],
-                        step=epoch_id,
-                        writer=self.vdl_writer)
-
-                    self.ema.restore()
-
-            # save model
-            if epoch_id % self.save_interval == 0 or epoch_id == self.config[
-                    "Global"]["epochs"]:
-                # save the latest model
-                io.save_checkpoint(
-                    self.model,
-                    self.optimizer,
-                    self.scaler,
-                    eval_metric_info,
-                    self.output_dir,
-                    model_name=self.config["Model"]["name"],
-                    prefix="latest",
-                    max_num_checkpoint=self.config["Global"][
-                        "max_num_latest_checkpoint"], )
-
-                if self.config["Global"]["max_num_latest_checkpoint"] != 0:
-                    io.save_checkpoint(
-                        self.model,
-                        self.optimizer,
-                        self.scaler,
-                        eval_metric_info,
-                        self.output_dir,
-                        model_name=self.config["Model"]["name"],
-                        prefix="epoch_{}".format(epoch_id),
-                        max_num_checkpoint=self.config["Global"][
-                            "max_num_latest_checkpoint"], )
-
-                if self.enabled_ema:
-                    if epoch_id == self.config["Global"]["epochs"]:
-                        self.ema.apply_shadow()
-
-                    io.save_ema_checkpoint(
-                        self.model,
-                        self.ema,
-                        self.output_dir,
-                        None,
-                        model_name=self.config["Model"]["name"],
-                        prefix="latest_ema",
-                        max_num_checkpoint=self.config["Global"][
-                            "max_num_latest_checkpoint"], )
-
-                    if self.config["Global"]["max_num_latest_checkpoint"] != 0:
-                        io.save_ema_checkpoint(
-                            self.model,
-                            self.ema,
-                            self.output_dir,
-                            None,
-                            model_name=self.config["Model"]["name"],
-                            prefix="epoch_{}_ema".format(epoch_id),
-                            max_num_checkpoint=self.config["Global"][
-                                "max_num_latest_checkpoint"], )
-
-                    if epoch_id == self.config["Global"]["epochs"]:
-                        self.ema.restore()
+        self.training = True
+        self.model.train()
+        self.train_loop.run()
 
         if self.vdl_writer is not None:
             self.vdl_writer.close()
@@ -479,7 +353,8 @@ class Engine(object):
     def eval(self, epoch_id=0):
         assert self.mode in ["train", "eval"]
         self.model.eval()
-        eval_result = self.eval_func(self, epoch_id)
+        self.validating = True
+        eval_result = self.validate_loop.run()
         self.model.train()
         return eval_result
 
