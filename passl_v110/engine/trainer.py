@@ -1,3 +1,17 @@
+# Copyright (c) 2023 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
@@ -102,7 +116,7 @@ class Trainer:
         self.log_interval = cfg.log_config.interval
 
         # set seed
-        seed = cfg.get('seed', False)
+        seed = cfg.get('seed', 2023)
         if seed:
             seed += dp_rank
             paddle.seed(seed)
@@ -145,21 +159,17 @@ class Trainer:
         self.train_dataloader, self.mixup_fn = build_dataloader(
             cfg.dataloader.train, self.device)
         self.iters_per_epoch = len(self.train_dataloader)
-
+        self.batch_size = cfg.dataloader.train.sampler.batch_size
+        self.global_batch_size = self.batch_size * dist.get_world_size()
         # use byol iters
         if self.use_byol_iters:
-            self.global_batch_size = cfg.global_batch_size
             self.byol_total_iters = self.epochs * cfg.total_images // self.global_batch_size
-
-        if self.use_byol_iters:
             self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
                                                    self.byol_total_iters)
         elif self.use_simclr_iters:
-            self.batch_size = cfg.dataloader.train.sampler.batch_size
-            self.global_batch_size = cfg.global_batch_size
             self.epochs = cfg.epochs
             self.lr_scheduler = build_lr_scheduler_simclr(
-                cfg.lr_scheduler, self.iters_per_epoch, self.batch_size * 8,
+                cfg.lr_scheduler, self.iters_per_epoch, self.global_batch_size,
                 cfg.epochs, self.current_iter)
         else:
             self.lr_scheduler = build_lr_scheduler(cfg.lr_scheduler,
@@ -224,9 +234,12 @@ class Trainer:
         self.add_train_hooks()
         self.add_custom_hooks()
         self.hooks = sorted(self.hooks, key=lambda x: x.priority)
-
         if self.epochs:
-            self.total_iters = self.epochs * self.iters_per_epoch
+            if cfg.get("total_iters", None):
+                self.total_iters = min(cfg.total_iters, self.epochs * self.iters_per_epoch)
+            else:
+                self.total_iters = self.epochs * self.iters_per_epoch
+
             self.by_epoch = True
         else:
             self.by_epoch = False
@@ -296,7 +309,8 @@ class Trainer:
             self.inner_iter = self.current_iter % self.iters_per_epoch
             self.current_iter += 1
             self.current_epoch = iter_loader.epoch
-
+            if hasattr(self.train_dataloader.batch_sampler, "set_epoch"):
+                self.train_dataloader.batch_sampler.set_epoch(self.current_epoch)
             data = next(iter_loader)
 
             self.call_hook('train_iter_begin')
@@ -368,7 +382,7 @@ class Trainer:
             else:
                 raise TypeError('unknown type of data')
 
-            labels = data[-1]
+            labels = data[-1].cuda()
             if self.use_amp:
                 with paddle.amp.auto_cast(**self.auto_cast):
                     pred = model(*data, mode='test')

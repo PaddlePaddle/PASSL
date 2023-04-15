@@ -1,14 +1,12 @@
 epochs: 90
+output_dir: cls_output_dir
 use_simclr_iters: True
-global_batch_size: 4096
-output_dir: output_dir
 seed: 0
 device: gpu
-total_iters: 51
-
 # used for static mode and model export
 image_shape: [3, 224, 224]
-save_inference_dir: ./inference
+save_inference_dir: ./cls_inference
+total_iters: 51
 
 model:
   name: Classification
@@ -66,23 +64,30 @@ dataloader:
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
 
+
 lr_scheduler:
   name: Cosinesimclr
   learning_rate: 1.6
   T_max: 90
 
+lr_config:
+  name: LRSchedulerHook
+  unit: epoch
+
 optimizer:
   name: LarsMomentumOptimizer
   momentum: 0.9
-  lars_weight_decay: 0.0
+  lars_weight_decay: 0
+  exclude_from_weight_decay: []
+
 
 log_config:
     name: LogHook
     interval: 10
 
-lr_config:
-  name: LRSchedulerHook
-  unit: epoch
-
 custom_config:
   - name: EvaluateHook
+
+checkpoint:
+    name: CheckpointHook
+    interval: 10

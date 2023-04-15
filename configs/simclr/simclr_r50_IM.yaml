@@ -2,6 +2,8 @@ epochs: 100
 use_simclr_iters: True
 global_batch_size: 4096
 output_dir: output_dir
+device: gpu
+total_iters: 51
 
 model:
   name: SimCLR
@@ -21,7 +23,9 @@ model:
 
 dataloader:
   train:
-    num_workers: 6
+    loader:
+      num_workers: 4
+      use_shared_memory: True
     sampler:
       batch_size: 32
       shuffle: true
@@ -55,7 +59,7 @@ dataloader:
           p: 0.5
         - name: RandomHorizontalFlip
         - name: Transpose
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
@@ -77,15 +81,17 @@ dataloader:
           p: 0.5
         - name: RandomHorizontalFlip
         - name: Transpose
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
 
   val:
-    num_workers: 4
+    loader:
+      num_workers: 4
+      use_shared_memory: True
     sampler:
-      batch_size: 512
+      batch_size: 256
       shuffle: false
       drop_last: false
     dataset:
@@ -98,29 +104,27 @@ dataloader:
         - name: CenterCrop
           size: 224
         - name: Transpose
-        - name: NormalizeImage                                                                                                                                                                                                                                                 
+        - name: NormalizeImage
           scale: 1.0/255.0
           mean: [0.485, 0.456, 0.406]
           std: [0.229, 0.224, 0.225]
 
 lr_scheduler:
   name: simclrCosineWarmup
-  learning_rate_scaling: sqrt
+  learning_rate_scaling: linear
   total_images: 1281167
   warmup_epochs: 10
   start_lr: 0
-  end_lr: 1.0
+  end_lr: 0.3
   T_max: 200
 
 
 optimizer:
   name: LarsMomentumOptimizer
   momentum: 0.9
-  lars_weight_decay: 0.0001
+  lars_weight_decay: 1e-6
   exclude_from_weight_decay: ["scale","offset",".bias"]
-  
+
 log_config:
     name: LogHook
     interval: 10
-
-

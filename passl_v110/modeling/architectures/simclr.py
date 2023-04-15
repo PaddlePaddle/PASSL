@@ -23,8 +23,8 @@ from ..heads import build_head
 import paddle.nn.functional as F
 import paddle.fluid.layers as layers
 
-
 LARGE_NUM = 1e9
+
 
 @MODELS.register()
 class SimCLR(nn.Layer):
@@ -32,33 +32,25 @@ class SimCLR(nn.Layer):
     Simple image SimCLR.
     """
 
-    def __init__(self,
-                 backbone,
-                 neck=None,
-                 head=None,
-                 dim=128,
-                 T=0.5):
+    def __init__(self, backbone, neck=None, head=None, dim=128, T=0.5):
         super(SimCLR, self).__init__()
         self.T = T
 
-        self.encoder = nn.Sequential(build_backbone(backbone),
-                                       build_neck(neck))
-
+        self.encoder = nn.Sequential(build_backbone(backbone), build_neck(neck))
         self.backbone = self.encoder[0]
         self.head = build_head(head)
-
-
 
     def train_iter(self, *inputs, **kwargs):
         img_q, img_k = inputs
         img_con = [img_q, img_k]
         img_con = paddle.concat(img_con)
         con = self.encoder(img_con)
-        con = layers.l2_normalize(con, -1)
-        q, k = layers.split(con, num_or_sections=2, dim=0)
+        con = paddle.nn.functional.normalize(con, axis=-1)
+        q, k = paddle.split(con, num_or_sections=2, axis=0)
         outputs = self.head(q, k)
 
         return outputs
+
     def test_iter(self, *inputs, **kwargs):
         with paddle.no_grad():
             img, label = inputs

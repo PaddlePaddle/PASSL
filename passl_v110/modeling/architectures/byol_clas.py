@@ -37,7 +37,7 @@ class ByolClassification(nn.Layer):
     """
 
     def __init__(self, backbone, with_sobel=False, head=None):
-        super(Classification, self).__init__()
+        super(ByolClassification, self).__init__()
 
         self.with_sobel = with_sobel
         if with_sobel:
