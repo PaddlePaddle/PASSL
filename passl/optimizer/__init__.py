@@ -30,10 +30,13 @@ from .adamw import AdamW
 from .adafactor import Adafactor
 from .momentum import Momentum
 from .momentum_lars import MomentumLARS
+from .momentum_larc import MomentumLARC
 
 
 def build_optimizer(config, lr_scheduler, model=None):
     config = copy.deepcopy(config)
+
+    optim_name = config.pop('name')
 
     grad_clip = None
     grad_clip_config = config.pop('grad_clip', None)
@@ -50,16 +53,22 @@ def build_optimizer(config, lr_scheduler, model=None):
             state['no_weight_decay'] = True
         param_group[str(state)].append(p)
 
-    # fuse params
-    for key in param_group:
-        if 'gpu' not in paddle.get_device():
-            continue
-        if "'is_distributed': True" in key:
-            continue
-        if "'has_sparse_grad': True" in key:
-            continue
+    tensor_fusion = config.pop('tensor_fusion', True)
+    if 'LAR' in optim_name:
+        tensor_fusion = False
+        logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
-        param_group[key] = get_fused_params(param_group[key])
+    if tensor_fusion:
+        # fuse params
+        for key in param_group:
+            if 'gpu' not in paddle.get_device():
+                continue
+            if "'is_distributed': True" in key:
+                continue
+            if "'has_sparse_grad': True" in key:
+                continue
+
+            param_group[key] = get_fused_params(param_group[key])
 
     # bulid optimizer params
     params = []
@@ -74,7 +83,7 @@ def build_optimizer(config, lr_scheduler, model=None):
 
         params.append(group)
 
-    optim_name = config.pop('name')
+
     optim = eval(optim_name)(params,
                              lr=lr_scheduler,
                              grad_clip=grad_clip,
