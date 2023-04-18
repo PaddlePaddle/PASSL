@@ -48,9 +48,9 @@ function ViT_base_patch16_224_in1k_1n8c_dp_fp16o2() {
     rm -rf log
     bash ./classification/vit/ViT_base_patch16_224_in1k_1n8c_dp_fp16o2.sh
     
-    loss=`tail log/workerlog.0 | grep '49/313' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/313' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/313' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/313' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=10.47853
     ips_base=2140.74
     mem_base=21.04
@@ -63,9 +63,9 @@ function ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2() {
     rm -rf log
     bash ./classification/vit/ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2.sh
     
-    loss=`tail log/workerlog.0 | grep '49/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.90351
     ips_base=420.1
     mem_base=10.04
@@ -80,9 +80,9 @@ function DeiT_base_patch16_224_in1k_1n8c_dp_fp32() {
     rm -rf log
     bash ./classification/deit/DeiT_base_patch16_224_in1k_1n8c_dp_fp32.sh
 
-    loss=`tail log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.90003
     ips_base=783.895
     mem_base=11.40
@@ -96,9 +96,9 @@ function DeiT_base_patch16_224_in1k_1n8c_dp_fp16o2() {
     rm -rf log
     bash ./classification/deit/DeiT_base_patch16_224_in1k_1n8c_dp_fp16o2.sh
 
-    loss=`tail log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.90155
     ips_base=2079.68
     mem_base=11.40
@@ -113,9 +113,9 @@ function cait_s24_224_in1k_1n8c_dp_fp16o2() {
     rm -rf log
     bash ./classification/cait/cait_s24_224_in1k_1n8c_dp_fp16o2.sh
 
-    loss=`tail log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.93708
     ips_base=1824.29
     mem_base=17.53
@@ -130,9 +130,9 @@ function swin_base_patch4_window7_224_fp16o2() {
     rm -rf log
     bash ./classification/swin/swin_base_patch4_window7_224_fp16o2.sh
 
-    loss=`tail log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=7.06612
     ips_base=944.051
     mem_base=17.52
@@ -147,9 +147,9 @@ function mae_vit_base_patch16_pt_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/mae/mae_vit_base_patch16_pt_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
     loss_base=1.0064
     ips_base=0.4965
     mem_base=13245
@@ -163,9 +163,9 @@ function mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/mae/mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.7559
     ips_base=0.2332
     mem_base=7167
@@ -179,9 +179,9 @@ function mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/mae/mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.6991
     ips_base=1.072845
     mem_base=6550
@@ -196,9 +196,9 @@ function convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/convmae/convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1.sh
     
-    loss=`tail log/workerlog.0 | grep '99/2502' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '99/2502' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '99/2502' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '99/2502' | awk -F 'max mem: ' '{print $2}'`
     loss_base=1.5487
     ips_base=0.456938
     mem_base=14574
@@ -212,9 +212,9 @@ function convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/convmae/convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.7890
     ips_base=0.2964
     mem_base=9896
@@ -228,9 +228,9 @@ function convmae_convvit_base_patch16_lp_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/convmae/convmae_convvit_base_patch16_lp_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.9417
     ips_base=0.3474
     mem_base=5940
@@ -245,9 +245,9 @@ function ConvNeXt_base_224_in1k_1n8c_dp_fp32() {
     rm -rf log
     bash ./classification/convnext/ConvNeXt_base_224_in1k_1n8c_dp_fp32.sh
 
-    loss=`tail log/workerlog.0 | grep '50/312' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '50/312' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '50/312' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '50/312' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.91436
     ips_base=708.5226
     mem_base=18.38
@@ -262,9 +262,9 @@ function cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1.sh
     
-    loss=`tail log/workerlog.0 | grep '199/2502' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '199/2502' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '199/2502' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '199/2502' | awk -F 'max mem: ' '{print $2}'`
     loss_base=9.6744
     ips_base=0.54708
     mem_base=10789
@@ -278,9 +278,9 @@ function cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.3034
     ips_base=2.49244
     mem_base=21131
@@ -294,9 +294,9 @@ function cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'
+    loss=`cat log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
+    mem=`cat log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.7196
     ips_base=1.07848
     mem_base=5599
@@ -311,9 +311,9 @@ function mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/mocov3/mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '49/2503' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/2503' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/2503' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/2503' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=4.44258
     ips_base=539.487
     mem_base=17.89
@@ -327,9 +327,9 @@ function mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/mocov3/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.90772
     ips_base=1536.56
     mem_base=18.65
@@ -343,9 +343,9 @@ function mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/mocov3/mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`tail log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`tail log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=6.57023
     ips_base=3795.44
     mem_base=2.17
