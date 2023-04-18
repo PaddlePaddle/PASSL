@@ -294,7 +294,7 @@ function cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.sh
 
-    loss=`cat log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'
+    loss=`cat log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.7196
