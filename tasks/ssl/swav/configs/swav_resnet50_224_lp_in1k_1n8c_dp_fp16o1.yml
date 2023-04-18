@@ -4,8 +4,8 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: swav_800ep_pretrain.pdparams
-  output_dir: ./output/
+  pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
+  output_dir: ./output/baseline
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -14,7 +14,7 @@ Global:
   eval_unit: "epoch"
   accum_steps: 1
   epochs: 100
-  print_batch_step: 10
+  print_batch_step: 100
   use_visualdl: False
   seed: 31
 
@@ -41,7 +41,7 @@ Loss:
 
 LRScheduler:
     name: TimmCosine
-    learning_rate: 0.3
+    learning_rate: 0.6
     decay_unit: epoch
     last_epoch: 0
     warmup_epoch: 0
@@ -57,7 +57,7 @@ DataLoader:
   Train:
     dataset:
       name: ImageFolder
-      root: ./dataset/ILSVRC2012/train
+      root: data/ILSVRC2012/train
       transform:
         - RandomResizedCrop:
             size: 224
@@ -78,7 +78,7 @@ DataLoader:
   Eval:
     dataset:
       name: ImageFolder
-      root: ./dataset/ILSVRC2012/val
+      root: data/ILSVRC2012/val
       transform:
         - Resize:
             size: 256

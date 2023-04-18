@@ -1,4 +1,6 @@
 import paddle
+import paddle.nn as nn
+
 from passl.models.base_model import Model
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -95,6 +97,7 @@ def constant_init(param, **kwargs):
     initializer = nn.initializer.Constant(**kwargs)
     initializer(param, param.block)
     
+    
 class ResNet(paddle.nn.Layer):
     def __init__(self, block, layers, zero_init_residual=False, groups=1,
         widen=1, width_per_group=64, replace_stride_with_dilation=None,
@@ -159,8 +162,8 @@ class ResNet(paddle.nn.Layer):
                 if isinstance(sublayer, nn.Conv2D):
                     kaiming_normal_init(sublayer.weight) # todo mode='fan_out',
                 elif isinstance(sublayer, (nn.BatchNorm2D, nn.GroupNorm)):
-                    param_init.constant_init(sublayer.weight, value=1.0)
-                    param_init.constant_init(sublayer.bias, value=0.0)
+                    constant_init(sublayer.weight, value=1.0)
+                    constant_init(sublayer.bias, value=0.0)
 
         if zero_init_residual:
             for sublayer in self.sublayers():
@@ -219,7 +222,7 @@ class ResNet(paddle.nn.Layer):
             inputs = [inputs]
         idx_crops = paddle.cumsum(x=paddle.unique_consecutive(x=paddle.
             to_tensor(data=[inp.shape[-1] for inp in inputs]),
-            return_counts=True)[1], dim=0)
+            return_counts=True)[1], axis=0) # padiff
         start_idx = 0
         for end_idx in idx_crops:
             _out = self.forward_backbone(paddle.concat(x=inputs[start_idx:

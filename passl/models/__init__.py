@@ -25,6 +25,7 @@ from .swin_transformer import *
 from .cae import *
 from .convnext import *
 from .mocov3 import *
+from .swav import *
 
 __all__ = ["build_model"]
 

@@ -13,14 +13,20 @@
 # limitations under the License.
 
 #unset PADDLE_TRAINER_ENDPOINTS
-#export PADDLE_NNODES=1
-#export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
-#export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export FLAGS_stop_check_timeout=3600
+# export PADDLE_NNODES=1
+# #export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
+# export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+# export FLAGS_stop_check_timeout=3600
+unset PADDLE_TRAINER_ENDPOINTS
+unset DISTRIBUTED_TRAINER_ENDPOINTS
+export PADDLE_NNODES=1
+export PADDLE_MASTER="127.0.0.1:12538"
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    passl-train \
-    -c ./configs/mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml
+    tools/train.py -c tasks/ssl/swav/configs/swav_resnet50_224_lp_in1k_1n8c_dp_fp16o1.yml
+
+# python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c

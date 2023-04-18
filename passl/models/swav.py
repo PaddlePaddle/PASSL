@@ -1,3 +1,5 @@
+import os
+
 import paddle
 import paddle.nn as nn
 
@@ -6,7 +8,7 @@ from passl.models.base_model import Model
 
 
 __all__ = [
-    'swav_resnet50',
+    # 'swav_resnet50',
     'swav_resnet50_linearprobe',
     # 'swav_resnet50_pretrain',
     'SwAV',
@@ -52,42 +54,48 @@ class SwAV(Model):
 
         
 class SwAVLinearProbe(SwAV):
-    def __init__(self, num_classes=1000, linear_arch="resnet50", global_avg=True, use_bn=False, **kwargs):
+    def __init__(self, class_num=1000, linear_arch="resnet50", global_avg=True, use_bn=False, **kwargs):
         super().__init__(**kwargs)
         self.linear = RegLog(1000, "resnet50", global_avg=True, use_bn=False)
         self.res_model.eval()
-        self.criterion = nn.CrossEntropyLoss()
     
-    def load_pretrained(self, path):
+    def load_pretrained(self, path, rank=0, finetune=False):
         # only load res_model
-        model = path + ".pdparams"
         if os.path.isfile(path):
-            state_dict = paddle.load(path)
-
-            # remove prefixe "module."
-            state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
-            for k, v in model.state_dict().items():
-                if k not in list(state_dict):
-                    logger.info('key "{}" could not be found in provided state dict'.format(k))
-                elif state_dict[k].shape != v.shape:
-                    logger.info('key "{}" is of different shape in model and provided state dict'.format(k))
-                    state_dict[k] = v
-            msg = self.res_model.set_dict(state_dict, strict=False)
-            logger.info("Load pretrained model with msg: {}".format(msg))
+            para_state_dict = paddle.load(path)
+            
+            # resnet
+            model_state_dict = self.res_model.state_dict()
+            keys = model_state_dict.keys()
+            num_params_loaded = 0
+            for k in keys:
+                if k not in para_state_dict:
+                    print("{} is not in pretrained model".format(k))
+                elif list(para_state_dict[k].shape) != list(model_state_dict[k]
+                                                            .shape):
+                    print(
+                        "[SKIP] Shape of pretrained params {} doesn't match.(Pretrained: {}, Actual: {})"
+                        .format(k, para_state_dict[k].shape, model_state_dict[k]
+                                .shape))
+                else:
+                    model_state_dict[k] = para_state_dict[k]
+                    num_params_loaded += 1
+            self.res_model.set_dict(model_state_dict)
+            print("There are {}/{} variables loaded into {}.".format(
+                num_params_loaded, len(model_state_dict), "backbone"))
         else:
-            logger.info("No pretrained weights found => training with random weights")
+            print("No pretrained weights found => training with random weights")
         
-    def forward()
+    def forward(self, inp):
         with paddle.no_grad():
             output = self.res_model(inp)
-        output = reglog(output)
+        output = self.linear(output)
         
         return output
 
         
 def swav_resnet50_linearprobe(**kwargs):
-    model = SwAVLinearProbe(num_classes=1000, 
-                            linear_arch="resnet50", 
+    model = SwAVLinearProbe(linear_arch="resnet50", 
                             global_avg=True, 
                             use_bn=False,
                             output_dim=0, 
@@ -96,7 +104,14 @@ def swav_resnet50_linearprobe(**kwargs):
     return model
         
             
+def normal_init(param, **kwargs):
+    initializer = nn.initializer.Normal(**kwargs)
+    initializer(param, param.block)
 
+def constant_init(param, **kwargs):
+    initializer = nn.initializer.Constant(**kwargs)
+    initializer(param, param.block)
+        
 class RegLog(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
 
@@ -120,16 +135,16 @@ class RegLog(paddle.nn.Layer):
                 self.bn = paddle.nn.BatchNorm2D(num_features=2048, momentum
                     =1 - 0.1, epsilon=1e-05, weight_attr=None, bias_attr=
                     None, use_global_stats=True)
+        
         self.linear = paddle.nn.Linear(in_features=s, out_features=num_labels)
-        x = self.linear.weight.data
-        paddle.assign(paddle.normal(mean=0.0, std=0.01, shape=x.shape).
-            astype(x.dtype), x)
-        self.linear.bias.data.zero_()
+        normal_init(self.linear.weight, mean=0.0, std=0.01)
+        constant_init(self.linear.bias, value=0.0) # padiff
+
 
     def forward(self, x):
         x = self.av_pool(x)
         if self.bn is not None:
             x = self.bn(x)
 
-        x = x.view((x.shape[0], -1))
+        x = x.reshape((x.shape[0], -1))
         return self.linear(x)
