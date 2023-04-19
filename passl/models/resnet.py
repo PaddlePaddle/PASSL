@@ -30,6 +30,7 @@ from paddle.vision.models.resnet import ResNet as PDResNet
 from paddle.vision.models.resnet import BottleneckBlock, BasicBlock
 
 from passl.models.base_model import Model
+from passl.nn import init
 
 __all__ = [
     "ResNet",
@@ -57,8 +58,19 @@ class ResNet(PDResNet, Model):
         class_num=1000,
         with_pool=True,
         groups=1,
+        zero_init_residual=True,
     ):
         super().__init__(block, depth=depth, width=width, num_classes=class_num, with_pool=with_pool, groups=groups)
+
+        # Zero-initialize the last BN in each residual branch,
+        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+        if zero_init_residual:
+            for m in self.sublayers():
+                if isinstance(m, BottleneckBlock):
+                    init.constant_(m.bn3.weight, 0)
+                elif isinstance(m, BasicBlock):
+                    init.constant_(m.bn2.weight, 0)
 
     def load_pretrained(self, path, rank=0, finetune=False):
         if not os.path.exists(path + '.pdparams'):
