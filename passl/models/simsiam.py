@@ -156,7 +156,7 @@ class SimSiamPretain(Model):
             # delete renamed or unused k
             del state_dict[k]
 
-        paddle.save(state_dict(), path + "_encoder.pdparams")
+        paddle.save(state_dict, path + "_encoder.pdparams")
 
 
 class SimSiamLinearProbe(ResNet):
