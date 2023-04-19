@@ -1,11 +1,20 @@
 import os
+import sys
+LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(LOCAL_PATH, '../..'))
+sys.path.append(os.path.join(LOCAL_PATH, '.'))
+sys.path.append(os.path.join(LOCAL_PATH, '../'))
 
 import paddle
 import paddle.nn as nn
 
+from passl.nn import init
 from passl.models.resnet import resnet50
 from passl.models.base_model import Model
 
+
+# from resnet import resnet50
+# from base_model import Model
 
 __all__ = [
     # 'swav_resnet50',
@@ -87,6 +96,11 @@ class SwAVLinearProbe(SwAV):
             print("No pretrained weights found => training with random weights")
         
     def forward(self, inp):
+        # import numpy as np
+        # np.random.seed(42)
+        # a = np.random.rand(32, 3, 224, 224)
+        # inp = paddle.to_tensor(a).astype('float32')
+        
         with paddle.no_grad():
             output = self.res_model(inp)
         output = self.linear(output)
@@ -104,13 +118,13 @@ def swav_resnet50_linearprobe(**kwargs):
     return model
         
             
-def normal_init(param, **kwargs):
-    initializer = nn.initializer.Normal(**kwargs)
-    initializer(param, param.block)
+# def normal_init(param, **kwargs):
+#     initializer = nn.initializer.Normal(**kwargs)
+#     initializer(param, param.block)
 
-def constant_init(param, **kwargs):
-    initializer = nn.initializer.Constant(**kwargs)
-    initializer(param, param.block)
+# def constant_init(param, **kwargs):
+#     initializer = nn.initializer.Constant(**kwargs)
+#     initializer(param, param.block)
         
 class RegLog(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
@@ -137,8 +151,10 @@ class RegLog(paddle.nn.Layer):
                     None, use_global_stats=True)
         
         self.linear = paddle.nn.Linear(in_features=s, out_features=num_labels)
-        normal_init(self.linear.weight, mean=0.0, std=0.01)
-        constant_init(self.linear.bias, value=0.0) # padiff
+        # normal_init(self.linear.weight, mean=0.0, std=0.01) # init is correct?
+        # constant_init(self.linear.bias, value=0.0) # padiff
+        init.normal_(self.linear.weight, mean=0.0, std=0.01)
+        init.zeros_(self.linear.bias)
 
 
     def forward(self, x):
@@ -148,3 +164,56 @@ class RegLog(paddle.nn.Layer):
 
         x = x.reshape((x.shape[0], -1))
         return self.linear(x)
+
+if __name__ == "__main__":
+    import torch
+    
+    class RegLog_torch(torch.nn.Module):
+        """Creates logistic regression on top of frozen features"""
+
+        def __init__(self, num_labels, arch="resnet50", global_avg=False, use_bn=True):
+            super(RegLog_torch, self).__init__()
+            self.bn = None
+            if global_avg:
+                if arch == "resnet50":
+                    s = 2048
+                elif arch == "resnet50w2":
+                    s = 4096
+                elif arch == "resnet50w4":
+                    s = 8192
+                self.av_pool = torch.nn.AdaptiveAvgPool2d((1, 1))
+            else:
+                assert arch == "resnet50"
+                s = 8192
+                self.av_pool = torch.nn.AvgPool2d(6, stride=1)
+                if use_bn:
+                    self.bn = torch.nn.BatchNorm2d(2048)
+            self.linear = torch.nn.Linear(s, num_labels)
+            self.linear.weight.data.normal_(mean=0.0, std=0.01)
+            self.linear.bias.data.zero_()
+
+        def forward(self, inp2):
+            # average pool the final feature map
+            x = self.av_pool(inp2)
+
+            # optional BN
+            if self.bn is not None:
+                x = self.bn(x)
+
+            # flatten
+            x = x.view(x.size(0), -1)
+
+            # linear layer
+            return self.linear(x)
+    
+    layer = RegLog(1000, 'resnet50', True, False)
+    module = RegLog_torch(1000, 'resnet50', True, False)
+    
+    
+    inp = paddle.rand((4, 2048, 7, 7)).numpy().astype("float32")
+    inp = ({'x': paddle.to_tensor(inp)}, 
+     {'inp2': torch.as_tensor(inp) })
+    
+    import padiff
+    from padiff import auto_diff
+    auto_diff(layer, module, inp, auto_weights=True, options={'atol': 1e-4, 'rtol':0, 'compare_mode': 'strict', 'single_step':False, 'diff_phase': 'both'})
