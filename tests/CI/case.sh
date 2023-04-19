@@ -17,242 +17,364 @@ set -e
 
 export passl_path=/paddle/PASSL/tests/CI
 export log_path=/paddle/log_passl
-passl_gpu_model_list=( \
-    ViT_base_patch16_224_in1k_1n8c_dp_fp16o2 \
-    ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2 \
-    DeiT_base_patch16_224_in1k_1n8c_dp_fp32 \
-    DeiT_base_patch16_224_in1k_1n8c_dp_fp16o2 \
-    cait_s24_224_in1k_1n8c_dp_fp16o2 \
-    swin_base_patch4_window7_224_fp16o2 \
-    mae_vit_base_patch16_pt_in1k_1n8c_dp_fp16o1 \
-    mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1 \
-    mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1 \
-    convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1 \
-    convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1 \
-    convmae_convvit_base_patch16_lp_in1k_1n8c_dp_fp16o1 \
-    ConvNeXt_base_224_in1k_1n8c_dp_fp32 \
-    cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1 \
-    cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1 \
-    cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1 \
-    mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1 \
-    mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1 \
-    mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1 \
-)
 
+function model_list(){
+    ViT_base_patch16_224_in1k_1n8c_dp_fp16o2
+    ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2
+    DeiT_base_patch16_224_in1k_1n8c_dp_fp32
+    DeiT_base_patch16_224_in1k_1n8c_dp_fp16o2
+    cait_s24_224_in1k_1n8c_dp_fp16o2
+    swin_base_patch4_window7_224_fp16o2
+    ConvNeXt_base_224_in1k_1n8c_dp_fp32
+    mae_vit_base_patch16_pt_in1k_1n8c_dp_fp16o1
+    mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1
+    mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1
+    convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1
+    convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1
+    convmae_convvit_base_patch16_lp_in1k_1n8c_dp_fp16o1
+    cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1
+    cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1
+    cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1
+    mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1
+    mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1
+    mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1
+}
+
+############ case start ############
 
 ###### ViT ######
 function ViT_base_patch16_224_in1k_1n8c_dp_fp16o2() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/vit/ViT_base_patch16_224_in1k_1n8c_dp_fp16o2.sh
-    loss=`tail log/workerlog.0 | grep "49/313" | cut -d " " -f19 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f25 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 10.47853 ${loss%?} 2140.74 ${ips} $FUNCNAME
+    
+    loss=`cat log/workerlog.0 | grep '49/313' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/313' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=10.47853
+    ips_base=2140.74
+    mem_base=21.04
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 function ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/vit/ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2.sh
-    loss=`tail log/workerlog.0 | grep "49/2502" | cut -d " " -f19 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f25 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.90351 ${loss%?} 420.1 ${ips} $FUNCNAME
+    
+    loss=`cat log/workerlog.0 | grep '49/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.90351
+    ips_base=420.1
+    mem_base=10.04
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### DeiT ######
 function DeiT_base_patch16_224_in1k_1n8c_dp_fp32() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/deit/DeiT_base_patch16_224_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "49/1251" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.90003 ${loss%?} 783.895 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.90003
+    ips_base=783.895
+    mem_base=11.40
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function DeiT_base_patch16_224_in1k_1n8c_dp_fp16o2() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/deit/DeiT_base_patch16_224_in1k_1n8c_dp_fp16o2.sh
-    loss=`tail log/workerlog.0 | grep "49/1251" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.90155 ${loss%?} 2079.68 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.90155
+    ips_base=2079.68
+    mem_base=11.40
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### CaiT ######
 function cait_s24_224_in1k_1n8c_dp_fp16o2() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/cait/cait_s24_224_in1k_1n8c_dp_fp16o2.sh
-    loss=`tail log/workerlog.0 | grep "49/1251" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.93708 ${loss%?} 1824.29 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.93708
+    ips_base=1824.29
+    mem_base=17.53
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### Swin ######
 function swin_base_patch4_window7_224_fp16o2() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/swin/swin_base_patch4_window7_224_fp16o2.sh
-    loss=`tail log/workerlog.0 | grep "49/1252" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 7.06612 ${loss%?} 944.051 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=7.06612
+    ips_base=944.051
+    mem_base=17.52
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### MAE ######
 function mae_vit_base_patch16_pt_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/mae/mae_vit_base_patch16_pt_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "199/1251" | cut -d " " -f15 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 1.0064 ${loss} 0.4965 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=1.0064
+    ips_base=0.4965
+    mem_base=13245
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/mae/mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "599/5004" | cut -d " " -f15 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.7559 ${loss} 0.2332 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=6.7559
+    ips_base=0.2332
+    mem_base=7167
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/mae/mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "199/312" | cut -d " " -f14 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.6991 ${loss} 1.072845 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=6.6991
+    ips_base=1.072845
+    mem_base=6550
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### ConvMAE ######
 function convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/convmae/convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "99/2502" | cut -d " " -f16 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 1.5487 ${loss} 0.456938 ${ips} $FUNCNAME
+    
+    loss=`cat log/workerlog.0 | grep '99/2502' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '99/2502' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=1.5487
+    ips_base=0.456938
+    mem_base=14574
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/convmae/convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "599/5004" | cut -d " " -f15 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.7890 ${loss} 0.2964 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=6.7890
+    ips_base=0.2964
+    mem_base=9896
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function convmae_convvit_base_patch16_lp_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/convmae/convmae_convvit_base_patch16_lp_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "199/1251" | cut -d " " -f15 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.9417 ${loss} 0.3474 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=6.9417
+    ips_base=0.3474
+    mem_base=5940
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### ConvNeXt ######
 function ConvNeXt_base_224_in1k_1n8c_dp_fp32() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./classification/convnext/ConvNeXt_base_224_in1k_1n8c_dp_fp32.sh
-    loss=`tail log/workerlog.0 | grep "50/312" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f21 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.91436 ${loss%?} 708.5226 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '50/312' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '50/312' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.91436
+    ips_base=708.5226
+    mem_base=18.38
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### CAE ######
 function cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_pt_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "199/2502" | cut -d " " -f19 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $16}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 9.6744 ${loss} 0.54708 ${ips} $FUNCNAME
+    
+    loss=`cat log/workerlog.0 | grep '199/2502' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '199/2502' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=9.6744
+    ips_base=0.54708
+    mem_base=10789
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "199/1251" | cut -d " " -f15 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.3034 ${loss} 2.49244 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '199/1251' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '199/1251' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=6.3034
+    ips_base=2.49244
+    mem_base=21131
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/cae/cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "199/312" | cut -d " " -f14 `
-    ips=`cat log/workerlog.0 |grep time: |awk -F: '{print $10}' |cut -d " " -f2|awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.7196 ${loss} 1.07848 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '199/312' | awk -F 'loss: ' '{print $2}' | awk -F ' ' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '199/312' | awk -F 'max mem: ' '{print $2}'`
+    loss_base=6.7196
+    ips_base=1.07848
+    mem_base=5599
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 ###### MoCoV3 ######
 function mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/mocov3/mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "49/2503" | cut -d " " -f11 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f17 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 4.44258 ${loss%?} 539.487 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/2503' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/2503' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=4.44258
+    ips_base=539.487
+    mem_base=17.89
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/mocov3/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "49/1251" | cut -d " " -f13 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f19 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.90772 ${loss%?} 1536.56 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/1251' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/1251' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.90772
+    ips_base=1536.56
+    mem_base=18.65
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
-    cd ${passl_path}
+    echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/mocov3/mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.sh
-    loss=`tail log/workerlog.0 | grep "49/1252" | cut -d " " -f19 `
-    ips=`cat log/workerlog.0 |grep ips: |cut -d " " -f25 |awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    check_result 6.57023 ${loss%?} 3795.44 ${ips} $FUNCNAME
+
+    loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.57023
+    ips_base=3795.44
+    mem_base=2.17
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
 }
 
 
 function check_result() {
     if [ $? -ne 0 ];then
-      echo -e "\033 $5 model runs failed! \033" | tee -a $log_path/result.log
+      echo -e "\033 $1 model runs failed! \033" | tee -a $log_path/result.log
       exit -1
     fi
 
-    echo -e "loss_base: $1 loss_test: $2" | tee -a $log_path/result.log
-    if [ $1 != $2 ];then
-      echo -e "\033 $5 loss diff check failed! \033" | tee -a $log_path/result.log
+    if [ $# -ne 7 ]; then
+        echo -e "\033 parameter transfer failed: $@ \033" | tee -a $log_path/result.log
+        exit -1
+    fi
+
+    echo -e "loss_base: $2 loss_test: $3" | tee -a $log_path/result.log
+    if [ $2 != $3 ];then
+      echo -e "\033 $1 loss diff check failed! \033" | tee -a $log_path/result.log
       exit -1
     fi
 
-    diff=$(echo $3 $4|awk '{printf "%0.2f\n", ($2-$1)/$1*100}')
-    echo -e "ips_base: $3 ips_test: $4 ips_diff: $diff% " | tee -a $log_path/result.log
-    if [ $5 == mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1 ];then
+    diff=$(echo $4 $5|awk '{printf "%0.2f\n", ($2-$1)/$1*100}')
+    echo -e "ips_base: $4 ips_test: $5 ips_diff: $diff% " | tee -a $log_path/result.log
+    # 设置不同ips校验阈值
+    if [ $1 == mae_vit_base_patch16_lp_in1k_1n8c_dp_fp16o1 ];then
         v1=$(echo $diff 10.0|awk '{print($1>=$2)?"0":"1"}')
         v2=$(echo $diff -10.0|awk '{print($1<=$2)?"0":"1"}')
     else
@@ -260,23 +382,23 @@ function check_result() {
         v2=$(echo $diff -5.0|awk '{print($1<=$2)?"0":"1"}')
     fi
     if [[ $v1 == 0 ]] || [[ $v2 == 0 ]];then
-      echo -e "\033 $5 ips diff check failed! \033" | tee -a $log_path/result.log
+      echo -e "\033 $1 ips diff check failed! \033" | tee -a $log_path/result.log
       exit -1
     fi
+
+    echo -e "mem_base: $6 mem_test: $7" | tee -a $log_path/result.log
+    if [ $6 != $7 ];then
+      echo -e "\033 $1 mem diff check failed! \033" | tee -a $log_path/result.log
+      exit -1
+    fi
+
 }
 
-function run_gpu_models(){
-    cd
-      for model in ${passl_gpu_model_list[@]}
-      do
-        echo "=========== ${model} run begin ==========="
-        $model
-        echo "=========== ${model} run  end ==========="
-      done
-}
 
 main() {
-    run_gpu_models
+    cd ${passl_path}
+    
+    model_list
 }
 
 main$@
