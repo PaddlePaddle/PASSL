@@ -14,7 +14,8 @@
 
 unset http_proxy https_proxy
 python -m pip install -r requirements.txt --force-reinstall
-python -m pip install protobuf==3.20 --force-reinstall
+python -m pip uninstall protobuf -y
+python -m pip install protobuf==3.20.3 --force-reinstall
 python setup.py develop
 
 # dataset
