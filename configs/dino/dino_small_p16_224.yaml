@@ -1,0 +1,154 @@
+epochs: 100
+output_dir: output_dir
+seed: 0
+device: gpu
+
+model:
+  name: DINO
+  architecture:
+    name: VisionTransformer
+    img_size: 224
+    patch_size: 16
+    width: 384
+    depth: 12
+    num_heads: 6
+    mlp_ratio: 4
+    epsilon: 1e-6
+  neck:
+    name: DINONeck
+    in_dim: 384
+    out_dim: 65536
+    use_bn: False
+  head:
+    name: DINOHead
+    out_dim: 65536
+    n_crops: 10
+    warmup_teacher_temp: 0.04
+    teacher_temp: 0.04
+    warmup_teacher_temp_epochs: 0
+    n_epochs: 100
+
+dataloader:
+  train:
+    loader:
+      num_workers: 16
+      use_shared_memory: True
+    sampler:
+      batch_size: 64
+      shuffle: true
+      drop_last: true
+    dataset:
+      name: ImageNet
+      dataroot: data/ILSVRC2012/train
+      return_label: False
+      return_two_sample: False
+      transforms:
+        - name: MultiCrop
+          global_transform1:
+            - name: RandomResizedCrop
+              size: 224
+              scale: [0.4, 1.]
+              interpolation: bicubic
+            - name: RandomHorizontalFlip
+            - name: RandomApply
+              transforms:
+                - name: ColorJitter
+                  brightness: 0.4
+                  contrast: 0.4
+                  saturation: 0.2
+                  hue: 0.1
+              p: 0.8
+            - name: RandomGrayscale
+              p: 0.2
+            - name: GaussianBlur
+              _PIL: True
+            - name: Transpose
+            - name: NormalizeImage
+              scale: 1.0/255.0
+              mean: [0.485, 0.456, 0.406]
+              std: [0.229, 0.224, 0.225]
+          global_transform2:
+            - name: RandomResizedCrop
+              size: 224
+              scale: [0.4, 1.]
+              interpolation: bicubic
+            - name: RandomHorizontalFlip
+            - name: RandomApply
+              transforms:
+                - name: ColorJitter
+                  brightness: 0.4
+                  contrast: 0.4
+                  saturation: 0.2
+                  hue: 0.1
+              p: 0.8
+            - name: RandomGrayscale
+              p: 0.2
+            - name: RandomApply
+              transforms:
+                - name: GaussianBlur
+                  _PIL: True
+              p: 0.1
+            - name: RandomApply
+              transforms:
+                - name: Solarization
+              p: 0.2
+            - name: Transpose
+            - name: NormalizeImage
+              scale: 1.0/255.0
+              mean: [0.485, 0.456, 0.406]
+              std: [0.229, 0.224, 0.225]
+          local_transform:
+            - name: RandomResizedCrop
+              size: 96
+              scale: [0.05, 0.4]
+              interpolation: bicubic
+            - name: RandomHorizontalFlip
+            - name: RandomApply
+              transforms:
+                - name: ColorJitter
+                  brightness: 0.4
+                  contrast: 0.4
+                  saturation: 0.2
+                  hue: 0.1
+              p: 0.8
+            - name: RandomGrayscale
+              p: 0.2
+            - name: RandomApply
+              transforms:
+                - name: GaussianBlur
+                  _PIL: True
+              p: 0.5
+            - name: Transpose
+            - name: NormalizeImage
+              scale: 1.0/255.0
+              mean: [0.485, 0.456, 0.406]
+              std: [0.229, 0.224, 0.225]
+          local_crops_number: 8
+
+lr_scheduler:
+  name: CosineWarmup
+  learning_rate: 0.001
+  T_max: 250200
+  warmup_steps: 25020
+  start_lr: 0.0
+  end_lr: 0.001
+  eta_min: 1e-6
+
+optimizer:
+  name: AdamW
+  weight_decay: 0.04
+  grad_clip:
+    name: clip_norm
+    value: 3.0
+  exclude_from_weight_decay: ['bias', 'norm']
+
+optimizer_config:
+  name: DINOOptimizerHook
+  freeze_last_layer: 1
+
+log_config:
+  name: LogHook
+  interval: 50
+
+custom_config:
+  - name: DINOHook

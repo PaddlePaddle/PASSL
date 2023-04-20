@@ -21,4 +21,5 @@ from .base_neck import NonLinearNeckV3
 from .base_neck import NonLinearNeckfc3
 from .base_neck import NonLinearNeckfc3V2
 from .base_neck import SwAVNeck
+from .base_neck import DINONeck
 from .builder import build_neck

@@ -29,3 +29,4 @@ from .simsiam_contrastive_head import SimSiamContrastiveHead
 from .swin_transformer_head import SwinTransformerClsHead
 from .t2t_vit_head import T2TViTClsHead
 from .vision_transformer_head import VisionTransformerClsHead
+from .dino_head import DINOHead

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import numpy as np
 import paddle
 import paddle.nn as nn
@@ -20,6 +21,7 @@ from paddle.nn.layer.transformer import _convert_attention_mask
 from paddle.nn.initializer import TruncatedNormal, Constant, Normal
 
 from .base_transformer import QuickGELU
+from ...utils.logger import get_logger
 
 __all__ = ["VisionTransformer"]
 
@@ -146,7 +148,7 @@ class Block(nn.Layer):
         attn_mask=None,
         attn_drop=0.0,
         drop_path=0.0,
-        act_layer=QuickGELU,
+        act_layer=nn.GELU,
         norm_layer="nn.LayerNorm",
         epsilon=1e-5,
     ):
@@ -255,10 +257,6 @@ class PatchEmbed(nn.Layer):
 
     def forward(self, x):
         B, C, H, W = x.shape
-        assert (
-            H == self.img_size[0] and W == self.img_size[1]
-        ), "Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
-
         x = self.proj(x).flatten(2).transpose((0, 2, 1))
         return x
 
@@ -287,6 +285,8 @@ class VisionTransformer(nn.Layer):
                  output_cls_token=True,
                  patch_bias=True,
                  epsilon=1e-5,
+                 frozen_weights=False,
+                 pretrained=None,
                  **args):
         super().__init__()
         self.class_dim = class_dim
@@ -340,6 +340,23 @@ class VisionTransformer(nn.Layer):
         trunc_normal_(self.class_embedding)
         self.apply(self._init_weights)
 
+        if pretrained is not None:
+            state_dict = paddle.load(pretrained)
+            if 'state_dict' in state_dict:
+                state_dict = state_dict['state_dict']
+
+            self.set_state_dict(state_dict)
+            logger = get_logger()
+            logger.info(
+                'Load pretrained backbone weight from {} success!'.format(
+                    pretrained))
+
+        if frozen_weights:
+            for param in self.parameters():
+                param.stop_gradient = True
+            logger = get_logger()
+            logger.info('The model weights have been frozen!')
+
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight)
@@ -349,17 +366,48 @@ class VisionTransformer(nn.Layer):
             zeros_(m.bias)
             ones_(m.weight)
 
-    def forward_features(self, x):
-        B = paddle.shape(x)[0]
+    def interpolate_pos_encoding(self, x, w, h):
+        npatch = x.shape[1] - 1
+        N = self.positional_embedding.shape[1] - 1
+        if npatch == N and w == h:
+            return self.positional_embedding
+        class_pos_embed = self.positional_embedding[:, 0]
+        patch_pos_embed = self.positional_embedding[:, 1:]
+        dim = x.shape[-1]
+        w0 = w // self.patch_embed.patch_size[0]
+        h0 = h // self.patch_embed.patch_size[0]
+        # we add a small number to avoid floating point error in the interpolation
+        w0, h0 = w0 + 0.1, h0 + 0.1
+        patch_pos_embed = nn.functional.interpolate(
+            patch_pos_embed.reshape((1, int(math.sqrt(N)), int(math.sqrt(N)), dim)).transpose((0, 3, 1, 2)),
+            scale_factor=(w0 / math.sqrt(N), h0 / math.sqrt(N)),
+            mode='bicubic',
+        )
+        assert int(w0) == patch_pos_embed.shape[-2] and int(h0) == patch_pos_embed.shape[-1]
+        patch_pos_embed = patch_pos_embed.transpose((0, 2, 3, 1)).reshape((1, -1, dim))
+        return paddle.concat((class_pos_embed.unsqueeze(0), patch_pos_embed), axis=1)
+
+    def prepare_tokens(self, x):
+        B, _, w, h = x.shape
         x = self.patch_embed(x)
-        patch_resolution = self.patch_embed.patches_resolution
+
         class_embedding = self.class_embedding.expand((B, -1, -1))
         x = paddle.concat((class_embedding, x), axis=1)
-        x = x + self.positional_embedding
+        x = x + self.interpolate_pos_encoding(x, w, h)
+
         x = self.pos_drop(x)
         x = self.norm_pre(x)
-        for blk in self.blocks:
+        return x
+
+    def forward_features(self, x):
+        x = self.prepare_tokens(x)
+        patch_resolution = [
+            int(math.sqrt(x.shape[1] - 1)), int(math.sqrt(x.shape[1] - 1))
+        ]
+
+        for i, blk in enumerate(self.blocks):
             x = blk(x)
+
         if self.proj is not None:
             x = self.norm_post(x[:, 0, :])
             x = paddle.matmul(x, self.proj)
@@ -381,3 +429,13 @@ class VisionTransformer(nn.Layer):
     def forward(self, x):
         x = self.forward_features(x)
         return x
+
+    def get_intermediate_layers(self, x, n=1):
+        x = self.prepare_tokens(x)
+        # return the output tokens from the `n` last blocks
+        output = []
+        for i, blk in enumerate(self.blocks):
+            x = blk(x)
+            if len(self.blocks) - i <= n:
+                output.append(self.norm_post(x))
+        return output
