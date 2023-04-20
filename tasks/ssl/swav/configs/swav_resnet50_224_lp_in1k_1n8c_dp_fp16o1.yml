@@ -5,7 +5,7 @@ Global:
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
   pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
-  output_dir: ./output/baseline
+  output_dir: ./output/baseline_0420_align_trackTrue
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -41,7 +41,8 @@ Loss:
 
 LRScheduler:
     name: TimmCosine
-    learning_rate: 0.6
+    learning_rate: 0.3
+    eta_min: 0.0
     decay_unit: epoch
     last_epoch: 0
     warmup_epoch: 0
@@ -50,8 +51,8 @@ Optimizer:
   name: Momentum
   momentum: 0.9
   weight_decay: 1e-6
+  tensor_fusion: True
   
-
 # data loader for train and eval
 DataLoader:
   Train:

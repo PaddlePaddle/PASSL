@@ -72,7 +72,7 @@ class Momentum(Optimizer):
                 grad = p.grad
                 if grad is None:
                     continue
-
+                # print('###########',p.name)
                 if grad.is_selected_rows():
                     raise RuntimeError(
                         'Momentum does not support sparse gradients.')

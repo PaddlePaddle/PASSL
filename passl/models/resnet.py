@@ -1,3 +1,5 @@
+import functools
+
 import paddle
 import paddle.nn as nn
 
@@ -106,7 +108,7 @@ class ResNet(paddle.nn.Layer):
         
         super(ResNet, self).__init__()
         if norm_layer is None:
-            norm_layer = paddle.nn.BatchNorm2D
+            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=True)
         self._norm_layer = norm_layer
         self.eval_mode = eval_mode
         self.padding = paddle.nn.Pad2D(padding=1, value=0.0)

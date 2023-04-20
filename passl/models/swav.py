@@ -3,6 +3,7 @@ import os
 import paddle
 import paddle.nn as nn
 
+from passl.nn import init
 from passl.models.resnet import resnet50
 from passl.models.base_model import Model
 
@@ -51,21 +52,36 @@ class SwAV(Model):
 
     def save(self, path, local_rank=0, rank=0):
         paddle.save(self.state_dict(), path + ".pdparams")
-
+        
         
 class SwAVLinearProbe(SwAV):
     def __init__(self, class_num=1000, linear_arch="resnet50", global_avg=True, use_bn=False, **kwargs):
         super().__init__(**kwargs)
         self.linear = RegLog(1000, "resnet50", global_avg=True, use_bn=False)
         self.res_model.eval()
-    
-    def load_pretrained(self, path, rank=0, finetune=False):
-        # only load res_model
+        
+        # freeze all layers but the last fc
+        for name, param in self.named_parameters():
+            if name not in ['linear.linear.weight', 'linear.linear.bias']:
+                param.stop_gradient = True
+
+        # optimize only the linear classifier
+        parameters = list(
+            filter(lambda p: not p.stop_gradient, self.parameters()))
+        assert len(parameters) == 2  # weight, bias
+        
+        self.apply(self._freeze_norm)
+
+    def _freeze_norm(self, layer):
+        if isinstance(layer, (nn.layer.norm._BatchNormBase)):
+            layer._use_global_stats = True
+
+    def _load_model(self, path, model, tag):
         if os.path.isfile(path):
             para_state_dict = paddle.load(path)
             
             # resnet
-            model_state_dict = self.res_model.state_dict()
+            model_state_dict = model.state_dict()
             keys = model_state_dict.keys()
             num_params_loaded = 0
             for k in keys:
@@ -80,13 +96,25 @@ class SwAVLinearProbe(SwAV):
                 else:
                     model_state_dict[k] = para_state_dict[k]
                     num_params_loaded += 1
-            self.res_model.set_dict(model_state_dict)
+            model.set_dict(model_state_dict)
             print("There are {}/{} variables loaded into {}.".format(
-                num_params_loaded, len(model_state_dict), "backbone"))
+                num_params_loaded, len(model_state_dict), tag))
         else:
-            print("No pretrained weights found => training with random weights")
+            print("No pretrained weights found in {} => training with random weights".format(tag))
+    
+    def load_pretrained(self, path, rank=0, finetune=False):
+        self._load_model(path, self.res_model, 'backbone')
+        self._load_model("linear.pdparams", self.linear, 'linear')
+
         
     def forward(self, inp):
+#         import numpy as np
+        # import pdb; pdb.set_trace()
+        
+#         np.random.seed(42)
+#         a = np.random.rand(32, 3, 224, 224)
+#         inp = paddle.to_tensor(a).astype('float32')
+        
         with paddle.no_grad():
             output = self.res_model(inp)
         output = self.linear(output)
@@ -104,13 +132,14 @@ def swav_resnet50_linearprobe(**kwargs):
     return model
         
             
-def normal_init(param, **kwargs):
-    initializer = nn.initializer.Normal(**kwargs)
-    initializer(param, param.block)
+# def normal_init(param, **kwargs):
+#     initializer = nn.initializer.Normal(**kwargs)
+#     initializer(param, param.block)
 
-def constant_init(param, **kwargs):
-    initializer = nn.initializer.Constant(**kwargs)
-    initializer(param, param.block)
+# def constant_init(param, **kwargs):
+#     initializer = nn.initializer.Constant(**kwargs)
+#     initializer(param, param.block)
+        
         
 class RegLog(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
@@ -137,9 +166,8 @@ class RegLog(paddle.nn.Layer):
                     None, use_global_stats=True)
         
         self.linear = paddle.nn.Linear(in_features=s, out_features=num_labels)
-        normal_init(self.linear.weight, mean=0.0, std=0.01)
-        constant_init(self.linear.bias, value=0.0) # padiff
-
+        init.normal_(self.linear.weight, mean=0.0, std=0.01)
+        init.zeros_(self.linear.bias)
 
     def forward(self, x):
         x = self.av_pool(x)

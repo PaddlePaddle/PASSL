@@ -31,6 +31,91 @@ from passl.utils import profiler
 from passl.utils import logger
 from .loop import _Loop, TrainingEpochLoop
 
+
+import os
+import logging
+import time
+from datetime import timedelta
+import pandas as pd
+
+
+class LogFormatter:
+    def __init__(self):
+        self.start_time = time.time()
+
+    def format(self, record):
+        elapsed_seconds = round(record.created - self.start_time)
+
+        prefix = "%s - %s - %s" % (
+            record.levelname,
+            time.strftime("%x %X"),
+            timedelta(seconds=elapsed_seconds),
+        )
+        message = record.getMessage()
+        message = message.replace("\n", "\n" + " " * (len(prefix) + 3))
+        return "%s - %s" % (prefix, message) if message else ""
+
+
+def create_logger(filepath, rank):
+    """
+    Create a logger.
+    Use a different log file for each process.
+    """
+    # create log formatter
+    log_formatter = LogFormatter()
+
+    # create file handler and set level to debug
+    if filepath is not None:
+        if rank > 0:
+            filepath = "%s-%i" % (filepath, rank)
+        file_handler = logging.FileHandler(filepath, "a")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(log_formatter)
+
+    # create console handler and set level to info
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(log_formatter)
+
+    # create logger and set level to debug
+    logger = logging.getLogger()
+    logger.handlers = []
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+    if filepath is not None:
+        logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    # reset logger elapsed time
+    def reset_time():
+        log_formatter.start_time = time.time()
+
+    logger.reset_time = reset_time
+
+    return logger
+
+
+def init_logger(name):
+    logger = create_logger(
+        os.path.join("{}.log".format(name)), rank=0
+    )
+    logger.info("============ Initialized logger ============")
+    logger.info("")
+    return logger
+
+
+def log_model(model, logger):
+    model1 = model.res_model
+    for name, param in model1.named_parameters():
+        logger.info(name)
+        logger.info(param.abs().sum())
+        
+    model2 = model.linear
+    for name, param in model2.named_parameters():
+        logger.info(name)
+        logger.info(param.abs().sum())
+
+        
 class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
     def __init__(self, trainer, epochs, max_train_step=None, val_loop=None):
@@ -60,8 +145,13 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
                 out = self.trainer.model(data)
                 final_out.append(out)
-
+                
+            # label = paddle.to_tensor([133, 141, 371, 254,  89, 244,  33,  64, 542,  93, 262, 674, 898, 796, 785, 727, 228, 792, 853, 639, 410, 357, 545, 473, 637, 400, 863, 386, 689, 359, 476, 960]).cast('int32')
+            
             loss_dict = self.trainer.train_loss_func(out, label)
+            
+            # logger1 = init_logger('first')
+            # log_model(self.trainer.model, logger1)
 
             for key in loss_dict:
                 loss_dict[key] = loss_dict[key] / self.trainer.accum_steps
@@ -72,9 +162,23 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
             # loss scaling if using fp16 otherwise do nothing
             scaled = self.trainer.scaler.scale(loss_dict["loss"])
             scaled.backward()
+            
+#             grad_sync(self.trainer.optimizer.param_groups)
+
+#             # do unscale and step if using fp16 and not found nan/inf
+#             # otherwise do nothing
+#             self.trainer.scaler.step(self.trainer.optimizer)
+#             # do update loss scaling if using fp16
+#             # otherwise do nothing
+#             self.trainer.scaler.update()
+            
+            # logger2 = init_logger('second')
+            # log_model(self.trainer.model, logger2)
+            # import pdb; pdb.set_trace()
+            
 
         out = paddle.concat(final_out, axis=0)
-        return out, final_loss_dict
+        return out, final_loss_dict, 
 
     def train_one_step(self, batch):
 

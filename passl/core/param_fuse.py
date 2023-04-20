@@ -459,18 +459,6 @@ def flatten_dense_tensors(parameters):
 
     param_storage.add_rank_params(parameters, _param2align)
 
-    # process gradient
-    # grad_storage = None
-    grad_storage = GradStorage(
-        size=_buffer_size,
-        dtype=dtype,
-        device="gpu",
-        destination="0",
-        parm2align=_param2align)
-
-    for param in parameters:
-        grad_storage.add_grad(param, _param2align[param.name])
-
     if in_dygraph_mode():
         fused_param = EagerParamBase(
             shape=param_storage.buffer.shape,
@@ -482,7 +470,22 @@ def flatten_dense_tensors(parameters):
             dtype=dtype,
             name=unique_name.generate('fused_param'))
     param_storage.buffer._share_buffer_to(fused_param)
-    fused_param._copy_gradient_from(grad_storage.buffer)
+
+    if not stop_gradient:
+        # process gradient
+        # grad_storage = None
+        grad_storage = GradStorage(
+            size=_buffer_size,
+            dtype=dtype,
+            device="gpu",
+            destination="0",
+            parm2align=_param2align)
+
+        for param in parameters:
+            grad_storage.add_grad(param, _param2align[param.name])
+
+        fused_param._copy_gradient_from(grad_storage.buffer)
+
     fused_param.__dict__.update(state)
     fused_param.stop_gradient = stop_gradient
 
