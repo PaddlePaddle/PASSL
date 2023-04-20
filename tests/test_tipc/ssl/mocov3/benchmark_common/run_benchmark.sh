@@ -67,10 +67,10 @@ function _train(){
         log_file=${train_log_file}
     fi
 
-    if [[ ${model_item} != "pt" ]];then # ft/lp
-        pretrained=" -o Global.pretrained_model=${pretrained_model} "
-    else
+    if [[ ${model_item} =~ "pt" ]];then # ft/lp
         pretrained=""
+    else
+        pretrained=" -o Global.pretrained_model=${pretrained_model} "
     fi
 
     train_cmd="-o Global.print_batch_step=1 \
