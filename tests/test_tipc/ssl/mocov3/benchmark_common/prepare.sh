@@ -26,5 +26,5 @@ cd -
 
 # pretrained
 mkdir -p pretrained && cd pretrained
-cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/ViT_base_patch16_224 ./
+cp -r ${BENCHMARK_ROOT}/models_data_cfs/Paddle_distributed/plsc_pretrained/mocov3 ./
 cd -

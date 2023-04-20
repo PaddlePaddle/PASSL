@@ -257,7 +257,7 @@ class MoCoV3Pretrain(Model):
             # delete renamed or unused k
             del state_dict[k]
 
-        paddle.save(state_dict(), path + "_base_encoder.pdparams")
+        paddle.save(state_dict, path + "_base_encoder.pdparams")
 
 def mocov3_vit_base(**kwargs):
     model = MoCoV3ViT(
