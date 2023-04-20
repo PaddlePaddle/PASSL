@@ -115,29 +115,15 @@ class ClassificationEvaluationLoop(_Loop):
 
     def update_best_model_metric_info(self):
         assert isinstance(self.latest_model_metric, dict)
-        if self.best_model_metric is None:
+        if 'metric' in self.latest_model_metric and (not self.best_model_metric or self.latest_model_metric['metric'] > self.best_model_metric['metric']):
             self.best_model_metric = deepcopy(self.latest_model_metric)
-            if 'metric' in self.latest_model_metric:
-                self.best_model_to_save = True
-        else:
-            if 'metric' in self.latest_model_metric and self.latest_model_metric['metric'] > self.best_model_metric['metric']:
-                self.best_model_metric = deepcopy(self.latest_model_metric)
-                self.best_model_to_save = True
-            else:
-                self.best_model_metric = deepcopy(self.latest_model_metric)
+            self.best_model_to_save = True
 
     def update_best_ema_model_metric_info(self):
         assert isinstance(self.latest_ema_model_metric, dict)
-        if self.best_ema_model_metric is None:
+        if 'metric' in self.latest_ema_model_metric and (not self.best_ema_model_metric or self.latest_ema_model_metric['metric'] > self.best_ema_model_metric['metric']):
             self.best_ema_model_metric = deepcopy(self.latest_ema_model_metric)
-            if 'metric' in self.latest_ema_model_metric:
-                self.best_ema_model_to_save = True
-        else:
-            if 'metric' in self.latest_ema_model_metric and self.latest_ema_model_metric['metric'] > self.best_ema_model_metric['metric']:
-                self.best_ema_model_metric = deepcopy(self.latest_ema_model_metric)
-                self.best_ema_model_to_save = True
-            else:
-                self.best_ema_model_metric = deepcopy(self.latest_ema_model_metric)
+            self.best_ema_model_to_save = True
 
     def run(self):
         assert self.trainer.mode in ["train", "eval"]
