@@ -18,7 +18,7 @@ bs_item=64
 run_mode=DP8-MP1
 device_num=N1C8
 yaml_path=./tasks/ssl/mocov3/configs/mocov3_vit_base_patch16_224_pt_in1k_4n32c_dp_fp16o1.yaml
-max_iter=2503 # epoch=1
+max_iter=3754 # epoch=1.5
 
 bash ./tests/test_tipc/ssl/mocov3/benchmark_common/prepare.sh
 # run

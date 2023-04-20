@@ -18,7 +18,7 @@ bs_item=128
 run_mode=DP8-MP1
 device_num=N1C8
 yaml_path=./tasks/ssl/mocov3/configs/mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml
-max_iter=6259 # epoch=3
+max_iter=6259 # epoch=5
 pretrained_model=./pretrained/mocov3/mocov3_vit_base_in1k_300ep_pretrained
 
 bash ./tests/test_tipc/ssl/mocov3/benchmark_common/prepare.sh
