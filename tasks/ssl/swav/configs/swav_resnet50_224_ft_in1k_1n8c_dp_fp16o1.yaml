@@ -5,7 +5,8 @@ Global:
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
   pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
-  output_dir: ./output/baseline_0420_align_trackTrue
+  finetune: True
+  output_dir: ./output/semi_0420
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -13,12 +14,12 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 100
+  epochs: 20
   print_batch_step: 100
   use_visualdl: False
   seed: 31
 
-# FP16 setting ignore in align
+# FP16 setting
 # FP16:
 #   level: O1
 
@@ -27,10 +28,8 @@ DistributedStrategy:
 
 # model architecture
 Model:
-  name: swav_resnet50_linearprobe
-  output_dim: 0 
-  eval_mode: True
-  class_num: 1000
+  name: swav_resnet50_finetune
+  output_dim: 1000
 
 # loss function config for traing/eval process
 Loss:
@@ -42,19 +41,19 @@ Loss:
         weight: 1.0
 
 LRScheduler:
-    name: TimmCosine
-    learning_rate: 0.3
-    eta_min: 0.0
+    name: Step
+    learning_rate: 0.01
+    boundaries: [12, 16]
+    values: [0.01, 0.002, 0.0004]
     decay_unit: epoch
     last_epoch: 0
-    warmup_epoch: 0
 
 Optimizer:
   name: Momentum
   momentum: 0.9
-  weight_decay: 1e-6
-  tensor_fusion: True
-  
+  weight_decay: 0.0
+  tensor_fusion: False
+
 # data loader for train and eval
 DataLoader:
   Train:

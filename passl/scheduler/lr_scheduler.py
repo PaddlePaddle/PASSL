@@ -123,8 +123,8 @@ class Step(lr.LRScheduler):
     def __init__(self,
                  step_each_epoch,
                  epochs,
-                 boundaries,
-                 values,
+                 boundaries, # [12, 16]
+                 values,    #[0.01, 0.002, 0.0004],
                  warmup_steps=0,
                  warmup_epochs=0,
                  decay_unit='epoch',
