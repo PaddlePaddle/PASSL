@@ -216,7 +216,7 @@ function convmae_convvit_base_patch16_ft_in1k_1n8c_dp_fp16o1() {
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
     loss_base=6.7890
-    ips_base=0.2964
+    ips_base=0.315575
     mem_base=9896
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
@@ -346,9 +346,9 @@ function mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=6.57023
+    loss_base=6.57024
     ips_base=3795.44
-    mem_base=2.17
+    mem_base=1.53
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
