@@ -104,9 +104,6 @@ class MomentumLARC(Optimizer):
                 }:
                     p_fp32 = state['master_param']
 
-                grad = (grad + group['weight_decay'] * p_fp32
-                        ).astype(grad.dtype)
-
                 param_norm = paddle.norm(p_fp32)
                 update_norm = paddle.norm(grad)
 
