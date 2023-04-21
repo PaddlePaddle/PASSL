@@ -14,15 +14,149 @@
 
 # Ref: https://github.com/facebookresearch/simsiam/blob/main/simsiam/builder.py
 
+import copy
+from collections import defaultdict
+from functools import partial
+
+import paddle
 import paddle.nn as nn
+
+from passl.models.base_model import Model
 from passl.nn import init
 
 from .resnet import ResNet, BottleneckBlock
 
+
 __all__ = [
-    'SimSiamLinearProbe',
+    'simsiam_resnet50_pretrain',
     'simsiam_resnet50_linearprobe',
+    'SimSiamPretain',
+    'SimSiamLinearProbe',
 ]
+
+class SimSiamPretain(Model):
+    """
+    Build a SimSiam Pretrain model.
+    """
+    def __init__(self, base_encoder, dim=2048, pred_dim=512):
+        """
+        dim: feature dimension (default: 2048)
+        pred_dim: hidden dimension of the predictor (default: 512)
+        """
+        super(SimSiamPretain, self).__init__()
+
+        # create the encoder
+        # num_classes is the output fc dimension, zero-initialize last BNs
+        self.encoder = base_encoder(class_num=dim, zero_init_residual=True)
+
+        # build a 3-layer projector
+        prev_dim = self.encoder.fc.weight.shape[1]
+        self.encoder.fc = nn.Sequential(nn.Linear(prev_dim, prev_dim, bias_attr=False),
+                                        nn.BatchNorm1D(prev_dim),
+                                        nn.ReLU(), # first layer
+                                        nn.Linear(prev_dim, prev_dim, bias_attr=False),
+                                        nn.BatchNorm1D(prev_dim),
+                                        nn.ReLU(), # second layer
+                                        self.encoder.fc,
+                                        nn.BatchNorm1D(dim, weight_attr=False, bias_attr=False)) # output layer
+        self.encoder.fc[6].bias.stop_gradient = True # hack: not use bias as it is followed by BN
+
+        # build a 2-layer predictor
+        self.predictor = nn.Sequential(nn.Linear(dim, pred_dim, bias_attr=False),
+                                        nn.BatchNorm1D(pred_dim),
+                                        nn.ReLU(), # hidden layer
+                                        nn.Linear(pred_dim, dim)) # output layer
+
+        self.criterion = nn.CosineSimilarity(axis=1)
+
+    def param_groups(self, no_weight_decay_name=[], tensor_fusion=True):
+
+        def param_split(sub_model):
+            param_group_map = defaultdict(list)
+            for n, p in sub_model.named_parameters():
+                state = copy.deepcopy(p.__dict__)
+                state['stop_gradient'] = p.stop_gradient
+                if any(nd in n for nd in no_weight_decay_name):
+                    state['no_weight_decay'] = True
+                param_group_map[str(state)].append(p)
+            return param_group_map
+
+        encoder_param_group_map = param_split(self.encoder)
+        predictor_param_group_map = param_split(self.predictor)
+
+        param_group = []
+        for key in encoder_param_group_map:
+            group = {'params': encoder_param_group_map[key], 'tensor_fusion': tensor_fusion}
+            if 'no_weight_decay' in key:
+                group['weight_decay'] = 0.0
+            param_group.append(group)
+
+        for key in predictor_param_group_map:
+            group = {'params': predictor_param_group_map[key], 'tensor_fusion': tensor_fusion}
+            group['fix_lr'] = True
+            if 'no_weight_decay' in key:
+                group['weight_decay'] = 0.0
+            param_group.append(group)
+
+        return param_group
+
+
+    def forward(self, inputs):
+        """
+        Input:
+            x1: first views of images
+            x2: second views of images
+        Output:
+            p1, p2, z1, z2: predictors and targets of the network
+            See Sec. 3 of https://arxiv.org/abs/2011.10566 for detailed notations
+        """
+
+        assert isinstance(inputs, list)
+        x1 = inputs[0]
+        x2 = inputs[1]
+
+        # compute features for one view
+        z1 = self.encoder(x1) # NxC
+        z2 = self.encoder(x2) # NxC
+
+        p1 = self.predictor(z1) # NxC
+        p2 = self.predictor(z2) # NxC
+
+        loss = -(self.criterion(p1, z2.detach()).mean() + self.criterion(p2, z1.detach()).mean()) * 0.5
+
+        return loss
+
+    def load_pretrained(self, path, rank=0, finetune=False):
+        if not os.path.exists(path + '.pdparams'):
+            raise ValueError("Model pretrain path {} does not "
+                             "exists.".format(path))
+
+        state_dict = self.state_dict()
+        param_state_dict = paddle.load(path + ".pdparams")
+
+        # for FP16 saving pretrained weight
+        for key, value in param_state_dict.items():
+            if key in param_state_dict and key in state_dict and param_state_dict[
+                    key].dtype != state_dict[key].dtype:
+                param_state_dict[key] = param_state_dict[key].astype(
+                    state_dict[key].dtype)
+
+        self.set_dict(param_state_dict)
+
+    def save(self, path, local_rank=0, rank=0):
+        paddle.save(self.state_dict(), path + ".pdparams")
+
+        # rename pre-trained keys
+        state_dict = self.state_dict()
+        for k in list(state_dict.keys()):
+            # retain only encoder up to before the embedding layer
+            if k.startswith('encoder') and not k.startswith('encoder.fc'):
+                # remove prefix
+                state_dict[k[len("encoder."):]] = state_dict[k]
+            # delete renamed or unused k
+            del state_dict[k]
+
+        paddle.save(state_dict, path + "_encoder.pdparams")
 
 
 class SimSiamLinearProbe(ResNet):
@@ -48,6 +182,18 @@ class SimSiamLinearProbe(ResNet):
         if isinstance(layer, (nn.layer.norm._BatchNormBase)):
             layer._use_global_stats = True
 
+def simsiam_resnet50_pretrain(**kwargs):
+    encoder = partial(ResNet, block=BottleneckBlock, depth=50)
+    model = SimSiamPretain(
+        base_encoder=encoder,
+        dim=2048,
+        pred_dim=512,
+        **kwargs)
+
+    # Apply SyncBN
+    if paddle.distributed.get_world_size() > 1:
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    return model
 
 def simsiam_resnet50_linearprobe(**kwargs):
     model = SimSiamLinearProbe(block=BottleneckBlock, depth=50, **kwargs)

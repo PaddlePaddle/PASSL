@@ -22,6 +22,7 @@ import paddle
 
 from passl.core.grad_clip import ClipGradByGlobalNorm
 from passl.core.param_fuse import get_fused_params
+from passl.scheduler import LRCallable
 
 from passl.utils import logger
 
@@ -45,47 +46,58 @@ def build_optimizer(config, lr_scheduler, model=None):
         grad_clip = eval(grad_clip_name)(**grad_clip_config)
 
     no_weight_decay_name = config.pop('no_weight_decay_name', [])
-
-    param_group = defaultdict(list)
-    for n, p in model.named_parameters():
-        state = copy.deepcopy(p.__dict__)
-        if any(nd in n for nd in no_weight_decay_name):
-            state['no_weight_decay'] = True
-        param_group[str(state)].append(p)
-
     tensor_fusion = config.pop('tensor_fusion', True)
     if 'LAR' in optim_name:
         tensor_fusion = False
         logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
-    if tensor_fusion:
-        # fuse params
-        for key in param_group:
-            if 'gpu' not in paddle.get_device():
-                continue
+    if hasattr(model, 'param_groups'):
+        param_group = model.param_groups(no_weight_decay_name, tensor_fusion)
+        for group in param_group:
+            if 'tensor_fusion' in group and group['tensor_fusion']:
+                group['params'] = get_fused_params(group['params'])
+    else:
+        param_group_map = defaultdict(list)
+        for n, p in model.named_parameters():
+            state = copy.deepcopy(p.__dict__)
+            state['stop_gradient'] = p.stop_gradient
+            if any(nd in n for nd in no_weight_decay_name):
+                state['no_weight_decay'] = True
+            param_group_map[str(state)].append(p)
+
+        if tensor_fusion:
+            # fuse params
+            for key in param_group_map:
+                if 'gpu' not in paddle.get_device():
+                    continue
+                if "'is_distributed': True" in key:
+                    continue
+                if "'has_sparse_grad': True" in key:
+                    continue
+                param_group_map[key] = get_fused_params(param_group_map[key])
+
+        # bulid optimizer params
+        param_group = []
+        for key in param_group_map:
+            group = {'params': param_group_map[key]}
+
             if "'is_distributed': True" in key:
-                continue
-            if "'has_sparse_grad': True" in key:
-                continue
+                group['is_distributed'] = True
 
-            param_group[key] = get_fused_params(param_group[key])
+            if 'no_weight_decay' in key:
+                group['weight_decay'] = 0.0
 
-    # bulid optimizer params
-    params = []
-    for key in param_group:
-        group = {'params': param_group[key]}
+            param_group.append(group)
 
-        if "'is_distributed': True" in key:
-            group['is_distributed'] = True
+    lr = lr_scheduler
+    lr_func = None
+    if isinstance(lr_scheduler, LRCallable):
+        lr = lr_scheduler.lr
+        lr_func = lr_scheduler
 
-        if 'no_weight_decay' in key:
-            group['weight_decay'] = 0.0
-
-        params.append(group)
-
-
-    optim = eval(optim_name)(params,
-                             lr=lr_scheduler,
+    optim = eval(optim_name)(param_group,
+                             lr=lr,
+                             lr_func=lr_func,
                              grad_clip=grad_clip,
                              **config)
     logger.debug("build optimizer ({}) success..".format(optim))
