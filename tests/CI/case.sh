@@ -316,7 +316,7 @@ function mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
     mem=`cat log/workerlog.0 | grep '49/2503' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
     loss_base=4.43716
     ips_base=539.487
-    mem_base=17.89
+    mem_base=16.66
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
