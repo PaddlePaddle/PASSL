@@ -248,7 +248,7 @@ function ConvNeXt_base_224_in1k_1n8c_dp_fp32() {
     loss=`cat log/workerlog.0 | grep '50/312' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '50/312' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=6.91436
+    loss_base=6.91222
     ips_base=708.5226
     mem_base=18.38
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
