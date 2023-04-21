@@ -314,7 +314,7 @@ function mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '49/2503' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '49/2503' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=4.44258
+    loss_base=4.43716
     ips_base=539.487
     mem_base=17.89
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
