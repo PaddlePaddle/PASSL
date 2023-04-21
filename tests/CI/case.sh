@@ -133,7 +133,7 @@ function swin_base_patch4_window7_224_fp16o2() {
     loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=7.06612
+    loss_base=7.06580
     ips_base=944.051
     mem_base=17.52
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}

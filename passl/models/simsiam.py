@@ -146,7 +146,7 @@ class SimSiamPretain(Model):
     def save(self, path, local_rank=0, rank=0):
         paddle.save(self.state_dict(), path + ".pdparams")
 
-        # rename moco pre-trained keys
+        # rename pre-trained keys
         state_dict = self.state_dict()
         for k in list(state_dict.keys()):
             # retain only encoder up to before the embedding layer
