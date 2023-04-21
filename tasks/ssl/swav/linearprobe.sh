@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#unset PADDLE_TRAINER_ENDPOINTS
-# export PADDLE_NNODES=1
-# #export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
-# export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 # export FLAGS_stop_check_timeout=3600
 unset PADDLE_TRAINER_ENDPOINTS
 unset DISTRIBUTED_TRAINER_ENDPOINTS

@@ -23,7 +23,7 @@ from passl.utils import logger
 class TimmCosine(lr.LRScheduler):
     def __init__(self,
                  learning_rate,
-                 step_each_epoch,
+                 step_each_epoch, # len(train_loader) = dataset/total_bs
                  epochs,
                  decay_unit='epoch',
                  eta_min=0.0,

@@ -9,13 +9,13 @@ from passl.models.base_model import Model
 
 
 __all__ = [
-    # 'swav_resnet50',
+    'swav_resnet50_finetune',
     'swav_resnet50_linearprobe',
-    # 'swav_resnet50_pretrain',
+    'swav_resnet50_pretrain',
     'SwAV',
     'SwAVLinearProbe',
     'SwAVFinetune',
-    # 'SwAVPretrain',
+    'SwAVPretrain',
 ]
 
 # def model and 
@@ -130,6 +130,13 @@ class SwAVFinetune(SwAV):
     def forward(self, inp):
         return self.res_model(inp)
 
+class SwAVPretrain(SwAV):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def forward(self, inp):
+        return self.res_model(inp)
+
         
 def swav_resnet50_linearprobe(**kwargs):
     model = SwAVLinearProbe(**kwargs)
@@ -138,7 +145,10 @@ def swav_resnet50_linearprobe(**kwargs):
 def swav_resnet50_finetune(**kwargs):
     model = SwAVFinetune(**kwargs)
     return model
-        
+
+def swav_resnet50_pretrain(**kwargs):
+    model = SwAVPretrain(**kwargs)
+    return model       
             
 # def normal_init(param, **kwargs):
 #     initializer = nn.initializer.Normal(**kwargs)
