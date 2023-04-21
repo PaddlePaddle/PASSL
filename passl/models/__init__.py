@@ -16,6 +16,7 @@ import copy
 import importlib
 
 from .base_model import Model
+from .resnet import *
 from .vision_transformer import *
 from .deit import *
 from .cait import *
@@ -26,6 +27,7 @@ from .cae import *
 from .convnext import *
 from .mocov3 import *
 from .swav import *
+from .simsiam import *
 
 __all__ = ["build_model"]
 

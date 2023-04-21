@@ -115,6 +115,7 @@ from .adamw import AdamW
 from .adafactor import Adafactor
 from .momentum import Momentum
 from .momentum_lars import MomentumLARS
+from .momentum_larc import MomentumLARC
 
 
 def build_optimizer(config, lr_scheduler, model=None):
@@ -133,7 +134,6 @@ def build_optimizer(config, lr_scheduler, model=None):
         tensor_fusion = False
         logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
-
     if hasattr(model, 'param_groups'):
         param_group = model.param_groups(no_weight_decay_name, tensor_fusion)
         for group in param_group:
@@ -147,7 +147,6 @@ def build_optimizer(config, lr_scheduler, model=None):
             if any(nd in n for nd in no_weight_decay_name):
                 state['no_weight_decay'] = True
             param_group_map[str(state)].append(p)
-
 
         if tensor_fusion:
             # fuse params
@@ -178,6 +177,7 @@ def build_optimizer(config, lr_scheduler, model=None):
             param_group.append(group)
 
     optim = eval(optim_name)(param_group,
+
                              lr=lr_scheduler,
                              grad_clip=grad_clip,
                              **config)

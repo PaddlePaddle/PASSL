@@ -22,12 +22,10 @@ from .optimizer import Optimizer
 from passl.utils import logger
 
 
-class MomentumLARS(Optimizer):
+class MomentumLARC(Optimizer):
     """
-    LARS optimizer, implementation from MoCo v3:
-    https://github.com/facebookresearch/moco-v3
-
-    No rate scaling or weight decay for parameters <= 1D.
+    Momentum LARC optimizer, implementation for SimSiam:
+    ref from https://github.com/NVIDIA/apex/blob/master/apex/parallel/LARC.py
     """
 
     def __init__(self,
@@ -36,7 +34,9 @@ class MomentumLARS(Optimizer):
                  lr_func=None,
                  momentum=0.9,
                  weight_decay=0.0,
-                 trust_coefficient=0.001,
+                 trust_coefficient=0.02,
+                 clip=True,
+                 eps=1e-8,
                  use_master_param=True,
                  grad_clip=None,
                  **args):
@@ -47,10 +47,12 @@ class MomentumLARS(Optimizer):
             momentum=momentum,
             weight_decay=weight_decay,
             trust_coefficient=trust_coefficient,
+            clip=clip,
+            eps=eps,
             use_master_param=use_master_param,
             grad_clip=grad_clip,
             **args)
-        super(MomentumLARS, self).__init__(params, defaults)
+        super(MomentumLARC, self).__init__(params, defaults)
 
     @staticmethod
     def _get_lr(param_group):
@@ -102,17 +104,19 @@ class MomentumLARS(Optimizer):
                 }:
                     p_fp32 = state['master_param']
 
-                if p_fp32.ndim > 1:  # if not normalization gamma/beta or bias
-                    grad = (grad + group['weight_decay'] * p_fp32
-                            ).astype(grad.dtype)
-                    param_norm = paddle.norm(p_fp32)
-                    update_norm = paddle.norm(grad)
-                    one = paddle.ones_like(param_norm)
-                    q = paddle.where(param_norm > 0.,
-                                     paddle.where(update_norm > 0, (
-                                         group['trust_coefficient'] *
-                                         param_norm / update_norm), one), one)
-                    grad = grad.multiply(q)
+                param_norm = paddle.norm(p_fp32)
+                update_norm = paddle.norm(grad)
+
+                if param_norm != 0 and update_norm != 0:
+                    # calculate adaptive lr + weight decay
+                    adaptive_lr = group['trust_coefficient'] * (param_norm) / (update_norm + param_norm * group['weight_decay'] + group['eps'])
+
+                    # clip learning rate for LARC
+                    if group['clip']:
+                        # calculation of adaptive_lr so that when multiplied by lr it equals `min(adaptive_lr, lr)`
+                        adaptive_lr = min(adaptive_lr/lr, 1)
+
+                    grad = (adaptive_lr * (grad + group['weight_decay'] * p_fp32)).astype(grad.dtype)
 
                 exp_avg.copy_(exp_avg * momentum + grad, False)
                 p_fp32.copy_(p_fp32 - lr * exp_avg, False)
