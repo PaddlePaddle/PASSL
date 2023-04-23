@@ -19,8 +19,6 @@ export passl_path=/paddle/PASSL/tests/CI
 export log_path=/paddle/log_passl
 
 function model_list(){
-    simsiam_resnet50_pt_in1k_1n8c_dp_fp32
-    simsiam_resnet50_lp_in1k_1n8c_dp_fp32
     ViT_base_patch16_224_in1k_1n8c_dp_fp16o2
     ViT_base_patch16_384_ft_in1k_1n8c_dp_fp16o2
     DeiT_base_patch16_224_in1k_1n8c_dp_fp32
@@ -40,6 +38,8 @@ function model_list(){
     mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1
     mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1
     mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1
+    simsiam_resnet50_pt_in1k_1n8c_dp_fp32
+    simsiam_resnet50_lp_in1k_1n8c_dp_fp32
 }
 
 ############ case start ############
