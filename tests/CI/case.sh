@@ -133,7 +133,7 @@ function swin_base_patch4_window7_224_fp16o2() {
     loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=7.06612
+    loss_base=7.06580
     ips_base=944.051
     mem_base=17.52
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
@@ -248,7 +248,7 @@ function ConvNeXt_base_224_in1k_1n8c_dp_fp32() {
     loss=`cat log/workerlog.0 | grep '50/312' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '50/312' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=6.91436
+    loss_base=6.91222
     ips_base=708.5226
     mem_base=18.38
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
@@ -314,9 +314,9 @@ function mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '49/2503' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '49/2503' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=4.44258
+    loss_base=4.43716
     ips_base=539.487
-    mem_base=17.89
+    mem_base=16.66
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
@@ -346,9 +346,9 @@ function mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '49/1252' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '49/1252' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=6.57023
+    loss_base=6.57024
     ips_base=3795.44
-    mem_base=2.17
+    mem_base=1.53
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }

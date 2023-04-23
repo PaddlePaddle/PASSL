@@ -107,6 +107,7 @@ import paddle
 
 from passl.core.grad_clip import ClipGradByGlobalNorm
 from passl.core.param_fuse import get_fused_params
+from passl.scheduler import LRCallable
 
 from passl.utils import logger
 
@@ -159,26 +160,28 @@ def build_optimizer(config, lr_scheduler, model=None):
                     continue
                 param_group_map[key] = get_fused_params(param_group_map[key])
 
-
         # bulid optimizer params
         param_group = []
         for key in param_group_map:
             group = {'params': param_group_map[key]}
 
-
             if "'is_distributed': True" in key:
                 group['is_distributed'] = True
-
 
             if 'no_weight_decay' in key:
                 group['weight_decay'] = 0.0
 
-
             param_group.append(group)
 
-    optim = eval(optim_name)(param_group,
+    lr = lr_scheduler
+    lr_func = None
+    if isinstance(lr_scheduler, LRCallable):
+        lr = lr_scheduler.lr
+        lr_func = lr_scheduler
 
-                             lr=lr_scheduler,
+    optim = eval(optim_name)(param_group,
+                             lr=lr,
+                             lr_func=lr_func,
                              grad_clip=grad_clip,
                              **config)
     logger.debug("build optimizer ({}) success..".format(optim))

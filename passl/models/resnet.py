@@ -1,9 +1,10 @@
+import paddle
 import functools
 
-import paddle
 import paddle.nn as nn
 
 from passl.models.base_model import Model
+# from base_model import Model
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
@@ -108,7 +109,7 @@ class ResNet(paddle.nn.Layer):
         
         super(ResNet, self).__init__()
         if norm_layer is None:
-            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=True)
+            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=False)
         self._norm_layer = norm_layer
         self.eval_mode = eval_mode
         self.padding = paddle.nn.Pad2D(padding=1, value=0.0)
@@ -195,6 +196,7 @@ class ResNet(paddle.nn.Layer):
         return paddle.nn.Sequential(*layers)
 
     def forward_backbone(self, x):
+        
         x = self.padding(x)
         x = self.conv1(x)
         x = self.bn1(x)
@@ -222,6 +224,7 @@ class ResNet(paddle.nn.Layer):
     def forward(self, inputs):
         if not isinstance(inputs, list):
             inputs = [inputs]
+        
         idx_crops = paddle.cumsum(x=paddle.unique_consecutive(x=paddle.
             to_tensor(data=[inp.shape[-1] for inp in inputs]),
             return_counts=True)[1], axis=0) # padiff
@@ -267,3 +270,4 @@ def resnet50w4(**kwargs):
 
 def resnet50w5(**kwargs):
     return ResNet(Bottleneck, [3, 4, 6, 3], widen=5, **kwargs)
+
