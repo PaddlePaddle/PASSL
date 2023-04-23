@@ -1,20 +1,25 @@
+from collections import defaultdict
+import copy
 import os
+from sys import flags
 
 import paddle
 import paddle.nn as nn
 
 from passl.nn import init
+from passl.utils import logger
 from passl.models.resnet import resnet50
 from passl.models.base_model import Model
 
 
 __all__ = [
-    # 'swav_resnet50',
+    'swav_resnet50_finetune',
     'swav_resnet50_linearprobe',
-    # 'swav_resnet50_pretrain',
+    'swav_resnet50_pretrain',
     'SwAV',
     'SwAVLinearProbe',
-    # 'SwAVPretrain',
+    'SwAVFinetune',
+    'SwAVPretrain',
 ]
 
 # def model and 
@@ -23,7 +28,32 @@ class SwAV(Model):
         super().__init__()
         self.res_model = resnet50(**kwargs)
     
-        
+    def _load_model(self, path, model, tag):
+        if os.path.isfile(path):
+            para_state_dict = paddle.load(path)
+            
+            # resnet
+            model_state_dict = model.state_dict()
+            keys = model_state_dict.keys()
+            num_params_loaded = 0
+            for k in keys:
+                if k not in para_state_dict:
+                    print("{} is not in pretrained model".format(k))
+                elif list(para_state_dict[k].shape) != list(model_state_dict[k]
+                                                            .shape):
+                    print(
+                        "[SKIP] Shape of pretrained params {} doesn't match.(Pretrained: {}, Actual: {})"
+                        .format(k, para_state_dict[k].shape, model_state_dict[k]
+                                .shape))
+                else:
+                    model_state_dict[k] = para_state_dict[k]
+                    num_params_loaded += 1
+            model.set_dict(model_state_dict)
+            print("There are {}/{} variables loaded into {}.".format(
+                num_params_loaded, len(model_state_dict), tag))
+        else:
+            print("No pretrained weights found in {} => training with random weights".format(tag))
+
     def load_pretrained(self, path, rank=0, finetune=False):
         pass
 #         if not os.path.exists(path + '.pdparams'):
@@ -55,9 +85,9 @@ class SwAV(Model):
         
         
 class SwAVLinearProbe(SwAV):
-    def __init__(self, class_num=1000, linear_arch="resnet50", global_avg=True, use_bn=False, **kwargs):
+    def __init__(self, class_num=1000, **kwargs):
         super().__init__(**kwargs)
-        self.linear = RegLog(1000, "resnet50", global_avg=True, use_bn=False)
+        self.linear = RegLog(class_num)
         self.res_model.eval()
         
         # freeze all layers but the last fc
@@ -75,38 +105,11 @@ class SwAVLinearProbe(SwAV):
     def _freeze_norm(self, layer):
         if isinstance(layer, (nn.layer.norm._BatchNormBase)):
             layer._use_global_stats = True
-
-    def _load_model(self, path, model, tag):
-        if os.path.isfile(path):
-            para_state_dict = paddle.load(path)
-            
-            # resnet
-            model_state_dict = model.state_dict()
-            keys = model_state_dict.keys()
-            num_params_loaded = 0
-            for k in keys:
-                if k not in para_state_dict:
-                    print("{} is not in pretrained model".format(k))
-                elif list(para_state_dict[k].shape) != list(model_state_dict[k]
-                                                            .shape):
-                    print(
-                        "[SKIP] Shape of pretrained params {} doesn't match.(Pretrained: {}, Actual: {})"
-                        .format(k, para_state_dict[k].shape, model_state_dict[k]
-                                .shape))
-                else:
-                    model_state_dict[k] = para_state_dict[k]
-                    num_params_loaded += 1
-            model.set_dict(model_state_dict)
-            print("There are {}/{} variables loaded into {}.".format(
-                num_params_loaded, len(model_state_dict), tag))
-        else:
-            print("No pretrained weights found in {} => training with random weights".format(tag))
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone')
         self._load_model("linear.pdparams", self.linear, 'linear')
 
-        
     def forward(self, inp):
 #         import numpy as np
         # import pdb; pdb.set_trace()
@@ -121,16 +124,96 @@ class SwAVLinearProbe(SwAV):
         
         return output
 
+class SwAVFinetune(SwAV):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def load_pretrained(self, path, rank=0, finetune=False):
+        self._load_model(path, self.res_model, 'backbone') 
+
+    def param_groups(self, config, tensor_fusion=True, custom_cfg=None):
+        """
+        lr_group(dict|optional): [{'name': 'backbone', 'lr_mult': 0.1}, {'name': 'norm', 'weight_decay_mult': 0}]
+        """
+        if custom_cfg is not None:
+            assert isinstance(custom_cfg, list), "`custom_cfg` must be a list."
+            for item in custom_cfg:
+                assert isinstance(
+                    item, dict), "The item of `custom_cfg` must be a dict"
+        
+        param_group = self._collect_params(self.res_model, tensor_fusion, config)
+
+        return param_group
+    
+    def _collect_params(self, config, model, tensor_fusion):
+        # Collect different parameter groups
+        if self.custom_cfg is None or len(self.custom_cfg) == 0:
+            return {'params': model.parameters(), 'tensor_fusion': tensor_fusion}
+
+        self.weight_decay = config['weight_decay']
+        groups_num = len(self.custom_cfg) + 1
+        params_list = [[] for _ in range(groups_num)]
+        for name, param in model.named_parameters():
+            if param.stop_gradient:
+                continue
+            for idx, item in enumerate(self.custom_cfg):
+                if item['name'] in name:
+                    params_list[idx].append(param)
+                    break
+            else:
+                params_list[-1].append(param)
+
+        res = []
+        for idx, item in enumerate(self.custom_cfg):
+            lr_mult = item.get("lr_mult", 1.0)
+            weight_decay_mult = item.get("weight_decay_mult", None)
+            param_dict = {'params': params_list[idx], 'learning_rate': lr_mult}
+            if self.weight_decay is not None and weight_decay_mult is not None:
+                param_dict['weight_decay'] = self.weight_decay * weight_decay_mult
+            param_dict['tensor_fusion'] = tensor_fusion
+            res.append(param_dict)
+        res.append({'params': params_list[-1]})
+
+        msg = 'Parameter groups for optimizer: \n'
+        for idx, item in enumerate(self.custom_cfg):
+            params_name = [p.name for p in params_list[idx]]
+            item = item.copy()
+            item['params_name'] = params_name
+            msg += 'Group {}: \n{} \n'.format(idx, item)
+        msg += 'Last group:\n params_name: {}'.format(
+            [p.name for p in params_list[-1]])
+        logger.info(msg)
+
+        return res
+
+    
+    
+    def forward(self, inp):
+        return self.res_model(inp)
+
+class SwAVPretrain(SwAV):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def forward(self, inp):
+        return self.res_model(inp)
+
         
 def swav_resnet50_linearprobe(**kwargs):
-    model = SwAVLinearProbe(linear_arch="resnet50", 
-                            global_avg=True, 
-                            use_bn=False,
-                            output_dim=0, 
-                            eval_mode=True,
-                            **kwargs)
+    model = SwAVLinearProbe(**kwargs)
     return model
-        
+
+def swav_resnet50_finetune(**kwargs):
+    model = SwAVFinetune(**kwargs)
+    return model
+
+def swav_resnet50_pretrain(**kwargs): # todo
+    flags = {}
+    flags['FLAGS_cudnn_exhaustive_search'] = True
+    flags['FLAGS_cudnn_deterministic'] = True
+    paddle.set_flags(flags)
+    model = SwAVPretrain(**kwargs)
+    return model       
             
 # def normal_init(param, **kwargs):
 #     initializer = nn.initializer.Normal(**kwargs)
@@ -144,35 +227,16 @@ def swav_resnet50_linearprobe(**kwargs):
 class RegLog(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
 
-    def __init__(self, num_labels, arch='resnet50', global_avg=False,
-        use_bn=True):
+    def __init__(self, num_labels):
         super(RegLog, self).__init__()
-        self.bn = None
-        if global_avg:
-            if arch == 'resnet50':
-                s = 2048
-            elif arch == 'resnet50w2':
-                s = 4096
-            elif arch == 'resnet50w4':
-                s = 8192
-            self.av_pool = paddle.nn.AdaptiveAvgPool2D(output_size=(1, 1))
-        else:
-            assert arch == 'resnet50'
-            s = 8192
-            self.av_pool = paddle.nn.AvgPool2D(6, stride=1)
-            if use_bn:
-                self.bn = paddle.nn.BatchNorm2D(num_features=2048, momentum
-                    =1 - 0.1, epsilon=1e-05, weight_attr=None, bias_attr=
-                    None, use_global_stats=True)
-        
+        s = 2048
+        self.av_pool = paddle.nn.AdaptiveAvgPool2D(output_size=(1, 1))
         self.linear = paddle.nn.Linear(in_features=s, out_features=num_labels)
+        
         init.normal_(self.linear.weight, mean=0.0, std=0.01)
         init.zeros_(self.linear.bias)
 
     def forward(self, x):
         x = self.av_pool(x)
-        if self.bn is not None:
-            x = self.bn(x)
-
         x = x.reshape((x.shape[0], -1))
         return self.linear(x)
