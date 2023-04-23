@@ -16,6 +16,7 @@ import paddle
 from passl.utils import logger
 
 from .lr_scheduler import TimmCosine, ViTLRScheduler, Step, Poly
+from .lr_callable import LRCallable, CosineWithFixLR
 
 
 def build_lr_scheduler(lr_config, epochs, step_each_epoch):
@@ -24,6 +25,8 @@ def build_lr_scheduler(lr_config, epochs, step_each_epoch):
         lr_name = lr_config.pop('name')
         lr = eval(lr_name)(**lr_config)
         if isinstance(lr, paddle.optimizer.lr.LRScheduler):
+            return lr
+        elif isinstance(lr, LRCallable):
             return lr
         else:
             return lr()

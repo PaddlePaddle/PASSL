@@ -209,7 +209,7 @@ class Optimizer(object):
         for group in self.param_groups:
             lr = group['lr']
             if isinstance(lr, paddle.optimizer.lr.LRScheduler):
-                lr.step()
+                lr.step(step)
             elif 'lr_func' in group and callable(group['lr_func']):
                 group['lr_func'](group, step)
 

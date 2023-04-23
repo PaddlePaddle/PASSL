@@ -107,6 +107,7 @@ import paddle
 
 from passl.core.grad_clip import ClipGradByGlobalNorm
 from passl.core.param_fuse import get_fused_params
+from passl.scheduler import LRCallable
 
 from passl.utils import logger
 
@@ -115,11 +116,13 @@ from .adamw import AdamW
 from .adafactor import Adafactor
 from .momentum import Momentum
 from .momentum_lars import MomentumLARS
+from .momentum_larc import MomentumLARC
 
 
 def build_optimizer(config, lr_scheduler, model=None):
     config = copy.deepcopy(config)
     optim_name = config.pop('name')
+    custom_cfg = config.pop('custom_cfg', None)
     
     grad_clip = None
     grad_clip_config = config.pop('grad_clip', None)
@@ -133,9 +136,9 @@ def build_optimizer(config, lr_scheduler, model=None):
         tensor_fusion = False
         logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
-
     if hasattr(model, 'param_groups'):
-        param_group = model.param_groups(no_weight_decay_name, tensor_fusion)
+        # param_group = model.param_groups(no_weight_decay_name, tensor_fusion) # todo compact simsaim
+        param_group = model.param_groups(config, tensor_fusion, custom_cfg)
         for group in param_group:
             if 'tensor_fusion' in group and group['tensor_fusion']:
                 group['params'] = get_fused_params(group['params'])
@@ -148,7 +151,6 @@ def build_optimizer(config, lr_scheduler, model=None):
                 state['no_weight_decay'] = True
             param_group_map[str(state)].append(p)
 
-
         if tensor_fusion:
             # fuse params
             for key in param_group_map:
@@ -160,25 +162,28 @@ def build_optimizer(config, lr_scheduler, model=None):
                     continue
                 param_group_map[key] = get_fused_params(param_group_map[key])
 
-
         # bulid optimizer params
         param_group = []
         for key in param_group_map:
             group = {'params': param_group_map[key]}
 
-
             if "'is_distributed': True" in key:
                 group['is_distributed'] = True
-
 
             if 'no_weight_decay' in key:
                 group['weight_decay'] = 0.0
 
-
             param_group.append(group)
 
+    lr = lr_scheduler
+    lr_func = None
+    if isinstance(lr_scheduler, LRCallable):
+        lr = lr_scheduler.lr
+        lr_func = lr_scheduler
+
     optim = eval(optim_name)(param_group,
-                             lr=lr_scheduler,
+                             lr=lr,
+                             lr_func=lr_func,
                              grad_clip=grad_clip,
                              **config)
     logger.debug("build optimizer ({}) success..".format(optim))

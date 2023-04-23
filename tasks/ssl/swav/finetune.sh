@@ -15,14 +15,13 @@
 # Note: Set the following environment variables 
 # and then need to run the script on each node.
 unset PADDLE_TRAINER_ENDPOINTS
+unset DISTRIBUTED_TRAINER_ENDPOINTS
 export PADDLE_NNODES=1
 export PADDLE_MASTER="127.0.0.1:12538"
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export FLAGS_stop_check_timeout=3600
+export CUDA_VISIBLE_DEVICES=4,1,2,3 #,4,5,6,7
 
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    passl-train \
-    -c ./configs/mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1.yaml
+    tools/train.py -c tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n8c_dp_fp16o1.yml

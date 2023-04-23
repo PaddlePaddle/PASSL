@@ -4,14 +4,9 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-<<<<<<< HEAD
   pretrained_model: /ssd2/tangshiyu/Code/PASSL/swav_800ep_pretrain.pdparams
   finetune: True
   output_dir: ./output/semi_0420
-=======
-  pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
-  output_dir: ./output/baseline_0421_align_trackTrue_nolinearload
->>>>>>> 709ea4dd375a62c2a5a6c3a36ea9776e30ead382
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -33,15 +28,8 @@ DistributedStrategy:
 
 # model architecture
 Model:
-<<<<<<< HEAD
   name: swav_resnet50_finetune
   output_dim: 1000
-=======
-  name: swav_resnet50_linearprobe
-  output_dim: 0 
-  eval_mode: True
-  class_num: 1000
->>>>>>> 709ea4dd375a62c2a5a6c3a36ea9776e30ead382
 
 # loss function config for traing/eval process
 Loss:

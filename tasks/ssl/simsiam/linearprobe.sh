@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# export FLAGS_stop_check_timeout=3600
-unset PADDLE_TRAINER_ENDPOINTS
+#unset PADDLE_TRAINER_ENDPOINTS
+#export PADDLE_NNODES=1
+#export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
+#export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export FLAGS_stop_check_timeout=3600
 unset DISTRIBUTED_TRAINER_ENDPOINTS
-export PADDLE_NNODES=1
-export PADDLE_MASTER="127.0.0.1:12538"
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+unset PADDLE_TRAINER_ENDPOINTS
 
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    tools/train.py -c tasks/ssl/swav/configs/swav_resnet50_224_lp_in1k_1n8c_dp_fp16o1.yml
-
-# python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c
+    passl-train \
+    -c ./configs/simsiam_resnet50_lp_in1k_1n8c_dp_fp32.yaml

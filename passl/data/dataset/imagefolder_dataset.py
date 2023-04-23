@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
-import numpy as np
 import os
+import urllib
+import numpy as np
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import paddle
 
@@ -56,11 +57,22 @@ class ImageFolder(paddle.io.Dataset):
                  transform=None,
                  target_transform=None,
                  loader=default_loader,
-                 extensions=IMG_EXTENSIONS):
+                 extensions=IMG_EXTENSIONS,
+                 samples_tag=None):
 
         self.root = root
         classes, class_to_idx = self.find_classes(self.root)
-        samples = self.make_dataset(self.root, class_to_idx, extensions)
+        if samples_tag is None:
+            samples = self.make_dataset(self.root, class_to_idx, extensions)
+        elif samples_tag == "semi_1" or samples == "semi_10":
+            train_data_path  = os.path.join(root, "train")
+            percent = samples_tag.split('_')[-1]
+            subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(percent) + "percent.txt")
+            list_imgs = [li.decode("utf-8").split('\n')[0] for li in subset_file]
+            samples = [(os.path.join(train_data_path, li.split('_')[0], li), class_to_idx[li.split('_')[0]]) for li in list_imgs]
+        else:
+            raise NotImplementedError('{} is not implemented'.format(samples))
+
         print(f'find total {len(classes)} classes and {len(samples)} images.')
 
         self.extensions = extensions
