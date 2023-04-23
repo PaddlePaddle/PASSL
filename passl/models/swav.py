@@ -1,4 +1,5 @@
 import os
+from sys import flags
 
 import paddle
 import paddle.nn as nn
@@ -146,7 +147,11 @@ def swav_resnet50_finetune(**kwargs):
     model = SwAVFinetune(**kwargs)
     return model
 
-def swav_resnet50_pretrain(**kwargs):
+def swav_resnet50_pretrain(**kwargs): # todo
+    flags = {}
+    flags['FLAGS_cudnn_exhaustive_search'] = True
+    flags['FLAGS_cudnn_deterministic'] = True
+    paddle.set_flags(flags)
     model = SwAVPretrain(**kwargs)
     return model       
             

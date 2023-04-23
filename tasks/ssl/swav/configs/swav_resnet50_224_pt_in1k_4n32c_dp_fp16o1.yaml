@@ -19,8 +19,8 @@ Global:
   seed: 31
 
 # FP16 setting
-# FP16:
-#   level: O1
+FP16:
+  level: O1
 #   GradScaler:
 #     init_loss_scaling: 65536.0
 #     incr_every_n_steps: 2000
@@ -46,9 +46,11 @@ LRScheduler:
     warmup_prefix: True
 
 Optimizer:
-  name: Momentum
+  name: MomentumLARC
   momentum: 0.9
   weight_decay: 1e-6
+  trust_coefficient: 0.001
+  clip: False
   tensor_fusion: False
 
 # data loader for train and eval

@@ -5,7 +5,7 @@ Global:
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
   pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
-  output_dir: ./output/baseline_0420_align_trackTrue
+  output_dir: ./output/baseline_0421_align_trackTrue_nolinearload
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
