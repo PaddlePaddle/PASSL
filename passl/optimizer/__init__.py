@@ -122,6 +122,7 @@ from .momentum_larc import MomentumLARC
 def build_optimizer(config, lr_scheduler, model=None):
     config = copy.deepcopy(config)
     optim_name = config.pop('name')
+    custom_cfg = config.pop('custom_cfg', None)
     
     grad_clip = None
     grad_clip_config = config.pop('grad_clip', None)
@@ -136,7 +137,8 @@ def build_optimizer(config, lr_scheduler, model=None):
         logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
     if hasattr(model, 'param_groups'):
-        param_group = model.param_groups(no_weight_decay_name, tensor_fusion)
+        # param_group = model.param_groups(no_weight_decay_name, tensor_fusion) # todo compact simsaim
+        param_group = model.param_groups(config, tensor_fusion, custom_cfg)
         for group in param_group:
             if 'tensor_fusion' in group and group['tensor_fusion']:
                 group['params'] = get_fused_params(group['params'])

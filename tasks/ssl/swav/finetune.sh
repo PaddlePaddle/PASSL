@@ -18,7 +18,7 @@ unset PADDLE_TRAINER_ENDPOINTS
 unset DISTRIBUTED_TRAINER_ENDPOINTS
 export PADDLE_NNODES=1
 export PADDLE_MASTER="127.0.0.1:12538"
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export CUDA_VISIBLE_DEVICES=4,1,2,3 #,4,5,6,7
 
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \

@@ -1,3 +1,5 @@
+from collections import defaultdict
+import copy
 import os
 from sys import flags
 
@@ -5,6 +7,7 @@ import paddle
 import paddle.nn as nn
 
 from passl.nn import init
+from passl.utils import logger
 from passl.models.resnet import resnet50
 from passl.models.base_model import Model
 
@@ -127,6 +130,63 @@ class SwAVFinetune(SwAV):
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone') 
+
+    def param_groups(self, config, tensor_fusion=True, custom_cfg=None):
+        """
+        lr_group(dict|optional): [{'name': 'backbone', 'lr_mult': 0.1}, {'name': 'norm', 'weight_decay_mult': 0}]
+        """
+        if custom_cfg is not None:
+            assert isinstance(custom_cfg, list), "`custom_cfg` must be a list."
+            for item in custom_cfg:
+                assert isinstance(
+                    item, dict), "The item of `custom_cfg` must be a dict"
+        
+        param_group = self._collect_params(self.res_model, tensor_fusion, config)
+
+        return param_group
+    
+    def _collect_params(self, config, model, tensor_fusion):
+        # Collect different parameter groups
+        if self.custom_cfg is None or len(self.custom_cfg) == 0:
+            return {'params': model.parameters(), 'tensor_fusion': tensor_fusion}
+
+        self.weight_decay = config['weight_decay']
+        groups_num = len(self.custom_cfg) + 1
+        params_list = [[] for _ in range(groups_num)]
+        for name, param in model.named_parameters():
+            if param.stop_gradient:
+                continue
+            for idx, item in enumerate(self.custom_cfg):
+                if item['name'] in name:
+                    params_list[idx].append(param)
+                    break
+            else:
+                params_list[-1].append(param)
+
+        res = []
+        for idx, item in enumerate(self.custom_cfg):
+            lr_mult = item.get("lr_mult", 1.0)
+            weight_decay_mult = item.get("weight_decay_mult", None)
+            param_dict = {'params': params_list[idx], 'learning_rate': lr_mult}
+            if self.weight_decay is not None and weight_decay_mult is not None:
+                param_dict['weight_decay'] = self.weight_decay * weight_decay_mult
+            param_dict['tensor_fusion'] = tensor_fusion
+            res.append(param_dict)
+        res.append({'params': params_list[-1]})
+
+        msg = 'Parameter groups for optimizer: \n'
+        for idx, item in enumerate(self.custom_cfg):
+            params_name = [p.name for p in params_list[idx]]
+            item = item.copy()
+            item['params_name'] = params_name
+            msg += 'Group {}: \n{} \n'.format(idx, item)
+        msg += 'Last group:\n params_name: {}'.format(
+            [p.name for p in params_list[-1]])
+        logger.info(msg)
+
+        return res
+
+    
     
     def forward(self, inp):
         return self.res_model(inp)
