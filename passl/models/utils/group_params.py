@@ -47,7 +47,8 @@ def group_with_matcher(model, group_matcher):
                 flag = 1
         if flag == 0:
             other_groups.append(name)
-    param_groups['others'] = other_groups
+    if len(other_groups) > 0:
+        param_groups['others'] = other_groups
     return param_groups
 
 
