@@ -14,6 +14,7 @@
 
 import os
 import urllib
+import urllib.request
 import numpy as np
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
@@ -65,11 +66,14 @@ class ImageFolder(paddle.io.Dataset):
         if samples_tag is None:
             samples = self.make_dataset(self.root, class_to_idx, extensions)
         elif samples_tag == "semi_1" or samples == "semi_10":
-            train_data_path  = os.path.join(root, "train")
+            # train_data_path  = os.path.join(root, "train")
             percent = samples_tag.split('_')[-1]
-            subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(percent) + "percent.txt")
-            list_imgs = [li.decode("utf-8").split('\n')[0] for li in subset_file]
-            samples = [(os.path.join(train_data_path, li.split('_')[0], li), class_to_idx[li.split('_')[0]]) for li in list_imgs]
+            # subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(percent) + "percent.txt")
+            subset_file = str(percent) + "percent.txt"
+            with open(subset_file, 'r') as f:
+                list_imgs = [li.split('\n')[0] for li in f.readlines()]
+            # print(list_imgs)
+            samples = [(os.path.join(root, li.split('_')[0], li), class_to_idx[li.split('_')[0]]) for li in list_imgs]
         else:
             raise NotImplementedError('{} is not implemented'.format(samples))
 

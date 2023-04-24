@@ -214,17 +214,12 @@ class Engine(object):
 
         # build optimizer and lr scheduler
         if self.mode == 'train':
-            config_lr_scheduler = self.config.get('LRScheduler', None)
-            self.lr_scheduler = None
-            if config_lr_scheduler is not None:
-                self.lr_decay_unit = config_lr_scheduler.get('decay_unit',
-                                                             'step')
-                self.lr_scheduler = build_lr_scheduler(
-                    config_lr_scheduler, self.config["Global"]["epochs"],
-                    len(self.train_dataloader))
-
-            self.optimizer = build_optimizer(self.config["Optimizer"],
-                                             self.lr_scheduler, self.model)
+            if self.config["Optimizer"].get('decay_unit', None) is not None:
+                self.lr_decay_unit = self.config["Optimizer"]['decay_unit']
+            else:
+                self.lr_decay_unit = 'step'
+                Warning('lr_decay_unit is not set in optimizer config, set to step by default')
+            self.optimizer = build_optimizer(self.config["Optimizer"], self.model, self.config, len(self.train_dataloader))
 
         # load pretrained model
         if self.config["Global"]["pretrained_model"] is not None:
