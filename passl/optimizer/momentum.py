@@ -26,8 +26,6 @@ from passl.utils import logger
 class Momentum(Optimizer):
     def __init__(self,
                  params,
-                 lr=0.001,
-                 lr_func=None,
                  momentum=0.9,
                  weight_decay=0.0,
                  use_master_param=True,
@@ -35,8 +33,6 @@ class Momentum(Optimizer):
                  **args):
 
         defaults = dict(
-            lr=lr,
-            lr_func=lr_func,
             momentum=momentum,
             weight_decay=weight_decay,
             use_master_param=use_master_param,

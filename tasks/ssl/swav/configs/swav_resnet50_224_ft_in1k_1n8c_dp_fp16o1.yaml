@@ -4,9 +4,9 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: /ssd2/tangshiyu/Code/PASSL/swav_800ep_pretrain.pdparams
+  pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
   finetune: True
-  output_dir: ./output/semi_0420
+  output_dir: ./output/semi_0424
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -40,21 +40,28 @@ Loss:
     - CELoss:
         weight: 1.0
 
-LRScheduler:
-    name: MultiStepDecay
-    learning_rate: 0.02
-    milestones: [12, 16]
-    gamma: 0.2
-    last_epoch: -1
 
 Optimizer:
   name: Momentum
   momentum: 0.9
   weight_decay: 0.0
   tensor_fusion: False
-  custom_config:
+  decay_unit: epoch
+  custom_cfg:
     - name: head
-      lr_mult: 250
+      LRScheduler:
+        name: MultiStepDecay
+        learning_rate: 5
+        milestones: [12, 16]
+        gamma: 0.2
+        last_epoch: -1
+    - name: PasslDefault
+      LRScheduler:
+        name: MultiStepDecay
+        learning_rate: 0.02
+        milestones: [12, 16]
+        gamma: 0.2
+        last_epoch: -1
 
 # data loader for train and eval
 DataLoader:

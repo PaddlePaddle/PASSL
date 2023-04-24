@@ -4,14 +4,8 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-<<<<<<< HEAD
-  pretrained_model: /ssd2/tangshiyu/Code/PASSL/swav_800ep_pretrain.pdparams
-  finetune: True
-  output_dir: ./output/semi_0420
-=======
   pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
   output_dir: ./output/baseline_0421_align_trackTrue_nolinearload
->>>>>>> 709ea4dd375a62c2a5a6c3a36ea9776e30ead382
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -19,12 +13,12 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 20
+  epochs: 100
   print_batch_step: 100
   use_visualdl: False
   seed: 31
 
-# FP16 setting
+# FP16 setting ignore in align
 # FP16:
 #   level: O1
 
@@ -33,15 +27,10 @@ DistributedStrategy:
 
 # model architecture
 Model:
-<<<<<<< HEAD
-  name: swav_resnet50_finetune
-  output_dim: 1000
-=======
   name: swav_resnet50_linearprobe
   output_dim: 0 
   eval_mode: True
   class_num: 1000
->>>>>>> 709ea4dd375a62c2a5a6c3a36ea9776e30ead382
 
 # loss function config for traing/eval process
 Loss:
@@ -53,21 +42,19 @@ Loss:
         weight: 1.0
 
 LRScheduler:
-    name: MultiStepDecay
-    learning_rate: 0.02
-    milestones: [12, 16]
-    gamma: 0.2
-    last_epoch: -1
+    name: TimmCosine
+    learning_rate: 0.3
+    eta_min: 0.0
+    decay_unit: epoch
+    last_epoch: 0
+    warmup_epoch: 0
 
 Optimizer:
   name: Momentum
   momentum: 0.9
-  weight_decay: 0.0
-  tensor_fusion: False
-  custom_config:
-    - name: head
-      lr_mult: 250
-
+  weight_decay: 1e-6
+  tensor_fusion: True
+  
 # data loader for train and eval
 DataLoader:
   Train:
@@ -82,10 +69,9 @@ DataLoader:
         - Normalize:
             mean: [0.485, 0.456, 0.406]
             std: [0.228, 0.224, 0.225]
-      samples_tag: semi_1
     sampler:
       name: DistributedBatchSampler
-      batch_size: 64 # accum_steps: 1, total batchsize: 256
+      batch_size: 32 # accum_steps: 1, total batchsize: 256
       drop_last: False
       shuffle: True
     loader:
@@ -107,7 +93,7 @@ DataLoader:
             std: [0.228, 0.224, 0.225]
     sampler:
       name: DistributedBatchSampler
-      batch_size: 64
+      batch_size: 32
       drop_last: False
       shuffle: False
     loader:

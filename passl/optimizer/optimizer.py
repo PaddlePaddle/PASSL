@@ -206,12 +206,12 @@ class Optimizer(object):
 
     @paddle.no_grad()
     def lr_step(self, step=None):
-        for group in self.param_groups:
+        for i, group in enumerate(self.param_groups):
             lr = group['lr']
-            if isinstance(lr, paddle.optimizer.lr.LRScheduler):
+            
+            if isinstance(lr, paddle.optimizer.lr.LRScheduler): # group defined lr scheduler
                 lr.step(step)
-            elif 'lr_func' in group and callable(group['lr_func']):
-                group['lr_func'](group, step)
+        print("####lr0 {}, lr0 {}".format(self.param_groups[0]['lr'].get_lr(), self.param_groups[1]['lr'].get_lr()))
 
     @paddle.no_grad()
     def get_lr(self, group_id=0):

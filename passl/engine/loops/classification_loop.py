@@ -195,8 +195,8 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         self.trainer.scaler.update()
         # clear gradients
         self.trainer.optimizer.clear_grad()
-
-        if self.trainer.lr_decay_unit == 'step':
+        
+        if self.trainer.lr_decay_unit == 'step': # default is step
             self.trainer.optimizer.lr_step(self.global_step)
 
         return out, loss_dict

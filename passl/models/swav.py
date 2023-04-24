@@ -7,6 +7,7 @@ import paddle
 import paddle.nn as nn
 
 from passl.nn import init
+from passl.scheduler import build_lr_scheduler, lr_scheduler
 from passl.utils import logger
 from passl.models.resnet import resnet50
 from passl.models.base_model import Model
@@ -131,62 +132,61 @@ class SwAVFinetune(SwAV):
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone') 
 
-    def param_groups(self, config, tensor_fusion=True, custom_cfg=None):
+    def param_groups(self, config, tensor_fusion=True, epochs=None, trainset_length=None):
         """
-        lr_group(dict|optional): [{'name': 'backbone', 'lr_mult': 0.1}, {'name': 'norm', 'weight_decay_mult': 0}]
+        custom_cfg(dict|optional): [{'name': 'backbone', 'lr': 0.1, 'LRScheduler': {"lr":1.0}}, {'name': 'norm', 'weight_decay_mult': 0}]
         """
-        if custom_cfg is not None:
-            assert isinstance(custom_cfg, list), "`custom_cfg` must be a list."
-            for item in custom_cfg:
+
+        self.custom_cfg = config.pop('custom_cfg', None)
+        if self.custom_cfg is not None:
+            assert isinstance(self.custom_cfg, list), "`custom_cfg` must be a list."
+            for item in self.custom_cfg:
                 assert isinstance(
                     item, dict), "The item of `custom_cfg` must be a dict"
         
-        param_group = self._collect_params(self.res_model, tensor_fusion, config)
+        param_group = self._collect_params(config, self.res_model, tensor_fusion, epochs, trainset_length)
 
         return param_group
     
-    def _collect_params(self, config, model, tensor_fusion):
+    def _collect_params(self, config, model, tensor_fusion, epochs, trainset_length):
         # Collect different parameter groups
         if self.custom_cfg is None or len(self.custom_cfg) == 0:
-            return {'params': model.parameters(), 'tensor_fusion': tensor_fusion}
+            return [{'params': model.parameters(), 'tensor_fusion': tensor_fusion}]
 
+        # split params
         self.weight_decay = config['weight_decay']
-        groups_num = len(self.custom_cfg) + 1
-        params_list = [[] for _ in range(groups_num)]
+        params_dict = {item['name']: [] for item in self.custom_cfg}
         for name, param in model.named_parameters():
             if param.stop_gradient:
                 continue
             for idx, item in enumerate(self.custom_cfg):
-                if item['name'] in name:
-                    params_list[idx].append(param)
+                if item['name'] in name and item['name']!='PasslDefault':
+                    params_dict[item['name']].append(param)
                     break
             else:
-                params_list[-1].append(param)
+                params_dict['PasslDefault'].append(param)
 
         res = []
-        for idx, item in enumerate(self.custom_cfg):
-            lr_mult = item.get("lr_mult", 1.0)
+        for item in self.custom_cfg:
             weight_decay_mult = item.get("weight_decay_mult", None)
-            param_dict = {'params': params_list[idx], 'learning_rate': lr_mult}
+            if item.get("LRScheduler", None) is not None:
+                lr_scheduler = build_lr_scheduler(item['LRScheduler'], epochs, trainset_length, config['decay_unit'])
+                param_dict = {'params': params_dict[item['name']], 'lr': lr_scheduler}
+
             if self.weight_decay is not None and weight_decay_mult is not None:
                 param_dict['weight_decay'] = self.weight_decay * weight_decay_mult
             param_dict['tensor_fusion'] = tensor_fusion
             res.append(param_dict)
-        res.append({'params': params_list[-1]})
 
         msg = 'Parameter groups for optimizer: \n'
         for idx, item in enumerate(self.custom_cfg):
-            params_name = [p.name for p in params_list[idx]]
+            params_name = [p.name for p in params_dict[item['name']]]
             item = item.copy()
             item['params_name'] = params_name
             msg += 'Group {}: \n{} \n'.format(idx, item)
-        msg += 'Last group:\n params_name: {}'.format(
-            [p.name for p in params_list[-1]])
         logger.info(msg)
 
         return res
-
-    
     
     def forward(self, inp):
         return self.res_model(inp)
