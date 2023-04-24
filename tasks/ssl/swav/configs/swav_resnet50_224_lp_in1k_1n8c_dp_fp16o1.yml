@@ -41,6 +41,7 @@ Loss:
     - CELoss:
         weight: 1.0
 
+
 Optimizer:
   name: Momentum
   momentum: 0.9
@@ -55,7 +56,7 @@ Optimizer:
         eta_min: 0.0
         last_epoch: 0
         warmup_epoch: 0
-  
+
 # data loader for train and eval
 DataLoader:
   Train:

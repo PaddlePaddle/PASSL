@@ -213,7 +213,7 @@ class Optimizer(object):
                 lr.step(step)
             elif 'lr_func' in group and callable(group['lr_func']):
                 group['lr_func'](group, step)
-            # todo: compact LRCallable
+
         print("####lr0 {}, lr0 {}".format(self.param_groups[0]['lr'].get_lr(), self.param_groups[1]['lr'].get_lr()))
 
     @paddle.no_grad()

@@ -166,12 +166,12 @@ class SwAVFinetune(SwAV):
                     break
             else:
                 params_dict['PasslDefault'].append(param)
+
         res = []
         for item in self.custom_cfg:
             weight_decay_mult = item.get("weight_decay_mult", None)
             if item.get("LRScheduler", None) is not None:
                 lr_scheduler = build_lr_scheduler(item['LRScheduler'], epochs, trainset_length, config['decay_unit'])
-
             else:
                 Warning('The LRScheduler is not set for group with name {}, use default LRScheduler'.format(item['name']))
             # todo: initialize LRCallable here.
