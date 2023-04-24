@@ -14,8 +14,6 @@
 
 import re
 from collections import defaultdict
-from paddle.vision.models import ResNet
-from paddle.vision.models.resnet import BottleneckBlock, BasicBlock
 
 
 def group_with_matcher(model, group_matcher):
