@@ -81,10 +81,10 @@ class Optimizer(object):
                     + name)
             else:
                 if name == 'lr':
-                    # if default is not None:
-                    param_group.setdefault(name, deepcopy(default))
-                    # else:
-                    #     param_group.setdefault(name, self.learning_rate)
+                    if default is not None:
+                        param_group.setdefault(name, deepcopy(default))
+                    else:
+                        param_group.setdefault(name, self.learning_rate)
                 else:
                     param_group.setdefault(name, default)
         params = param_group['params']

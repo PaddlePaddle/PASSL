@@ -36,8 +36,8 @@ from .utils.group_params import param_group_layer_decay, param_group_weight_deca
 
 
 def group_params_by_state(param_groups_map):
+    # group for tensor fusion
     new_param_groups = {}
-    # for tensor fusion
     for g_name in param_groups_map:
         group = param_groups_map[g_name]
         if "params" in param_groups_map[g_name]:
@@ -63,6 +63,7 @@ def group_params_by_state(param_groups_map):
 
 
 def param_groups(model, config, epochs, step_each_epoch):
+    # group params by config or by stop_gradient by default
     param_groups_cfg = config.get('param_groups', [])
     if len(param_groups_cfg) > 0:
         params_dict = {item['name']: {} for item in param_groups_cfg}
@@ -182,9 +183,9 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
 
     lr = lr_scheduler
     lr_func = None
+    # build default lr scheduler
     lr_cfg = config.pop('lr', None)
     if lr_cfg:
-        # build default lr scheduler
         lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
         lr = lr_scheduler
         logger.info('build default lr_scheduler success.')
