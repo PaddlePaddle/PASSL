@@ -30,7 +30,7 @@ required = _RequiredParameter()
 
 
 class Optimizer(object):
-    def __init__(self, params, defaults):
+    def __init__(self, params, defaults, learning_rate=0.1):
 
         if isinstance(params, paddle.Tensor):
             raise TypeError(
@@ -39,6 +39,7 @@ class Optimizer(object):
                 format(type(params)))
 
         self.defaults = defaults
+        self.learning_rate = learning_rate
         self.state = defaultdict(dict)
         self.param_groups = []
 
@@ -80,10 +81,12 @@ class Optimizer(object):
                     + name)
             else:
                 if name == 'lr':
+                    # if default is not None:
                     param_group.setdefault(name, deepcopy(default))
+                    # else:
+                    #     param_group.setdefault(name, self.learning_rate)
                 else:
                     param_group.setdefault(name, default)
-
         params = param_group['params']
         if len(params) != len(set(params)):
             warnings.warn(
@@ -113,6 +116,15 @@ class Optimizer(object):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    @staticmethod
+    def _get_lr(param_group):
+        lr_t = param_group["lr"]
+        if isinstance(lr_t, paddle.optimizer.lr.LRScheduler):
+            lr_t = lr_t.get_lr()
+        if 'lr_scale' in param_group:
+            lr_t *= param_group['lr_scale']
+        return lr_t
 
     def state_dict(self):
         def pack_group(group):

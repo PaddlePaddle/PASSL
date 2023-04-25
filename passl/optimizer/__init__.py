@@ -15,6 +15,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import re
 from collections import defaultdict
 
 import copy
@@ -22,8 +23,7 @@ import paddle
 
 from passl.core.grad_clip import ClipGradByGlobalNorm
 from passl.core.param_fuse import get_fused_params
-from passl.scheduler import LRCallable
-
+from passl.scheduler import build_lr_scheduler, LRCallable
 from passl.utils import logger
 
 from .optimizer import Optimizer
@@ -32,69 +32,166 @@ from .adafactor import Adafactor
 from .momentum import Momentum
 from .momentum_lars import MomentumLARS
 from .momentum_larc import MomentumLARC
+from .utils.group_params import param_group_layer_decay, param_group_weight_decay
 
 
-def build_optimizer(config, lr_scheduler, model=None):
+def group_params_by_state(param_groups_map):
+    new_param_groups = {}
+    # for tensor fusion
+    for g_name in param_groups_map:
+        group = param_groups_map[g_name]
+        if "params" in param_groups_map[g_name]:
+            group = group["params"]
+        for param in group:
+            if param.stop_gradient:
+                continue
+            state = copy.deepcopy(param.__dict__)
+            new_group_name = g_name+'_'+str(state)
+            if new_group_name not in new_param_groups:
+                new_param_groups[new_group_name] = {
+                    "params": [],
+                    "group_name": new_group_name,
+                }
+                for key in param_groups_map[g_name]:
+                    if key not in ["params", "group_name"]:
+                        new_param_groups[new_group_name][key] = param_groups_map[g_name][key]
+
+            new_param_groups[new_group_name]["params"].append(param)
+    logger.info(f"The original param_groups which has {len(param_groups_map)} "
+                f"groups has been split to {len(new_param_groups)} groups")
+    return new_param_groups
+
+
+def param_groups(model, config, epochs, step_each_epoch):
+    param_groups_cfg = config.get('param_groups', [])
+    if len(param_groups_cfg) > 0:
+        params_dict = {item['name']: {} for item in param_groups_cfg}
+        for idx, item in enumerate(param_groups_cfg):
+            g_name = item['name']
+            params_dict[g_name]['params'] = []
+            lr_cfg = item.get('lr', None)
+            if isinstance(lr_cfg, dict):
+                lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
+                if isinstance(lr_scheduler, LRCallable):
+                    params_dict[g_name]['lr_func'] = lr_scheduler
+                else:
+                    params_dict[g_name]['lr'] = lr_scheduler
+            elif isinstance(lr_cfg, float):
+                params_dict[g_name]['lr'] = lr_cfg
+            for key in item:
+                if key not in ['name', 'lr']:
+                    params_dict[g_name][key] = item[key]
+
+        for name, param in model.named_parameters():
+            if param.stop_gradient:
+                continue
+            flag = 0
+            for g_name in params_dict:
+                if 'regular_exp' in params_dict[g_name]:
+                    regular_exp = params_dict[g_name]['regular_exp']
+                    group_matcher = re.compile(regular_exp)
+                else:
+                    group_matcher = re.compile(g_name)
+                if group_matcher.match(name):
+                    params_dict[g_name]["params"].append(param)
+                    flag = 1
+                    break
+            if flag == 0:
+                if 'others' not in params_dict:
+                    params_dict['others'] = {'params': []}
+                params_dict['others']["params"].append(param)
+
+        logger.info(f'Model parameters has been split into {len(params_dict)} groups by config.')
+        for key in params_dict:
+            logger.info(key, '-params: ', len(params_dict[key]['params']))
+
+        return params_dict
+
+    param_groups = []
+    for name, param in model.named_parameters():
+        if param.stop_gradient:
+            continue
+        param_groups.append(param)
+    logger.info(f'Model parameters has been split into 1 groups by default.')
+    return {'grad': {"params": param_groups}}
+
+
+def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
     config = copy.deepcopy(config)
 
     optim_name = config.pop('name')
-
+    layer_decay = config.pop('layer_decay', None)
     grad_clip = None
     grad_clip_config = config.pop('grad_clip', None)
     if grad_clip_config is not None:
         grad_clip_name = grad_clip_config.pop('name', 'ClipGradByGlobalNorm')
         grad_clip = eval(grad_clip_name)(**grad_clip_config)
 
+    weight_decay = config.get('weight_decay', None)
     no_weight_decay_name = config.pop('no_weight_decay_name', [])
+
     tensor_fusion = config.pop('tensor_fusion', True)
     if 'LAR' in optim_name:
         tensor_fusion = False
         logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
     if hasattr(model, 'param_groups'):
-        param_group = model.param_groups(no_weight_decay_name, tensor_fusion)
-        for group in param_group:
-            if 'tensor_fusion' in group and group['tensor_fusion']:
-                group['params'] = get_fused_params(group['params'])
+        new_cfg = copy.deepcopy(config)
+        new_cfg.update({
+            'weight_decay': weight_decay,
+            'layer_decay': layer_decay,
+            'epochs': epochs,
+            'step_each_epoch': step_each_epoch
+        })
+        param_group_map = model.param_groups(no_weight_decay_name, **new_cfg)
     else:
-        param_group_map = defaultdict(list)
-        for n, p in model.named_parameters():
-            state = copy.deepcopy(p.__dict__)
-            state['stop_gradient'] = p.stop_gradient
-            if any(nd in n for nd in no_weight_decay_name):
-                state['no_weight_decay'] = True
-            param_group_map[str(state)].append(p)
-
-        if tensor_fusion:
-            # fuse params
-            for key in param_group_map:
-                if 'gpu' not in paddle.get_device():
-                    continue
-                if "'is_distributed': True" in key:
-                    continue
-                if "'has_sparse_grad': True" in key:
-                    continue
-                param_group_map[key] = get_fused_params(param_group_map[key])
-
-        # bulid optimizer params
-        param_group = []
+        param_group_map = param_groups(model, config, epochs, step_each_epoch)
+        if isinstance(layer_decay, float):
+            param_group_map = param_group_layer_decay(model,
+                                                      layer_decay,
+                                                      weight_decay=weight_decay,
+                                                      param_groups_map=param_group_map,
+                                                      no_weight_decay_list=no_weight_decay_name,
+                                                      return_dict=True)
+        elif len(no_weight_decay_name) > 0:
+            param_group_map = param_group_weight_decay(model,
+                                                      weight_decay=weight_decay,
+                                                      param_groups_map=param_group_map,
+                                                      no_weight_decay_list=no_weight_decay_name,
+                                                      return_dict=True)
+    if tensor_fusion:
+        param_group_map = group_params_by_state(param_group_map)
+        # fuse params
         for key in param_group_map:
-            group = {'params': param_group_map[key]}
-
+            if 'gpu' not in paddle.get_device():
+                continue
             if "'is_distributed': True" in key:
-                group['is_distributed'] = True
+                continue
+            if "'has_sparse_grad': True" in key:
+                continue
+            param_group_map[key]["params"] = get_fused_params(param_group_map[key]["params"])
 
-            if 'no_weight_decay' in key:
-                group['weight_decay'] = 0.0
-
-            param_group.append(group)
+    param_group = []
+    for key in param_group_map:
+        group = param_group_map[key]
+        if "'is_distributed': True" in key:
+            group['is_distributed'] = True
+        if 'no_weight_decay' in key:
+            group['weight_decay'] = 0.0
+        param_group.append(group)
 
     lr = lr_scheduler
     lr_func = None
+    lr_cfg = config.pop('lr', None)
+    if lr_cfg:
+        # build default lr scheduler
+        lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
+        lr = lr_scheduler
+        logger.info('build default lr_scheduler success.')
+
     if isinstance(lr_scheduler, LRCallable):
         lr = lr_scheduler.lr
         lr_func = lr_scheduler
-
     optim = eval(optim_name)(param_group,
                              lr=lr,
                              lr_func=lr_func,

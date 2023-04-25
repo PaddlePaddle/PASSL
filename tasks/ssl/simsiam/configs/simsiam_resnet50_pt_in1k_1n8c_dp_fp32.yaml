@@ -32,15 +32,26 @@ DistributedStrategy:
 Model:
   name: simsiam_resnet50_pretrain
 
-LRScheduler:
-    name: CosineWithFixLR
-    learning_rate: 0.1
-    decay_unit: epoch
 
 Optimizer:
   name: Momentum
   momentum: 0.9
   weight_decay: 1e-4
+  decay_unit: epoch
+  lr:
+    name: TimmCosine
+    learning_rate: 0.1
+    eta_min: 0.0
+    warmup_epoch: 0
+    warmup_start_lr: 0.0
+    warmup_prefix: False
+    last_epoch: 0
+  param_groups:
+    - name: backbone
+      regular_exp: encoder
+    - name: predictor
+      lr: 0.1
+
 
 # data loader for train and eval
 DataLoader:

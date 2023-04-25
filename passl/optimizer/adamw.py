@@ -48,13 +48,6 @@ class AdamW(Optimizer):
             **args)
         super(AdamW, self).__init__(params, defaults)
 
-    @staticmethod
-    def _get_lr(param_group):
-        lr_t = param_group["lr"]
-        if isinstance(lr_t, paddle.optimizer.lr.LRScheduler):
-            lr_t = lr_t.get_lr()
-        return lr_t
-
     @paddle.no_grad()
     def step(self):
         for group in self.param_groups:

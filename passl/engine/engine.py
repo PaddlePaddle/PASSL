@@ -213,6 +213,7 @@ class Engine(object):
             paddle.set_default_dtype(default_dtype)
 
         # build optimizer and lr scheduler
+        self.lr_decay_unit = self.config["Optimizer"].get("decay_unit", 'step')
         if self.mode == 'train':
             config_lr_scheduler = self.config.get('LRScheduler', None)
             self.lr_scheduler = None
@@ -223,8 +224,8 @@ class Engine(object):
                     config_lr_scheduler, self.config["Global"]["epochs"],
                     len(self.train_dataloader))
 
-            self.optimizer = build_optimizer(self.config["Optimizer"],
-                                             self.lr_scheduler, self.model)
+            self.optimizer = build_optimizer(self.config["Optimizer"], self.lr_scheduler, self.model, self.config["Global"]["epochs"],
+                    len(self.train_dataloader))
 
         # load pretrained model
         if self.config["Global"]["pretrained_model"] is not None:
