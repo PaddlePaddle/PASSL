@@ -94,13 +94,13 @@ def param_groups(model, config, epochs, step_each_epoch):
                 else:
                     group_matcher = re.compile(g_name)
                 if group_matcher.match(name):
-                    params_dict[g_name]["params"].append(param)
+                    params_dict[g_name]["params"].append((name, param))
                     flag = 1
                     break
             if flag == 0:
                 if 'others' not in params_dict:
                     params_dict['others'] = {'params': []}
-                params_dict['others']["params"].append(param)
+                params_dict['others']["params"].append((name, param))
 
         logger.info(f'Model parameters has been split into {len(params_dict)} groups by config.')
         for key in params_dict:
@@ -112,7 +112,7 @@ def param_groups(model, config, epochs, step_each_epoch):
     for name, param in model.named_parameters():
         if param.stop_gradient:
             continue
-        param_groups.append(param)
+        param_groups.append((name, param))
     logger.info(f'Model parameters has been split into 1 groups by default.')
     return {'grad': {"params": param_groups}}
 
@@ -136,6 +136,7 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
         tensor_fusion = False
         logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
 
+    # param_groups is a dict like {'group_name': {'params': [(name, param), ...]}}
     if hasattr(model, 'param_groups'):
         new_cfg = copy.deepcopy(config)
         new_cfg.update({
@@ -160,6 +161,11 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
                                                       param_groups_map=param_group_map,
                                                       no_weight_decay_list=no_weight_decay_name,
                                                       return_dict=True)
+
+
+    for key in param_group_map:
+        param_group_map[key]['params'] = [p for (n, p) in param_group_map[key]['params']]
+
     if tensor_fusion:
         param_group_map = group_params_by_state(param_group_map)
         # fuse params

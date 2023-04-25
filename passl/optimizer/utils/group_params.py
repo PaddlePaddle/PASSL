@@ -43,10 +43,10 @@ def group_with_matcher(model, group_matcher):
         for group_name, matcher in matcher_list:
             res = matcher.match(name)
             if res:
-                param_groups[group_name].append(param)
+                param_groups[group_name].append((name, param))
                 flag = 1
         if flag == 0:
-            other_groups.append(param)
+            other_groups.append((name, param))
     if len(other_groups) > 0:
         param_groups['others'] = other_groups
     param_groups = {k: {"params": v} for k, v in param_groups.items()}
@@ -69,14 +69,14 @@ def param_group_layer_decay(
     if group_matcher:
         param_groups_map = group_with_matcher(model, group_matcher)
     num_layers = len(param_groups_map)
-    layer_scales = {z.name: layer_decay ** (num_layers - i) for i, (k, v) in enumerate(param_groups_map.items()) for z in v}
+    layer_scales = {z[0]: layer_decay ** (num_layers - i) for i, (k, v) in enumerate(param_groups_map.items()) for z in v}
     param_groups = {}
     for g_name in param_groups_map:
-        for param in param_groups_map[g_name]['params']:
+        for name, param in param_groups_map[g_name]['params']:
             if param.stop_gradient:
                 continue
-            lr_scale = layer_scales[param.name] if param.name in layer_scales else 1.
-            if param.ndim == 1 or any(nd in param.name for nd in no_weight_decay_list):
+            lr_scale = layer_scales[name] if name in layer_scales else 1.
+            if param.ndim == 1 or any(nd in name for nd in no_weight_decay_list):
                 this_decay = 0.
                 g_decay = "no_weight_decay"
             else:
@@ -94,7 +94,7 @@ def param_group_layer_decay(
                         param_groups[new_group_name][key] = param_groups_map[g_name][key]
             if this_decay is not None:
                 param_groups[new_group_name]["weight_decay"] = this_decay
-            param_groups[new_group_name]["params"].append(param)
+            param_groups[new_group_name]["params"].append((name, param))
     if return_dict:
         return param_groups
     return list(param_groups.values())
@@ -116,10 +116,10 @@ def param_group_weight_decay(
     if group_matcher is not None:
         param_groups_map = group_with_matcher(model, group_matcher)
     for g_name in param_groups_map:
-        for param in param_groups_map[g_name]['params']:
+        for name, param in param_groups_map[g_name]['params']:
             if param.stop_gradient:
                 continue
-            if param.ndim == 1 or any(nd in param.name for nd in no_weight_decay_list):
+            if param.ndim == 1 or any(nd in name for nd in no_weight_decay_list):
                 g_decay = "no_weight_decay"
                 this_decay = 0.
             else:
@@ -136,7 +136,7 @@ def param_group_weight_decay(
                         param_groups[new_group_name][key] = param_groups_map[g_name][key]
             if this_decay is not None:
                 param_groups[new_group_name]["weight_decay"] = this_decay
-            param_groups[new_group_name]["params"].append(param)
+            param_groups[new_group_name]["params"].append((name, param))
 
     if return_dict:
         return param_groups
