@@ -109,16 +109,9 @@ class SwAVLinearProbe(SwAV):
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone')
-        self._load_model("linear.pdparams", self.linear, 'linear')
+        # self._load_model("linear.pdparams", self.linear, 'linear')
 
     def forward(self, inp):
-#         import numpy as np
-        # import pdb; pdb.set_trace()
-        
-#         np.random.seed(42)
-#         a = np.random.rand(32, 3, 224, 224)
-#         inp = paddle.to_tensor(a).astype('float32')
-        
         with paddle.no_grad():
             output = self.res_model(inp)
         output = self.linear(output)
@@ -128,10 +121,16 @@ class SwAVLinearProbe(SwAV):
 class SwAVFinetune(SwAV):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.apply(self._freeze_norm)
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone') 
-
+        # self._load_model("projection_head.pdparams", self.res_model.projection_head, 'projection_head')
+    
+    def _freeze_norm(self, layer):
+        if isinstance(layer, (nn.layer.norm._BatchNormBase)):
+            layer._use_global_stats = True
+        
     def param_groups(self, config, tensor_fusion=True, epochs=None, trainset_length=None):
         """
         custom_cfg(dict|optional): [{'name': 'backbone', 'lr': 0.1, 'LRScheduler': {"lr":1.0}}, {'name': 'norm', 'weight_decay_mult': 0}]
@@ -140,9 +139,12 @@ class SwAVFinetune(SwAV):
         self.custom_cfg = config.pop('custom_cfg', None)
         if self.custom_cfg is not None:
             assert isinstance(self.custom_cfg, list), "`custom_cfg` must be a list."
-        assert self.custom_cfg['PasslDefault'].get('LRScheduler', None) is not None, 'LRScheduler is not set in group with name PasslDefault, please set them.'
             for item in self.custom_cfg:
-                assert isinstance(
+                if item['name']=='PasslDefault':
+                    assert item.get('LRScheduler', None) is not None, 'LRScheduler is not set in group with name PasslDefault, please set them.'
+        
+        for item in self.custom_cfg:
+            assert isinstance(
                     item, dict), "The item of `custom_cfg` must be a dict"
         
         param_group = self._collect_params(config, self.res_model, tensor_fusion, epochs, trainset_length)
@@ -209,14 +211,22 @@ def swav_resnet50_linearprobe(**kwargs):
     return model
 
 def swav_resnet50_finetune(**kwargs):
+    # flags = {}
+    # flags['FLAGS_cudnn_exhaustive_search'] = False
+    # flags['FLAGS_cudnn_deterministic'] = False
+    # paddle.set_flags(flags)
     model = SwAVFinetune(**kwargs)
+    if paddle.distributed.get_world_size() > 1:
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
     return model
 
 def swav_resnet50_pretrain(**kwargs): # todo
     flags = {}
     flags['FLAGS_cudnn_exhaustive_search'] = True
-    flags['FLAGS_cudnn_deterministic'] = True
+    flags['FLAGS_cudnn_deterministic'] = False
     paddle.set_flags(flags)
+    if paddle.distributed.get_world_size() > 1:
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
     model = SwAVPretrain(**kwargs)
     return model       
             

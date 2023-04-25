@@ -108,12 +108,7 @@ def log_model(model, logger):
     model1 = model.res_model
     for name, param in model1.named_parameters():
         logger.info(name)
-        logger.info(param.abs().sum())
-        
-    model2 = model.linear
-    for name, param in model2.named_parameters():
-        logger.info(name)
-        logger.info(param.abs().sum())
+        logger.info(param.abs().mean())
 
         
 class ClassificationTrainingEpochLoop(TrainingEpochLoop):
@@ -135,7 +130,14 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         for idx in range(self.trainer.accum_steps):
             data = batch[0][idx * step_size:(idx + 1) * step_size]
             label = batch[1][idx * step_size:(idx + 1) * step_size]
-
+            
+            ####### test            #######
+            # label = paddle.to_tensor([133, 141, 371, 254,  89, 244,  33,  64, 542,  93, 262, 674, 898, 796, 785, 727, 228, 792, 853, 639, 410, 357, 545, 473, 637, 400, 863, 386, 689, 359, 476, 960]).cast('int32')
+            # import numpy as np
+            # np.random.seed(42)
+            # a = np.random.rand(32, 3, 224, 224)
+            # data = paddle.to_tensor(a).astype('float32')
+            
             # do cast if using fp16 otherwise do nothing
             with paddle.amp.auto_cast(
                     enable=self.trainer.fp16,
@@ -145,12 +147,12 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
                 out = self.trainer.model(data)
                 final_out.append(out)
-                
-            # label = paddle.to_tensor([133, 141, 371, 254,  89, 244,  33,  64, 542,  93, 262, 674, 898, 796, 785, 727, 228, 792, 853, 639, 410, 357, 545, 473, 637, 400, 863, 386, 689, 359, 476, 960]).cast('int32')
-            
+                            
             loss_dict = self.trainer.train_loss_func(out, label)
-            
-            # logger1 = init_logger('first')
+            # import pdb; pdb.set_trace()
+
+            ####### test            #######
+            # logger1 = init_logger('before')
             # log_model(self.trainer.model, logger1)
 
             for key in loss_dict:
@@ -163,6 +165,7 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
             scaled = self.trainer.scaler.scale(loss_dict["loss"])
             scaled.backward()
             
+            ####### test            #######
 #             grad_sync(self.trainer.optimizer.param_groups)
 
 #             # do unscale and step if using fp16 and not found nan/inf
@@ -172,13 +175,12 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 #             # otherwise do nothing
 #             self.trainer.scaler.update()
             
-            # logger2 = init_logger('second')
+            # logger2 = init_logger('after')
             # log_model(self.trainer.model, logger2)
-            # import pdb; pdb.set_trace()
             
 
         out = paddle.concat(final_out, axis=0)
-        return out, final_loss_dict, 
+        return out, final_loss_dict
 
     def train_one_step(self, batch):
 
@@ -278,9 +280,20 @@ class ClassificationEvaluationLoop(_Loop):
                     custom_white_list=self.trainer.fp16_custom_white_list,
                     custom_black_list=self.trainer.fp16_custom_black_list,
                     level=self.trainer.fp16_level):
+                
+                ####### test            #######
+                # label = paddle.to_tensor([133, 141, 371, 254,  89, 244,  33,  64, 542,  93, 262, 674, 898, 796, 785, 727, 228, 792, 853, 639, 410, 357, 545, 473, 637, 400, 863, 386, 689, 359, 476, 960, 133, 141, 371, 254,  89, 244,  33,  64, 542,  93, 262, 674, 898, 796, 785, 727, 228, 792, 853, 639, 410, 357, 545, 473, 637, 400, 863, 386, 689, 359, 476, 960]).cast('int32')
+                # import numpy as np
+                # np.random.seed(42)
+                # a = np.random.rand(32, 3, 224, 224)
+                # data = paddle.to_tensor(a).astype('float32')
+                
+                # import pdb; pdb.set_trace()
+                # out = self.trainer.model(data)
                 out = self.trainer.model(batch[0])
                 # calc loss
                 if self.trainer.eval_loss_func is not None:
+                    # loss_dict = self.trainer.eval_loss_func(out, target)
                     loss_dict = self.trainer.eval_loss_func(out, batch[1])
                     for key in loss_dict:
                         if key not in output_info:

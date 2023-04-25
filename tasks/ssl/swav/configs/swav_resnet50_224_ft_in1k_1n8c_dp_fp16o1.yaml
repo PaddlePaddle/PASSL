@@ -6,7 +6,7 @@ Global:
   checkpoint: null
   pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
   finetune: True
-  output_dir: ./output/semi_0424
+  output_dir: ./output/semi_0425_readyagain
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -15,7 +15,7 @@ Global:
   eval_unit: "epoch"
   accum_steps: 1
   epochs: 20
-  print_batch_step: 100
+  print_batch_step: 50 # 50
   use_visualdl: False
   seed: 31
 
@@ -39,7 +39,6 @@ Loss:
   Eval:
     - CELoss:
         weight: 1.0
-
 
 Optimizer:
   name: Momentum

@@ -18,7 +18,8 @@ unset PADDLE_TRAINER_ENDPOINTS
 unset DISTRIBUTED_TRAINER_ENDPOINTS
 export PADDLE_NNODES=1
 export PADDLE_MASTER="127.0.0.1:12538"
-export CUDA_VISIBLE_DEVICES=4,1,2,3 #,4,5,6,7
+# export CUDA_VISIBLE_DEVICES=4 #,1,2,3
+export CUDA_VISIBLE_DEVICES=5,6,7,0
 export https_proxy="http://172.19.56.199:3128"
 
 python -m paddle.distributed.launch \
@@ -26,3 +27,6 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
    passl-train -c tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n8c_dp_fp16o1.yaml
+   
+    # --log_dir='output' \
+   

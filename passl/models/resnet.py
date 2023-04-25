@@ -109,7 +109,7 @@ class ResNet(paddle.nn.Layer):
         
         super(ResNet, self).__init__()
         if norm_layer is None:
-            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=False)
+            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=True)
         self._norm_layer = norm_layer
         self.eval_mode = eval_mode
         self.padding = paddle.nn.Pad2D(padding=1, value=0.0)
@@ -196,7 +196,6 @@ class ResNet(paddle.nn.Layer):
         return paddle.nn.Sequential(*layers)
 
     def forward_backbone(self, x):
-        
         x = self.padding(x)
         x = self.conv1(x)
         x = self.bn1(x)

@@ -65,7 +65,7 @@ class ImageFolder(paddle.io.Dataset):
         classes, class_to_idx = self.find_classes(self.root)
         if samples_tag is None:
             samples = self.make_dataset(self.root, class_to_idx, extensions)
-        elif samples_tag == "semi_1" or samples == "semi_10":
+        elif samples_tag == "semi_1" or samples_tag == "semi_10":
             # train_data_path  = os.path.join(root, "train")
             percent = samples_tag.split('_')[-1]
             # subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(percent) + "percent.txt")
