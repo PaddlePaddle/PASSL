@@ -58,7 +58,7 @@ def group_params_by_state(param_groups_map):
 
             new_param_groups[new_group_name]["params"].append(param)
     logger.info(f"The original param_groups which has {len(param_groups_map)} "
-                f"groups has been split to {len(new_param_groups)} groups")
+                f"groups has been split to {len(new_param_groups)} groups by state.")
     return new_param_groups
 
 
@@ -104,7 +104,7 @@ def param_groups(model, config, epochs, step_each_epoch):
 
         logger.info(f'Model parameters has been split into {len(params_dict)} groups by config.')
         for key in params_dict:
-            logger.info(key, '-params: ', len(params_dict[key]['params']))
+            logger.info(f"{key}-params length: {len(params_dict[key]['params'])}")
 
         return params_dict
 
