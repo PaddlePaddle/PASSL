@@ -165,8 +165,3 @@ def simsiam_resnet50_pretrain(**kwargs):
 def simsiam_resnet50_linearprobe(**kwargs):
     model = SimSiamLinearProbe(block=BottleneckBlock, depth=50, **kwargs)
     return model
-
-
-if __name__ == '__main__':
-    model = simsiam_resnet50_pretrain()
-    model.param_groups(tensor_fusion=True)
