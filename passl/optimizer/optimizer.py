@@ -80,10 +80,7 @@ class Optimizer(object):
                     + name)
             else:
                 if name == 'lr':
-                    if default is None:
-                        raise ValueError('The default value of lr should not be None.')
-                    else:
-                        param_group.setdefault(name, deepcopy(default))
+                    param_group.setdefault(name, deepcopy(default))
                 else:
                     param_group.setdefault(name, default)
         params = param_group['params']

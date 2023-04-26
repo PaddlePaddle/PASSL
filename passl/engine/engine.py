@@ -218,7 +218,7 @@ class Engine(object):
             self.lr_decay_unit = self.config["Optimizer"]['lr_decay_unit']
         else:
             self.lr_decay_unit = 'step'
-            Warning('lr_decay_unit is not set in optimizer config, set to step by default!')
+            logger.warning('lr_decay_unit is not set in optimizer config, set to step by default!')
         if self.mode == 'train':
             config_lr_scheduler = self.config.get('LRScheduler', None)
             self.lr_scheduler = None

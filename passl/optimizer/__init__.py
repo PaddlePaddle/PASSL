@@ -15,10 +15,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import re
 from collections import defaultdict
 
 import copy
+import re
 import paddle
 
 from passl.core.grad_clip import ClipGradByGlobalNorm
@@ -32,38 +32,24 @@ from .adafactor import Adafactor
 from .momentum import Momentum
 from .momentum_lars import MomentumLARS
 from .momentum_larc import MomentumLARC
-from .utils.group_params import param_group_layer_decay, param_group_weight_decay
+from .utils.group_params import (
+    param_group_layer_decay,
+    param_group_weight_decay,
+    group_params_by_state)
 
 
-def group_params_by_state(param_groups_map):
-    # group for tensor fusion
-    new_param_groups = {}
-    for g_name in param_groups_map:
-        group = param_groups_map[g_name]
-        if "params" in param_groups_map[g_name]:
-            group = group["params"]
-        for param in group:
-            if param.stop_gradient:
-                continue
-            state = copy.deepcopy(param.__dict__)
-            new_group_name = g_name+'_'+str(state)
-            if new_group_name not in new_param_groups:
-                new_param_groups[new_group_name] = {
-                    "params": [],
-                    "group_name": new_group_name,
-                }
-                for key in param_groups_map[g_name]:
-                    if key not in ["params", "group_name"]:
-                        new_param_groups[new_group_name][key] = param_groups_map[g_name][key]
+def group_param_by_config(model, config, epochs, step_each_epoch):
+    '''
+    group params by config or by stop_gradient by default
+    Args:
+        model:
+        config: config for param_groups
+        epochs: global epochs
+        step_each_epoch: step for
 
-            new_param_groups[new_group_name]["params"].append(param)
-    logger.info(f"The original param_groups which has {len(param_groups_map)} "
-                f"groups has been split to {len(new_param_groups)} groups by state.")
-    return new_param_groups
+    Returns:
 
-
-def param_groups(model, config, epochs, step_each_epoch):
-    # group params by config or by stop_gradient by default
+    '''
     param_groups_cfg = config.get('param_groups', [])
     if len(param_groups_cfg) > 0:
         params_dict = {item['name']: {} for item in param_groups_cfg}
@@ -138,10 +124,12 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
                     'It automatically fall back to `tensor_fusion = False`.')
 
     # param_groups is a dict like {'group_name': {'params': [(name, param), ...]}}
-    if hasattr(model, 'param_groups'):
-        param_group_map = model.param_groups(no_weight_decay_name, weight_decay, layer_decay)
+    if hasattr(model, 'param_group_fn'):
+        # param groups are defined by model
+        model_group_cfg = config.pop('model_param_groups', {})
+        param_group_map = model.param_group_fn(no_weight_decay_name, weight_decay, layer_decay, model_group_cfg)
     else:
-        param_group_map = param_groups(model, config, epochs, step_each_epoch)
+        param_group_map = group_param_by_config(model, config, epochs, step_each_epoch)
         if isinstance(layer_decay, float):
             param_group_map = param_group_layer_decay(model,
                                                       layer_decay,
@@ -192,8 +180,7 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
     if isinstance(lr_scheduler, LRCallable):
         lr = lr_scheduler.lr
         lr_func = lr_scheduler
-    assert isinstance(lr, paddle.optimizer.lr.LRScheduler) or isinstance(lr, float), \
-        'lr must be an instance of paddle.optimizer.lr.LRScheduler or float.'
+    assert lr is not None, 'lr should not be None'
     optim = eval(optim_name)(param_group,
                              lr=lr,
                              lr_func=lr_func,

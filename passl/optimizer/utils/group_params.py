@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import re
 from collections import defaultdict
+from passl.utils import logger
 
 
 def group_with_matcher(model, group_matcher):
@@ -53,6 +54,37 @@ def group_with_matcher(model, group_matcher):
     return param_groups
 
 
+def group_params_by_state(param_groups_map):
+    '''
+    group parameters by state for tensor fusion
+    Args:
+        param_groups_map: Dict like {'group_name': {'params': [param1, param2, ...]}}
+
+    Returns:
+        new_param_groups: Dict like {'group_name': {'params': [param1, param2, ...]}}
+    '''
+    new_param_groups = {}
+    for g_name in param_groups_map:
+        for param in param_groups_map[g_name]['params']:
+            if param.stop_gradient:
+                continue
+            state = copy.deepcopy(param.__dict__)
+            new_group_name = g_name+'_'+str(state)
+            if new_group_name not in new_param_groups:
+                new_param_groups[new_group_name] = {
+                    "params": [],
+                    "group_name": new_group_name,
+                }
+                for key in param_groups_map[g_name]:
+                    if key not in ["params", "group_name"]:
+                        new_param_groups[new_group_name][key] = param_groups_map[g_name][key]
+
+            new_param_groups[new_group_name]["params"].append(param)
+    logger.info(f"The original param_groups which has {len(param_groups_map)} "
+                f"groups has been split to {len(new_param_groups)} groups by state.")
+    return new_param_groups
+
+
 def param_group_layer_decay(
         model,
         layer_decay,
@@ -62,7 +94,7 @@ def param_group_layer_decay(
         param_groups_map=None,
     ):
     '''
-
+    group parameters by layer_decay and weight_decay setting
     Args:
         model: instance of paddle.nn.Layer
         layer_decay: float or None
@@ -87,7 +119,7 @@ def param_group_layer_decay(
             if param.stop_gradient:
                 continue
             lr_scale = layer_scales[name] if name in layer_scales else 1.
-            if param.ndim == 1 or any(nd in name for nd in no_weight_decay_list):
+            if any(nd in name for nd in no_weight_decay_list):
                 this_decay = 0.
                 g_decay = "no_weight_decay"
             else:
@@ -117,7 +149,7 @@ def param_group_weight_decay(
         param_groups_map=None,
     ):
     '''
-
+    group parameters by weight_decay setting
     Args:
         model: instance of paddle.nn.Layer
         group_matcher: Dict like {group_name: regular_expression1}
@@ -140,7 +172,7 @@ def param_group_weight_decay(
         for name, param in param_groups_map[g_name]['params']:
             if param.stop_gradient:
                 continue
-            if param.ndim == 1 or any(nd in name for nd in no_weight_decay_list):
+            if any(nd in name for nd in no_weight_decay_list):
                 g_decay = "no_weight_decay"
                 this_decay = 0.
             else:
