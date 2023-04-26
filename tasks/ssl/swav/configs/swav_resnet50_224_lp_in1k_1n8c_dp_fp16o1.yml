@@ -5,7 +5,7 @@ Global:
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
   pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
-  output_dir: ./output/baseline_0425
+  output_dir: ./output
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -17,10 +17,6 @@ Global:
   print_batch_step: 100
   use_visualdl: False
   seed: 31
-
-# FP16 setting ignore in align
-# FP16:
-#   level: O1
 
 DistributedStrategy:
   data_parallel: True
@@ -40,7 +36,6 @@ Loss:
   Eval:
     - CELoss:
         weight: 1.0
-
 
 Optimizer:
   name: Momentum

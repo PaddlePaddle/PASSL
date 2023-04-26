@@ -211,10 +211,6 @@ def swav_resnet50_linearprobe(**kwargs):
     return model
 
 def swav_resnet50_finetune(**kwargs):
-    # flags = {}
-    # flags['FLAGS_cudnn_exhaustive_search'] = False
-    # flags['FLAGS_cudnn_deterministic'] = False
-    # paddle.set_flags(flags)
     model = SwAVFinetune(**kwargs)
     if paddle.distributed.get_world_size() > 1:
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -230,15 +226,6 @@ def swav_resnet50_pretrain(**kwargs): # todo
     model = SwAVPretrain(**kwargs)
     return model       
             
-# def normal_init(param, **kwargs):
-#     initializer = nn.initializer.Normal(**kwargs)
-#     initializer(param, param.block)
-
-# def constant_init(param, **kwargs):
-#     initializer = nn.initializer.Constant(**kwargs)
-#     initializer(param, param.block)
-        
-        
 class RegLog(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
 

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# export FLAGS_stop_check_timeout=3600
 unset PADDLE_TRAINER_ENDPOINTS
 unset DISTRIBUTED_TRAINER_ENDPOINTS
 export PADDLE_NNODES=1
@@ -24,5 +23,3 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     tools/train.py -c tasks/ssl/swav/configs/swav_resnet50_224_lp_in1k_1n8c_dp_fp16o1.yml
-
-# python -m paddle.distributed.launch --gpus="0,1,2,3,4,5,6,7" tools/train.py -c

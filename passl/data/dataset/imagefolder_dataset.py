@@ -66,13 +66,13 @@ class ImageFolder(paddle.io.Dataset):
         if samples_tag is None:
             samples = self.make_dataset(self.root, class_to_idx, extensions)
         elif samples_tag == "semi_1" or samples_tag == "semi_10":
-            # train_data_path  = os.path.join(root, "train")
-            percent = samples_tag.split('_')[-1]
+            # connection reset
             # subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(percent) + "percent.txt")
-            subset_file = str(percent) + "percent.txt"
+            # list_imgs = [li.decode("utf-8").split('\n')[0] for li in subset_file]
+            subset_file = str(samples_tag.split('_')[-1]) + "percent.txt"
             with open(subset_file, 'r') as f:
                 list_imgs = [li.split('\n')[0] for li in f.readlines()]
-            # print(list_imgs)
+
             samples = [(os.path.join(root, li.split('_')[0], li), class_to_idx[li.split('_')[0]]) for li in list_imgs]
         else:
             raise NotImplementedError('{} is not implemented'.format(samples))
