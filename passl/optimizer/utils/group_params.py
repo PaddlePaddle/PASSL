@@ -28,14 +28,14 @@ def group_with_matcher(model, group_matcher):
     """
     matcher_list = []
     for group_name, re_exps in group_matcher.items():
-        assert re_exps is not None
+        assert re_exps is not None, "re_exps should not be None."
         if isinstance(re_exps, (tuple, list)):
             for re_str in re_exps:
                 matcher_list.append((group_name, re.compile(re_str)))
         else:
             matcher_list.append((group_name, re.compile(re_exps)))
     param_groups = defaultdict(list)
-    other_groups = []
+    default_group = []
     for name, param in model.named_parameters():
         if param.stop_gradient:
            continue
@@ -46,9 +46,9 @@ def group_with_matcher(model, group_matcher):
                 param_groups[group_name].append((name, param))
                 flag = 1
         if flag == 0:
-            other_groups.append((name, param))
-    if len(other_groups) > 0:
-        param_groups['others'] = other_groups
+            default_group.append((name, param))
+    if len(default_group) > 0:
+        param_groups['default'] = default_group
     param_groups = {k: {"params": v} for k, v in param_groups.items()}
     return param_groups
 
@@ -60,10 +60,21 @@ def param_group_layer_decay(
         group_matcher=None,
         no_weight_decay_list=(),
         param_groups_map=None,
-        return_dict=False,
     ):
-    # weight_decay value can be None and assigned in the optimizer config,
-    # but it has the highest priority if given here.
+    '''
+
+    Args:
+        model: instance of paddle.nn.Layer
+        layer_decay: float or None
+        weight_decay: float or None by default, which can also assigned in the optimizer args,
+                    but it has the highest priority if given here.
+        group_matcher: Dict like {group_name: regular_expression1}
+        no_weight_decay_list: list of string(layer name keyword)
+        param_groups_map:  Dict like {group_name: {'params': [(name, group), ...]}}
+
+    Returns:
+        param_groups: Dict like {group_name: {'params': [(name, group), ...]}}
+    '''
     assert (not group_matcher) or (not param_groups_map), \
         "group_matcher and param_names_group should not be given in the same time."
     if group_matcher:
@@ -95,9 +106,7 @@ def param_group_layer_decay(
             if this_decay is not None:
                 param_groups[new_group_name]["weight_decay"] = this_decay
             param_groups[new_group_name]["params"].append((name, param))
-    if return_dict:
-        return param_groups
-    return list(param_groups.values())
+    return param_groups
 
 
 def param_group_weight_decay(
@@ -106,8 +115,20 @@ def param_group_weight_decay(
         weight_decay=None,
         no_weight_decay_list=(),
         param_groups_map=None,
-        return_dict=False
     ):
+    '''
+
+    Args:
+        model: instance of paddle.nn.Layer
+        group_matcher: Dict like {group_name: regular_expression1}
+        weight_decay: float or None by default, which can also assigned in the optimizer args,
+                    but it has the highest priority if given here.
+        no_weight_decay_list: list of string(layer name keyword)
+        param_groups_map: Dict like {group_name: {'params': [(name, group), ...]}}
+
+    Returns:
+        param_groups: Dict like {group_name: {'params': [(name, group), ...]}}
+    '''
     # weight_decay value can be None and assigned in the optimizer config,
     # but it has the highest priority if given here.
     assert (not group_matcher) or (not param_groups_map), \
@@ -138,6 +159,4 @@ def param_group_weight_decay(
                 param_groups[new_group_name]["weight_decay"] = this_decay
             param_groups[new_group_name]["params"].append((name, param))
 
-    if return_dict:
-        return param_groups
-    return list(param_groups.values())
+    return param_groups

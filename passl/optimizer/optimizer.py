@@ -30,7 +30,7 @@ required = _RequiredParameter()
 
 
 class Optimizer(object):
-    def __init__(self, params, defaults, learning_rate=0.1):
+    def __init__(self, params, defaults):
 
         if isinstance(params, paddle.Tensor):
             raise TypeError(
@@ -39,7 +39,6 @@ class Optimizer(object):
                 format(type(params)))
 
         self.defaults = defaults
-        self.learning_rate = learning_rate
         self.state = defaultdict(dict)
         self.param_groups = []
 
@@ -81,10 +80,10 @@ class Optimizer(object):
                     + name)
             else:
                 if name == 'lr':
-                    if default is not None:
-                        param_group.setdefault(name, deepcopy(default))
+                    if default is None:
+                        raise ValueError('The default value of lr should not be None.')
                     else:
-                        param_group.setdefault(name, self.learning_rate)
+                        param_group.setdefault(name, deepcopy(default))
                 else:
                     param_group.setdefault(name, default)
         params = param_group['params']

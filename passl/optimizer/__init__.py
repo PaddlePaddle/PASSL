@@ -134,18 +134,12 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
     tensor_fusion = config.pop('tensor_fusion', True)
     if 'LAR' in optim_name:
         tensor_fusion = False
-        logger.info('LARS or LARC Optimizer can not use tensor fusion technology. It automatically fall back to `tensor_fusion = False`.')
+        logger.info('LARS or LARC Optimizer can not use tensor fusion technology. '
+                    'It automatically fall back to `tensor_fusion = False`.')
 
     # param_groups is a dict like {'group_name': {'params': [(name, param), ...]}}
     if hasattr(model, 'param_groups'):
-        new_cfg = copy.deepcopy(config)
-        new_cfg.update({
-            'weight_decay': weight_decay,
-            'layer_decay': layer_decay,
-            'epochs': epochs,
-            'step_each_epoch': step_each_epoch
-        })
-        param_group_map = model.param_groups(no_weight_decay_name, **new_cfg)
+        param_group_map = model.param_groups(no_weight_decay_name, weight_decay, layer_decay)
     else:
         param_group_map = param_groups(model, config, epochs, step_each_epoch)
         if isinstance(layer_decay, float):
@@ -154,14 +148,13 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
                                                       weight_decay=weight_decay,
                                                       param_groups_map=param_group_map,
                                                       no_weight_decay_list=no_weight_decay_name,
-                                                      return_dict=True)
+                                                      )
         elif len(no_weight_decay_name) > 0:
             param_group_map = param_group_weight_decay(model,
                                                       weight_decay=weight_decay,
                                                       param_groups_map=param_group_map,
                                                       no_weight_decay_list=no_weight_decay_name,
-                                                      return_dict=True)
-
+                                                      )
 
     for key in param_group_map:
         param_group_map[key]['params'] = [p for (n, p) in param_group_map[key]['params']]
@@ -199,6 +192,8 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
     if isinstance(lr_scheduler, LRCallable):
         lr = lr_scheduler.lr
         lr_func = lr_scheduler
+    assert isinstance(lr, paddle.optimizer.lr.LRScheduler) or isinstance(lr, float), \
+        'lr must be an instance of paddle.optimizer.lr.LRScheduler or float.'
     optim = eval(optim_name)(param_group,
                              lr=lr,
                              lr_func=lr_func,
