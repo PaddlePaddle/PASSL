@@ -37,7 +37,7 @@ Optimizer:
   name: Momentum
   momentum: 0.9
   weight_decay: 1e-4
-  decay_unit: epoch
+  lr_decay_unit: epoch
   lr:
     name: TimmCosine
     learning_rate: 0.1
@@ -47,8 +47,7 @@ Optimizer:
     warmup_prefix: False
     last_epoch: 0
   param_groups:
-    - name: backbone
-      regular_exp: encoder
+    - name: encoder
     - name: predictor
       lr: 0.1
 

@@ -213,7 +213,7 @@ class Engine(object):
             paddle.set_default_dtype(default_dtype)
 
         # build optimizer and lr scheduler
-        self.lr_decay_unit = self.config["Optimizer"].get("decay_unit", 'step')
+        self.lr_decay_unit = self.config["Optimizer"].get("lr_decay_unit", 'step')
         if self.mode == 'train':
             config_lr_scheduler = self.config.get('LRScheduler', None)
             self.lr_scheduler = None

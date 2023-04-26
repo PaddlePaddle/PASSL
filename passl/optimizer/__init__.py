@@ -98,9 +98,9 @@ def param_groups(model, config, epochs, step_each_epoch):
                     flag = 1
                     break
             if flag == 0:
-                if 'others' not in params_dict:
-                    params_dict['others'] = {'params': []}
-                params_dict['others']["params"].append((name, param))
+                if 'default' not in params_dict:
+                    params_dict['default'] = {'params': []}
+                params_dict['default']["params"].append((name, param))
 
         logger.info(f'Model parameters has been split into {len(params_dict)} groups by config.')
         for key in params_dict:
@@ -114,7 +114,7 @@ def param_groups(model, config, epochs, step_each_epoch):
             continue
         param_groups.append((name, param))
     logger.info(f'Model parameters has been split into 1 groups by default.')
-    return {'grad': {"params": param_groups}}
+    return {'default': {"params": param_groups}}
 
 
 def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
