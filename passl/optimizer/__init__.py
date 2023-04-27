@@ -52,7 +52,9 @@ def build_group_lr_scheduler(param_groups_cfg, epochs, step_each_epoch, lr_decay
     for idx, item in enumerate(param_groups_cfg):
         lr_cfg = item.get('lr', None)
         if isinstance(lr_cfg, dict):
-            if 'decay_unit' in lr_cfg:
+            if 'decay_unit' not in lr_cfg:
+                lr_cfg['decay_unit'] = lr_decay_unit
+            else:
                 assert lr_cfg['decay_unit'] == lr_decay_unit, \
                     f'decay_unit has to be equal to "{lr_decay_unit}" that set in lr_decay_unit.'
             lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
@@ -189,18 +191,20 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch, lr_dec
             group['weight_decay'] = 0.0
         param_group.append(group)
 
+    # build default lr scheduler
     lr = lr_scheduler
     lr_func = None
-    # build default lr scheduler
     lr_cfg = config.pop('lr', None)
-    if lr_cfg:
-        if 'decay_unit' in lr_cfg:
+    if isinstance(lr_cfg, float):
+        lr = lr_cfg
+    elif isinstance(lr_cfg, dict):
+        if 'decay_unit' not in lr_cfg:
+            lr_cfg['decay_unit'] = lr_decay_unit
+        else:
             assert lr_cfg['decay_unit'] == lr_decay_unit, \
                 f'decay_unit has to be equal to "{lr_decay_unit}" that set in lr_decay_unit.'
         lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
         lr = lr_scheduler
-        logger.info('build default lr_scheduler success.')
-
     if isinstance(lr_scheduler, LRCallable):
         lr = lr_scheduler.lr
         lr_func = lr_scheduler
