@@ -41,6 +41,7 @@ Optimizer:
   lr:
     name: TimmCosine
     learning_rate: 0.1
+    decay_unit: epoch
     eta_min: 0.0
     warmup_epoch: 0
     warmup_start_lr: 0.0
