@@ -38,6 +38,8 @@ function model_list(){
     mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1
     mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1
     mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1
+    simsiam_resnet50_pt_in1k_1n8c_dp_fp32
+    simsiam_resnet50_lp_in1k_1n8c_dp_fp32
 }
 
 ############ case start ############
@@ -353,6 +355,37 @@ function mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
+###### SimSiam ######
+
+function simsiam_resnet50_pt_in1k_1n8c_dp_fp32() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/simsiam/simsiam_resnet50_pt_in1k_1n8c_dp_fp32.sh
+
+    loss=`cat log/workerlog.0 | grep '50/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '50/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=-0.32798
+    ips_base=1731.37
+    mem_base=10.55
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+function simsiam_resnet50_lp_in1k_1n8c_dp_fp32() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/simsiam/simsiam_resnet50_lp_in1k_1n8c_dp_fp32.sh
+
+    loss=`cat log/workerlog.0 | grep '50/313' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '50/313' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=6.89298
+    ips_base=6285.21
+    mem_base=5.38
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
 
 function check_result() {
     if [ $? -ne 0 ];then
