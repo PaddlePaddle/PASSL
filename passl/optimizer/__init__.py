@@ -38,37 +38,50 @@ from .utils.group_params import (
     group_params_by_state)
 
 
-def group_param_by_config(model, config, epochs, step_each_epoch):
+def build_group_lr_scheduler(param_groups_cfg, epochs, step_each_epoch):
     '''
-    group params by config or by stop_gradient by default
+    Build lr scheduler in each param_group.
     Args:
-        model:
-        config: config for param_groups
-        epochs: global epochs
-        step_each_epoch: step for
+        param_groups_cfg: Dict, param_groups config
+        epochs: Int, epochs
+        step_each_epoch: Int, step for each epoch
 
     Returns:
-
+        param_groups_cfg: Dict of param_groups config in which lr has beed build
     '''
-    param_groups_cfg = config.get('param_groups', [])
-    if len(param_groups_cfg) > 0:
-        params_dict = {item['name']: {} for item in param_groups_cfg}
-        for idx, item in enumerate(param_groups_cfg):
-            g_name = item['name']
-            params_dict[g_name]['params'] = []
-            lr_cfg = item.get('lr', None)
-            if isinstance(lr_cfg, dict):
-                lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
-                if isinstance(lr_scheduler, LRCallable):
-                    params_dict[g_name]['lr_func'] = lr_scheduler
-                else:
-                    params_dict[g_name]['lr'] = lr_scheduler
-            elif isinstance(lr_cfg, float):
-                params_dict[g_name]['lr'] = lr_cfg
-            for key in item:
-                if key not in ['name', 'lr']:
-                    params_dict[g_name][key] = item[key]
+    for idx, item in enumerate(param_groups_cfg):
+        lr_cfg = item.get('lr', None)
+        if isinstance(lr_cfg, dict):
+            lr_scheduler = build_lr_scheduler(lr_cfg, epochs, step_each_epoch)
+            if isinstance(lr_scheduler, LRCallable):
+                item['lr_func'] = lr_scheduler
+            else:
+                item['lr'] = lr_scheduler
+        elif isinstance(lr_cfg, float):
+           item['lr'] = lr_cfg
+        logger.info('build lr scheduler in param_groups succeed.')
+    return param_groups_cfg
 
+
+def group_params(model, param_groups_cfg=None):
+    '''
+    Group params by config or by stop_gradient by default.
+    Args:
+        model: paddle.nn.Layer
+        param_groups_cfg: Dict, param_groups config
+    Returns:
+        Dict, f.g. {'group_name': {'params': [(name, param), ...],}}
+    '''
+
+    if param_groups_cfg and len(param_groups_cfg) > 0:
+        params_dict = {}
+        # init params_dict by config
+        for group in param_groups_cfg:
+            params_dict[group['name']] = {}
+            params_dict[group['name']]['params'] = []
+            for k, v in group.items():
+                params_dict[group['name']][k] = v
+        # add params
         for name, param in model.named_parameters():
             if param.stop_gradient:
                 continue
@@ -94,6 +107,7 @@ def group_param_by_config(model, config, epochs, step_each_epoch):
 
         return params_dict
 
+    # default group method
     param_groups = []
     for name, param in model.named_parameters():
         if param.stop_gradient:
@@ -126,10 +140,14 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
     # param_groups is a dict like {'group_name': {'params': [(name, param), ...]}}
     if hasattr(model, 'param_group_fn'):
         # param groups are defined by model
-        model_group_cfg = config.pop('model_param_groups', {})
-        param_group_map = model.param_group_fn(no_weight_decay_name, weight_decay, layer_decay, model_group_cfg)
+        model_group_cfg = config.pop('param_group_fn', {})
+        param_group_map = model.param_group_fn(no_weight_decay_name=no_weight_decay_name, weight_decay=weight_decay,
+                                               layer_decay=layer_decay, **model_group_cfg)
     else:
-        param_group_map = group_param_by_config(model, config, epochs, step_each_epoch)
+        param_groups_cfg = config.get('param_groups', None)
+        if param_groups_cfg and len(param_groups_cfg) > 0:
+            param_groups_cfg = build_group_lr_scheduler(param_groups_cfg, epochs, step_each_epoch)
+        param_group_map = group_params(model, param_groups_cfg)
         if isinstance(layer_decay, float):
             param_group_map = param_group_layer_decay(model,
                                                       layer_decay,
@@ -180,7 +198,7 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch):
     if isinstance(lr_scheduler, LRCallable):
         lr = lr_scheduler.lr
         lr_func = lr_scheduler
-    assert lr is not None, 'lr should not be None'
+    assert lr is not None, 'lr should not be None.'
     optim = eval(optim_name)(param_group,
                              lr=lr,
                              lr_func=lr_func,
