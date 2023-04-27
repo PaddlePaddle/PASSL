@@ -214,9 +214,8 @@ class Engine(object):
 
         # build optimizer and lr scheduler
         assert self.config.get("Optimizer", None) is not None, "Optimizer must be defined in config."
-        if self.config["Optimizer"].get('lr_decay_unit', None) is not None:
-            self.lr_decay_unit = self.config["Optimizer"]['lr_decay_unit']
-        else:
+        self.lr_decay_unit = self.config["Optimizer"].pop('lr_decay_unit', None)
+        if self.lr_decay_unit is None:
             self.lr_decay_unit = 'step'
             logger.warning('lr_decay_unit is not set in optimizer config, set to step by default!')
         if self.mode == 'train':
@@ -229,8 +228,9 @@ class Engine(object):
                     config_lr_scheduler, self.config["Global"]["epochs"],
                     len(self.train_dataloader))
 
-            self.optimizer = build_optimizer(self.config["Optimizer"], self.lr_scheduler, self.model, self.config["Global"]["epochs"],
-                    len(self.train_dataloader))
+            self.optimizer = build_optimizer(self.config["Optimizer"], self.lr_scheduler, self.model,
+                                             self.config["Global"]["epochs"], len(self.train_dataloader),
+                                             self.lr_decay_unit)
 
         # load pretrained model
         if self.config["Global"]["pretrained_model"] is not None:
