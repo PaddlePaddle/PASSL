@@ -16,7 +16,7 @@ import paddle
 from passl.utils import logger
 
 from .lr_scheduler import TimmCosine, ViTLRScheduler, Step, Poly
-from .lr_callable import LRCallable, CosineWithFixLR
+from .lr_callable import LRCallable
 
 
 def build_lr_scheduler(lr_config, epochs, step_each_epoch):

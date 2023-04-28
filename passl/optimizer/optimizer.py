@@ -83,7 +83,6 @@ class Optimizer(object):
                     param_group.setdefault(name, deepcopy(default))
                 else:
                     param_group.setdefault(name, default)
-
         params = param_group['params']
         if len(params) != len(set(params)):
             warnings.warn(
@@ -113,6 +112,15 @@ class Optimizer(object):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    @staticmethod
+    def _get_lr(param_group):
+        lr_t = param_group["lr"]
+        if isinstance(lr_t, paddle.optimizer.lr.LRScheduler):
+            lr_t = lr_t.get_lr()
+        if 'lr_scale' in param_group:
+            lr_t *= param_group['lr_scale']
+        return lr_t
 
     def state_dict(self):
         def pack_group(group):
