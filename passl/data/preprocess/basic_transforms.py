@@ -944,19 +944,19 @@ class BYOLSolarize(object):
         return img
 
 
-class GaussianBlur(object):
-    """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
-    def __init__(self, sigma=[.1, 2.], _PIL=False):
-        self.sigma = sigma
-        self.kernel_size = 23
-        self._PIL = _PIL
+# class GaussianBlur(object):
+#     """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
+#     def __init__(self, sigma=[.1, 2.], _PIL=False):
+#         self.sigma = sigma
+#         self.kernel_size = 23
+#         self._PIL = _PIL
 
-    def __call__(self, x):
-        sigma = np.random.uniform(self.sigma[0], self.sigma[1])
-        if self._PIL:
-            x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
-            return x
-        else:
-            x = cv2.GaussianBlur(np.array(x),
-                                 (self.kernel_size, self.kernel_size), sigma)
-            return Image.fromarray(x.astype(np.uint8))
+#     def __call__(self, x):
+#         sigma = np.random.uniform(self.sigma[0], self.sigma[1])
+#         if self._PIL:
+#             x = x.filter(ImageFilter.GaussianBlur(radius=sigma))
+#             return x
+#         else:
+#             x = cv2.GaussianBlur(np.array(x),
+#                                  (self.kernel_size, self.kernel_size), sigma)
+#             return Image.fromarray(x.astype(np.uint8))

@@ -219,7 +219,7 @@ class TrainingEpochLoop(_Loop):
                 self.trainer.train_dataloader.batch_sampler.set_epoch(epoch_id)
 
             # for one epoch train
-            self.train_one_epoch()
+            self.train_one_epoch(epoch_id)
 
             if self.trainer.lr_decay_unit == 'epoch':
                 self.trainer.optimizer.lr_step(self.cur_epoch_id)
@@ -257,13 +257,14 @@ class TrainingEpochLoop(_Loop):
         self.trainer.training = False
 
 
-    def train_one_epoch(self):
+    def train_one_epoch(self, epoch_id):
         self.trainer.model.train()
 
         tic = time.time()
 
         for batch_idx, batch in enumerate(self.trainer.train_dataloader):
             self.cur_batch_idx = batch_idx
+            total_iterations = epoch_id*self.total_batch_idx + batch_idx
 
             if self.max_train_step is not None and self.global_step >= self.max_train_step:
                 logger.info(
@@ -288,7 +289,7 @@ class TrainingEpochLoop(_Loop):
             self.global_step += 1
 
             # do forward and backward
-            out, loss_dict = self.train_one_step(batch)
+            out, loss_dict = self.train_one_step(batch, total_iterations)
 
             self.time_info["batch_cost"].update(time.time() - tic)
 
@@ -310,7 +311,7 @@ class TrainingEpochLoop(_Loop):
             tic = time.time()
 
 
-    def train_one_step(self, batch):
+    def train_one_step(self, batch, total_iterations):
         raise NotImplementedError
 
     def save_checkpoint(self):

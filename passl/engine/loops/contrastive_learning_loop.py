@@ -69,19 +69,24 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
 
         return final_loss_dict
 
-    def train_one_step(self, batch):
+    def train_one_step(self, batch, total_iterations):
 
         # remove label
         batch = batch[0]
 
         # do forward and backward
         loss_dict = self.forward_backward(batch)
+        
+        try: 
+            self.trainer.model.after_loss_backward(total_iterations)
+        except AttributeError:
+            logger.warning("Model has no after_loss_backward method, ignored this process")
 
         grad_sync(self.trainer.optimizer.param_groups)
 
         # do unscale and step if using fp16 and not found nan/inf
         # otherwise do nothing
-        self.trainer.scaler.step(self.trainer.optimizer)
+        self.trainer.scaler.step(self.trainer.optimizer) # todo  # check this will updata weight, before this weight is not updated
         # do update loss scaling if using fp16
         # otherwise do nothing
         self.trainer.scaler.update()

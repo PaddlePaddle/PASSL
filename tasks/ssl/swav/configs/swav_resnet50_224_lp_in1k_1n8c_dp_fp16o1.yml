@@ -43,14 +43,12 @@ Optimizer:
   weight_decay: 1e-6
   tensor_fusion: True
   decay_unit: epoch
-  custom_cfg:
-    - name: PasslDefault
-      LRScheduler:
-        name: TimmCosine
-        learning_rate: 0.3
-        eta_min: 0.0
-        last_epoch: 0
-        warmup_epoch: 0
+  LRScheduler:
+    name: TimmCosine
+    learning_rate: 0.3
+    eta_min: 0.0
+    last_epoch: 0
+    warmup_epoch: 0
 
 # data loader for train and eval
 DataLoader:

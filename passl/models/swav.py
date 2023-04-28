@@ -1,7 +1,8 @@
-from collections import defaultdict
-import copy
 import os
+import copy
+import numpy as np
 from sys import flags
+from collections import defaultdict
 
 import paddle
 import paddle.nn as nn
@@ -139,9 +140,6 @@ class SwAVFinetune(SwAV):
         self.custom_cfg = config.pop('custom_cfg', None)
         if self.custom_cfg is not None:
             assert isinstance(self.custom_cfg, list), "`custom_cfg` must be a list."
-            for item in self.custom_cfg:
-                if item['name']=='PasslDefault':
-                    assert item.get('LRScheduler', None) is not None, 'LRScheduler is not set in group with name PasslDefault, please set them.'
         
         for item in self.custom_cfg:
             assert isinstance(
@@ -158,12 +156,13 @@ class SwAVFinetune(SwAV):
 
         # split params
         self.weight_decay = config['weight_decay']
-        params_dict = {item['name']: [] for item in self.custom_cfg}
+        params_dict = {item['name']: [] for item in self.custom_cfg} # key name and a PasslDefault
+        params_dict['PasslDefault'] = []
         for name, param in model.named_parameters():
             if param.stop_gradient:
                 continue
             for idx, item in enumerate(self.custom_cfg):
-                if item['name'] in name and item['name']!='PasslDefault':
+                if item['name'] in name:
                     params_dict[item['name']].append(param)
                     break
             else:
@@ -177,13 +176,14 @@ class SwAVFinetune(SwAV):
             else:
                 Warning('The LRScheduler is not set for group with name {}, use default LRScheduler'.format(item['name']))
             # todo: initialize LRCallable here.
-                lr_scheduler = build_lr_scheduler(self.custom_cfg['PasslDefault']['LRScheduler'], epochs, trainset_length, config['decay_unit'])
             param_dict = {'params': params_dict[item['name']], 'lr': lr_scheduler}    
 
             if self.weight_decay is not None and weight_decay_mult is not None:
                 param_dict['weight_decay'] = self.weight_decay * weight_decay_mult
             param_dict['tensor_fusion'] = tensor_fusion
             res.append(param_dict)
+        else:
+            res.append({'params': params_dict['PasslDefault'], 'tensor_fusion': tensor_fusion})
 
         msg = 'Parameter groups for optimizer: \n'
         for idx, item in enumerate(self.custom_cfg):
@@ -199,11 +199,85 @@ class SwAVFinetune(SwAV):
         return self.res_model(inp)
 
 class SwAVPretrain(SwAV):
-    def __init__(self, **kwargs):
+    def __init__(self, queue_length=0, crops_for_assign=(0, 1), nmb_crops=[2, 6], epsilon=0.05, freeze_prototypes_niters=5005, **kwargs):
         super().__init__(**kwargs)
+        self.crops_for_assign = crops_for_assign
+        self.nmb_crops = nmb_crops
+        self.temperature = 0.1
+        self.epsilon = epsilon
+        self.freeze_prototypes_niters = freeze_prototypes_niters
+
+        # initialize queue
+        self.queue = None
+        # queue_path = os.path.join('.', "queue" + str(0) + ".pth")
+        # if os.path.isfile(queue_path):
+        #     self.queue = paddle.load(queue_path)["queue"]
+        # # the queue needs to be divisible by the batch size
+        # queue_length = queue_length
+        # queue_length -= queue_length % (256)
+        # if queue_length > 0 and epoch >= 15 and self.queue is None:
+        #     self.queue = paddle.zeros([len(crops_for_assign),
+        #             queue_length // 4, kwargs['output_dim']])
     
+    @paddle.no_grad()
+    def distributed_sinkhorn(self, out, sinkhorn_iterations=3):
+        Q = paddle.exp(x=out / self.epsilon).t()
+        B = Q.shape[1] * 4
+        K = Q.shape[0]
+        sum_Q = paddle.sum(x=Q)
+        paddle.distributed.all_reduce(sum_Q)
+        Q /= sum_Q
+        for it in range(sinkhorn_iterations):
+            sum_of_rows = paddle.sum(x=Q, axis=1, keepdim=True)
+            paddle.distributed.all_reduce(sum_of_rows)
+            Q /= sum_of_rows
+            Q /= K
+            Q /= paddle.sum(x=Q, axis=0, keepdim=True)
+            Q /= B
+        Q *= B
+        return Q.t()
+
     def forward(self, inp):
-        return self.res_model(inp)
+        bs = inp[0].shape[0]
+
+        # normalize the prototypes
+        with paddle.no_grad():
+            w = self.res_model.prototypes.weight.clone()
+            w = paddle.nn.functional.normalize(x=w, axis=1, p=2)
+            self.res_model.prototypes.weight.copy_(w)
+        embedding, output = self.res_model(inp)
+        embedding = embedding.detach()
+
+        # compute loss
+        loss = 0
+        for i, crop_id in enumerate(self.crops_for_assign):
+            with paddle.no_grad():
+                out = output[bs * crop_id:bs * (crop_id + 1)].detach()
+                if self.queue is not None:
+                    if use_the_queue or not paddle.all(x=self.queue[(i), (-1), :] == 0):
+                        use_the_queue = True
+                        out = paddle.concat(x=(paddle.mm(input=self.queue[i],
+                            mat2=self.res_model.prototypes.weight.t()), out))
+                    self.queue[(i), bs:] = self.queue[(i), :-bs].clone()
+                    self.queue[(i), :bs] = embedding[crop_id * bs:(crop_id + 1) * bs]
+
+                q = self.distributed_sinkhorn(out)[-bs:]
+            subloss = 0
+            for v in np.delete(np.arange(np.sum(self.nmb_crops)), crop_id):
+                x = output[bs * v:bs * (v + 1)] / self.temperature
+                subloss -= paddle.mean(x=paddle.sum(x=q * paddle.nn.
+                    functional.log_softmax(x=x, axis=1), axis=1))
+            loss += subloss / (np.sum(self.nmb_crops) - 1)
+        loss /= len(self.crops_for_assign)
+
+        return 
+    
+    def after_loss_backward(self, iteration):
+        if iteration < self.freeze_prototypes_niters:
+            for name, p in self.res_model.named_parameters():
+                if 'prototypes' in name:
+                    p.grad = None
+
 
         
 def swav_resnet50_linearprobe(**kwargs):
@@ -216,13 +290,19 @@ def swav_resnet50_finetune(**kwargs):
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
     return model
 
-def swav_resnet50_pretrain(**kwargs): # todo
+def swav_resnet50_pretrain(apex, **kwargs): # todo
     flags = {}
     flags['FLAGS_cudnn_exhaustive_search'] = True
     flags['FLAGS_cudnn_deterministic'] = False
     paddle.set_flags(flags)
     if paddle.distributed.get_world_size() > 1:
-        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        if not apex:
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        else:
+            # with apex syncbn speeds up computation than global syncbn
+            process_group = apex.parallel.create_syncbn_process_group(8)
+            model = apex.parallel.convert_syncbn_model(model, process_group=process_group)
+    
     model = SwAVPretrain(**kwargs)
     return model       
             

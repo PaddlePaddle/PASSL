@@ -42,18 +42,17 @@ Optimizer:
   weight_decay: 0.0
   tensor_fusion: False
   decay_unit: epoch
+  LRScheduler:
+    name: MultiStepDecay
+    learning_rate: 0.02
+    milestones: [12, 16]
+    gamma: 0.2
+    last_epoch: -1
   custom_cfg:
     - name: head
       LRScheduler:
         name: MultiStepDecay
         learning_rate: 5
-        milestones: [12, 16]
-        gamma: 0.2
-        last_epoch: -1
-    - name: PasslDefault
-      LRScheduler:
-        name: MultiStepDecay
-        learning_rate: 0.02
         milestones: [12, 16]
         gamma: 0.2
         last_epoch: -1

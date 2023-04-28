@@ -13,14 +13,14 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 800
+  epochs: 400 # 800
   print_batch_step: 100
   use_visualdl: False
   seed: 31
 
 # FP16 setting
-FP16:
-  level: O1
+# FP16:
+#   level: O1
 #   GradScaler:
 #     init_loss_scaling: 65536.0
 #     incr_every_n_steps: 2000
@@ -31,10 +31,32 @@ DistributedStrategy:
 # model architecture
 Model:
   name: swav_resnet50_pretrain
+  apex: False
+  queue_length: 3804 # 0
+  crops_for_assign: [0, 1]
+  nmb_crops: [2, 6]
+  epsilon: 0.05
+  freeze_prototypes_niters: 5005 # 313
   normalize: True
   hidden_mlp: 2048
   output_dim: 128
   nmb_prototypes: 3000
+
+# Optimizer:
+#   name: MomentumLARC
+#   momentum: 0.9
+#   weight_decay: 1e-6
+#   trust_coefficient: 0.001
+#   clip: False
+#   tensor_fusion: False
+#   decay_unit: step
+#   LRScheduler:
+#     name: TimmCosine
+#     learning_rate: 4.8
+#     eta_min: 0.0048
+#     warmup_epoch: 10
+#     warmup_start_lr: 0.3
+#     warmup_prefix: True
 
 Optimizer:
   name: MomentumLARC
@@ -43,33 +65,31 @@ Optimizer:
   trust_coefficient: 0.001
   clip: False
   tensor_fusion: False
-  decay_unit: epoch
-  custom_cfg:
-    - name: PasslDefault
-      LRScheduler:
-        name: TimmCosine
-        learning_rate: 4.8
-        decay_unit: step
-        eta_min: 0.0048
-        warmup_epoch: 10
-        warmup_start_lr: 0.3
-        warmup_prefix: True
+  decay_unit: step
+  LRScheduler:
+    name: TimmCosine
+    learning_rate: 0.6
+    eta_min: 0.0006
+    warmup_epoch: 0
+    warmup_start_lr: 0.
+    warmup_prefix: True
+    last_epoch: 0
 
 # data loader for train and eval
 DataLoader:
   Train:
     dataset:
       name: MultiCropDataset
-      root: ./dataset/ILSVRC2012/train
+      root: ./data/ILSVRC2012/train
       size_crops: [224, 96]
       num_crops: [2, 6]
       min_scale_crops: [0.14, 0.05]
       max_scale_crops: [1, 0.14]
     sampler:
       name: DistributedBatchSampler
-      batch_size: 128 # accum_steps: 1, total batchsize: 4096
+      batch_size: 64 # 4card # 128 32 card # accum_steps: 1, total batchsize: 4096
       drop_last: False
       shuffle: True
     loader:
-      num_workers: 8
+      num_workers: 10
       use_shared_memory: True

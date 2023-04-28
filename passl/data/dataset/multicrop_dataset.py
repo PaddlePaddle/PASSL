@@ -23,7 +23,8 @@ from paddle.vision.transforms import (
 from passl.data.dataset.imagefolder_dataset import ImageFolder
 from passl.data.preprocess import (
     RandomApply,
-    GaussianBlur,
+    # GaussianBlur,
+    SimCLRGaussianBlur,
     NormalizeImage,
     RandomGrayscale,
 )
@@ -31,13 +32,13 @@ from passl.data.preprocess import (
 
 class MultiCropDataset(ImageFolder):
     def __init__(self,
-                 dataroot,
+                 root,
                  size_crops,
                  num_crops,
                  min_scale_crops,
                  max_scale_crops,
                  return_label=False):
-        super(MultiCropDataset, self).__init__(dataroot)
+        super(MultiCropDataset, self).__init__(root)
 
         assert len(size_crops) == len(num_crops)
         assert len(min_scale_crops) == len(num_crops)
@@ -80,7 +81,8 @@ class MultiCropDataset(ImageFolder):
 
 
 def get_pil_gaussian_blur(p=0.5):
-    gaussian_blur = GaussianBlur(sigma=[.1, 2.], _PIL=True)
+    # gaussian_blur = GaussianBlur(sigma=[.1, 2.], _PIL=True)
+    gaussian_blur = SimCLRGaussianBlur(sigma=[.1, 2.])
     rnd_gaussian_blur = RandomApply([gaussian_blur], p=p)
     return rnd_gaussian_blur
 

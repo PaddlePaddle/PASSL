@@ -34,7 +34,7 @@ from .momentum_lars import MomentumLARS
 from .momentum_larc import MomentumLARC
 
 
-def build_optimizer(optim_config, model, config, trainset_length):
+def build_optimizer(optim_config, model, config, trainset_length, lr_scheduler):
     optim_config = copy.deepcopy(optim_config)
     optim_name = optim_config.pop('name')
     
@@ -91,8 +91,17 @@ def build_optimizer(optim_config, model, config, trainset_length):
 
             param_group.append(group)
 
+    lr = lr_scheduler	
+    lr_func = None	
+    if isinstance(lr_scheduler, LRCallable):	
+        lr = lr_scheduler.lr	
+        lr_func = lr_scheduler
+
     optim = eval(optim_name)(param_group,
+                             lr=lr,	
+                             lr_func=lr_func,
                              grad_clip=grad_clip,
                              **optim_config)
+                             
     logger.debug("build optimizer ({}) success..".format(optim))
     return optim

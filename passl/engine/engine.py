@@ -214,15 +214,21 @@ class Engine(object):
 
         # build optimizer and lr scheduler
         if self.mode == 'train':
+            assert self.config.get("Optimizer", None) is not None, "Optimizer must be defined in config."
             if self.config["Optimizer"].get('decay_unit', None) is not None:
                 self.lr_decay_unit = self.config["Optimizer"]['decay_unit']
             else:
                 self.lr_decay_unit = 'step'
                 Warning('lr_decay_unit is not set in optimizer config, set to step by default')
-            self.optimizer = build_optimizer(self.config["Optimizer"], self.model, self.config, len(self.train_dataloader))
+            
+            config_lr_scheduler = self.config["Optimizer"].get('LRScheduler', None)
+            self.lr_scheduler = None	                
+            if config_lr_scheduler is not None:	        	  
+                self.lr_scheduler = build_lr_scheduler(config_lr_scheduler, self.config["Global"]["epochs"], len(self.train_dataloader), self.lr_decay_unit)	
+
+            self.optimizer = build_optimizer(self.config["Optimizer"], self.model, self.config, len(self.train_dataloader), self.lr_scheduler)
 
         # load pretrained model
-        if self.config["Global"]["pretrained_model"] is not None:
             assert isinstance(
                 self.config["Global"]["pretrained_model"], str
             ), "pretrained_model type is not available. Please use `string`."
