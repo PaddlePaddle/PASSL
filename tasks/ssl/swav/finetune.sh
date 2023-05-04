@@ -23,5 +23,5 @@ python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-   passl-train -c tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n8c_dp_fp16o1.yaml
+   passl-train -c tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp16o1.yaml
    

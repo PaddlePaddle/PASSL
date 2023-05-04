@@ -181,14 +181,13 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
 
         # do unscale and step if using fp16 and not found nan/inf
         # otherwise do nothing
-        self.trainer.scaler.step(self.trainer.optimizer) 
+        self.trainer.scaler.step(self.trainer.optimizer)
         # do update loss scaling if using fp16
         # otherwise do nothing
         self.trainer.scaler.update()
         
         # clear gradients
         self.trainer.optimizer.clear_grad()
-
         if self.trainer.lr_decay_unit == 'step':
             self.trainer.optimizer.lr_step(self.global_step)
 

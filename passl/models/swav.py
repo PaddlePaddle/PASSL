@@ -1,5 +1,4 @@
 import os
-import copy
 import numpy as np
 from sys import flags
 from collections import defaultdict
@@ -48,6 +47,9 @@ class SwAV(Model):
                         .format(k, para_state_dict[k].shape, model_state_dict[k]
                                 .shape))
                 else:
+                    # conpact FP16 saving pretrained weight
+                    if model_state_dict[k].dtype != para_state_dict[k].dtype:
+                        para_state_dict[k] = para_state_dict[k].astype(model_state_dict[k].dtype)
                     model_state_dict[k] = para_state_dict[k]
                     num_params_loaded += 1
             model.set_dict(model_state_dict)
@@ -58,29 +60,6 @@ class SwAV(Model):
 
     def load_pretrained(self, path, rank=0, finetune=False):
         pass
-#         if not os.path.exists(path + '.pdparams'):
-#             raise ValueError("Model pretrain path {} does not "
-#                              "exists.".format(path))
-
-#         state_dict = self.state_dict()
-#         param_state_dict = paddle.load(path + ".pdparams")
-
-#         # for FP16 saving pretrained weight
-#         for key, value in param_state_dict.items():
-#             if key in param_state_dict and key in state_dict and param_state_dict[
-#                     key].dtype != state_dict[key].dtype:
-#                 param_state_dict[key] = param_state_dict[key].astype(
-#                     state_dict[key].dtype)
-
-#         if not finetune:
-#             self.set_dict(param_state_dict)
-#         else: # load model when finetune
-#             for k in ['head0.weight', 'head0.bias', 'head.weight', 'head.bias']:
-#                 if k in param_state_dict:
-#                     logger.info(f"Removing key {k} from pretrained checkpoint")
-#                     del param_state_dict[k]
-
-#             self.set_dict(param_state_dict)
 
     def save(self, path, local_rank=0, rank=0):
         paddle.save(self.state_dict(), path + ".pdparams")
@@ -109,7 +88,6 @@ class SwAVLinearProbe(SwAV):
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone')
-        # self._load_model("linear.pdparams", self.linear, 'linear')
 
     def forward(self, inp):
         with paddle.no_grad():
@@ -125,7 +103,6 @@ class SwAVFinetune(SwAV):
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone') 
-        # self._load_model("projection_head.pdparams", self.res_model.projection_head, 'projection_head')
 
     def param_groups(self, config, tensor_fusion=True, epochs=None, trainset_length=None):
         """

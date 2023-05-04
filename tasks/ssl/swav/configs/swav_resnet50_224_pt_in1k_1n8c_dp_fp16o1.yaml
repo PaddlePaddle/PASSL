@@ -21,9 +21,6 @@ Global:
 # FP16 setting
 FP16:
   level: O1
-#   GradScaler:
-#     init_loss_scaling: 65536.0
-#     incr_every_n_steps: 2000
 
 DistributedStrategy:
   data_parallel: True
@@ -41,22 +38,6 @@ Model:
   hidden_mlp: 2048
   output_dim: 128
   nmb_prototypes: 3000
-
-# Optimizer:
-#   name: MomentumLARC
-#   momentum: 0.9
-#   weight_decay: 1e-6
-#   trust_coefficient: 0.001
-#   clip: False
-#   tensor_fusion: False
-#   decay_unit: step
-#   LRScheduler:
-#     name: TimmCosine
-#     learning_rate: 4.8
-#     eta_min: 0.0048
-#     warmup_epoch: 10
-#     warmup_start_lr: 0.3
-#     warmup_prefix: True
 
 Optimizer:
   name: MomentumLARC
