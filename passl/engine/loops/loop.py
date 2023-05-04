@@ -264,7 +264,7 @@ class TrainingEpochLoop(_Loop):
 
         for batch_idx, batch in enumerate(self.trainer.train_dataloader):
             self.cur_batch_idx = batch_idx
-            total_iterations = epoch_id*self.total_batch_idx + batch_idx
+            total_iterations = (epoch_id-1)*self.total_batch_idx + batch_idx
 
             if self.max_train_step is not None and self.global_step >= self.max_train_step:
                 logger.info(

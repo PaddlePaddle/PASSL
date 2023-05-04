@@ -16,7 +16,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import sys
+import logging
+from datetime import timedelta
+
 import time
 import collections
 import platform
@@ -28,12 +32,87 @@ from passl.utils import profiler
 from passl.utils import logger
 from .loop import TrainingEpochLoop
 
+
+class LogFormatter:
+    def __init__(self):
+        self.start_time = time.time()
+
+    def format(self, record):
+        elapsed_seconds = round(record.created - self.start_time)
+
+        prefix = "%s - %s - %s" % (
+            record.levelname,
+            time.strftime("%x %X"),
+            timedelta(seconds=elapsed_seconds),
+        )
+        message = record.getMessage()
+        message = message.replace("\n", "\n" + " " * (len(prefix) + 3))
+        return "%s - %s" % (prefix, message) if message else ""
+
+
+def create_logger(filepath, rank):
+    """
+    Create a logger.
+    Use a different log file for each process.
+    """
+    # create log formatter
+    log_formatter = LogFormatter()
+
+    # create file handler and set level to debug
+    if filepath is not None:
+        if rank > 0:
+            filepath = "%s-%i" % (filepath, rank)
+        file_handler = logging.FileHandler(filepath, "a")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(log_formatter)
+
+    # create console handler and set level to info
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(log_formatter)
+
+    # create logger and set level to debug
+    logger = logging.getLogger()
+    logger.handlers = []
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+    if filepath is not None:
+        logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    # reset logger elapsed time
+    def reset_time():
+        log_formatter.start_time = time.time()
+
+    logger.reset_time = reset_time
+
+    return logger
+
+
+def init_logger(name):
+    logger = create_logger(
+        os.path.join("{}.log".format(name)), rank=0
+    )
+    logger.info("============ Initialized logger ============")
+    logger.info("")
+    return logger
+
+
+def log_model(model, logger):
+    model1 = model.res_model
+    for name, param in model1.named_parameters():
+        logger.info(name)
+        logger.info(param.abs().sum())
+        if param.grad is not None:
+            logger.info(name+'grad')
+            logger.info(param.grad.abs().sum())
+        
 class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
 
     def __init__(self, trainer, epochs, max_train_step=None, val_loop=None):
         super().__init__(trainer, epochs, max_train_step=max_train_step, val_loop=val_loop)
 
-    def forward_backward(self, batch):
+    def forward_backward(self, batch, total_iterations):
         # Gradient Merge(GuoxiaWang): Accumulate gradient over multiple
         # steps to save on memory.
 
@@ -57,6 +136,9 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
                 if isinstance(loss_dict, paddle.Tensor):
                     loss_dict = {'loss': loss_dict}
 
+            ####### test            #######
+            # logger1 = init_logger('before_pretrain')
+            # log_model(self.trainer.model, logger1)
             for key in loss_dict:
                 loss_dict[key] = loss_dict[key] / self.trainer.accum_steps
 
@@ -66,30 +148,44 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
             # loss scaling if using fp16 otherwise do nothing
             scaled = self.trainer.scaler.scale(loss_dict["loss"])
             scaled.backward()
+            
+            try: 
+                self.trainer.model.after_loss_backward(total_iterations)
+            except AttributeError:
+                logger.warning("Model has no after_loss_backward method, ignored this process")
+            
+            ####### test            #######
+#             grad_sync(self.trainer.optimizer.param_groups)
 
+#             # do unscale and step if using fp16 and not found nan/inf
+#             # otherwise do nothing
+#             self.trainer.scaler.step(self.trainer.optimizer)
+#             # do update loss scaling if using fp16
+#             # otherwise do nothing
+#             self.trainer.scaler.update()
+            
+#             logger2 = init_logger('after_pretrain')
+            # log_model(self.trainer.model, logger2)
+        # print('final_loss_dict', final_loss_dict)
         return final_loss_dict
 
     def train_one_step(self, batch, total_iterations):
 
         # remove label
         batch = batch[0]
-
-        # do forward and backward
-        loss_dict = self.forward_backward(batch)
         
-        try: 
-            self.trainer.model.after_loss_backward(total_iterations)
-        except AttributeError:
-            logger.warning("Model has no after_loss_backward method, ignored this process")
+        # do forward and backward
+        loss_dict = self.forward_backward(batch, total_iterations)
 
         grad_sync(self.trainer.optimizer.param_groups)
 
         # do unscale and step if using fp16 and not found nan/inf
         # otherwise do nothing
-        self.trainer.scaler.step(self.trainer.optimizer) # todo  # check this will updata weight, before this weight is not updated
+        self.trainer.scaler.step(self.trainer.optimizer) 
         # do update loss scaling if using fp16
         # otherwise do nothing
         self.trainer.scaler.update()
+        
         # clear gradients
         self.trainer.optimizer.clear_grad()
 

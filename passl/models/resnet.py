@@ -109,7 +109,7 @@ class ResNet(paddle.nn.Layer):
         
         super(ResNet, self).__init__()
         if norm_layer is None:
-            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=True)
+            norm_layer = functools.partial(paddle.nn.BatchNorm2D, use_global_stats=False)
         self._norm_layer = norm_layer
         self.eval_mode = eval_mode
         self.padding = paddle.nn.Pad2D(padding=1, value=0.0)
@@ -198,7 +198,9 @@ class ResNet(paddle.nn.Layer):
     def forward_backbone(self, x):
         x = self.padding(x)
         x = self.conv1(x)
+        # print("before bn mean var", self.bn1._mean.mean(), self.bn1._variance.mean())
         x = self.bn1(x)
+        # print("bn mean var", self.bn1._mean.mean(), self.bn1._variance.mean())
         x = self.relu(x)
         x = self.maxpool(x)
         x = self.layer1(x)
@@ -213,7 +215,9 @@ class ResNet(paddle.nn.Layer):
 
     def forward_head(self, x):
         if self.projection_head is not None:
+            # print("before proj bn mean var", self.projection_head[1]._mean.mean(), self.projection_head[1]._variance.mean())
             x = self.projection_head(x)
+            # print(" proj bn mean var", self.projection_head[1]._mean.mean(), self.projection_head[1]._variance.mean())
         if self.l2norm:
             x = paddle.nn.functional.normalize(x=x, axis=1, p=2)
         if self.prototypes is not None:
@@ -229,8 +233,7 @@ class ResNet(paddle.nn.Layer):
             return_counts=True)[1], axis=0) # padiff
         start_idx = 0
         for end_idx in idx_crops:
-            _out = self.forward_backbone(paddle.concat(x=inputs[start_idx:
-                end_idx]))
+            _out = self.forward_backbone(paddle.concat(x=inputs[start_idx:end_idx]))
             if start_idx == 0:
                 output = _out
             else:
@@ -240,7 +243,6 @@ class ResNet(paddle.nn.Layer):
 
 
 class MultiPrototypes(paddle.nn.Layer):
-
     def __init__(self, output_dim, nmb_prototypes):
         super(MultiPrototypes, self).__init__()
         self.nmb_heads = len(nmb_prototypes)

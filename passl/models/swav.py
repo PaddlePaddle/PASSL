@@ -84,7 +84,10 @@ class SwAV(Model):
 
     def save(self, path, local_rank=0, rank=0):
         paddle.save(self.state_dict(), path + ".pdparams")
-        
+
+    def _freeze_norm(self, layer):
+        if isinstance(layer, (nn.layer.norm._BatchNormBase)):
+            layer._use_global_stats = True
         
 class SwAVLinearProbe(SwAV):
     def __init__(self, class_num=1000, **kwargs):
@@ -103,10 +106,6 @@ class SwAVLinearProbe(SwAV):
         assert len(parameters) == 2  # weight, bias
         
         self.apply(self._freeze_norm)
-
-    def _freeze_norm(self, layer):
-        if isinstance(layer, (nn.layer.norm._BatchNormBase)):
-            layer._use_global_stats = True
     
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone')
@@ -127,11 +126,7 @@ class SwAVFinetune(SwAV):
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone') 
         # self._load_model("projection_head.pdparams", self.res_model.projection_head, 'projection_head')
-    
-    def _freeze_norm(self, layer):
-        if isinstance(layer, (nn.layer.norm._BatchNormBase)):
-            layer._use_global_stats = True
-        
+
     def param_groups(self, config, tensor_fusion=True, epochs=None, trainset_length=None):
         """
         custom_cfg(dict|optional): [{'name': 'backbone', 'lr': 0.1, 'LRScheduler': {"lr":1.0}}, {'name': 'norm', 'weight_decay_mult': 0}]
@@ -218,7 +213,12 @@ class SwAVPretrain(SwAV):
         # if queue_length > 0 and epoch >= 15 and self.queue is None:
         #     self.queue = paddle.zeros([len(crops_for_assign),
         #             queue_length // 4, kwargs['output_dim']])
+        # self.load_pretrained('swav_800ep_pretrain.pdparams') 
+        self.apply(self._freeze_norm)
     
+    def load_pretrained(self, path, rank=0, finetune=False):
+        self._load_model('swav_800ep_pretrain.pdparams', self.res_model, 'backbone') 
+        
     @paddle.no_grad()
     def distributed_sinkhorn(self, out, sinkhorn_iterations=3):
         Q = paddle.exp(x=out / self.epsilon).t()
@@ -238,14 +238,21 @@ class SwAVPretrain(SwAV):
         return Q.t()
 
     def forward(self, inp):
+        # ####### test            #######
+        # import numpy as np
+        # np.random.seed(42)
+        # a = np.random.rand(32, 3, 224, 224)
+        # inp = paddle.to_tensor(a).astype('float32')
         bs = inp[0].shape[0]
 
         # normalize the prototypes
         with paddle.no_grad():
             w = self.res_model.prototypes.weight.clone()
-            w = paddle.nn.functional.normalize(x=w, axis=1, p=2)
-            self.res_model.prototypes.weight.copy_(w)
+            w = paddle.nn.functional.normalize(x=w, axis=0, p=2) # 1
+            paddle.assign(w, self.res_model.prototypes.weight)
         embedding, output = self.res_model(inp)
+        # print('output, embedding', embedding.mean(), output.mean(), inp.mean())
+        # import pdb; pdb.set_trace()
         embedding = embedding.detach()
 
         # compute loss
@@ -253,6 +260,7 @@ class SwAVPretrain(SwAV):
         for i, crop_id in enumerate(self.crops_for_assign):
             with paddle.no_grad():
                 out = output[bs * crop_id:bs * (crop_id + 1)].detach()
+                # print('bs, crop_id', bs, crop_id, self.nmb_crops)
                 if self.queue is not None:
                     if use_the_queue or not paddle.all(x=self.queue[(i), (-1), :] == 0):
                         use_the_queue = True
@@ -262,23 +270,28 @@ class SwAVPretrain(SwAV):
                     self.queue[(i), :bs] = embedding[crop_id * bs:(crop_id + 1) * bs]
 
                 q = self.distributed_sinkhorn(out)[-bs:]
+                # print('out.mean(), q.mean()', out.mean(), q.mean())
+            
             subloss = 0
+            # print(output.shape)
             for v in np.delete(np.arange(np.sum(self.nmb_crops)), crop_id):
                 x = output[bs * v:bs * (v + 1)] / self.temperature
                 subloss -= paddle.mean(x=paddle.sum(x=q * paddle.nn.
                     functional.log_softmax(x=x, axis=1), axis=1))
+                # print('v, subloss', v, subloss)
+                
             loss += subloss / (np.sum(self.nmb_crops) - 1)
+            # print('i, loss', i, loss)
+        # import pdb; pdb.set_trace()
         loss /= len(self.crops_for_assign)
 
-        return 
+        return loss
     
     def after_loss_backward(self, iteration):
         if iteration < self.freeze_prototypes_niters:
             for name, p in self.res_model.named_parameters():
-                if 'prototypes' in name:
-                    p.grad = None
-
-
+                if 'prototypes' in name and p.grad is not None:
+                    p.clear_grad()
         
 def swav_resnet50_linearprobe(**kwargs):
     model = SwAVLinearProbe(**kwargs)
@@ -295,6 +308,9 @@ def swav_resnet50_pretrain(apex, **kwargs): # todo
     flags['FLAGS_cudnn_exhaustive_search'] = True
     flags['FLAGS_cudnn_deterministic'] = False
     paddle.set_flags(flags)
+
+    model = SwAVPretrain(**kwargs)
+
     if paddle.distributed.get_world_size() > 1:
         if not apex:
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -303,7 +319,6 @@ def swav_resnet50_pretrain(apex, **kwargs): # todo
             process_group = apex.parallel.create_syncbn_process_group(8)
             model = apex.parallel.convert_syncbn_model(model, process_group=process_group)
     
-    model = SwAVPretrain(**kwargs)
     return model       
             
 class RegLog(paddle.nn.Layer):

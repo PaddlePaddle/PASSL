@@ -13,7 +13,7 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 800
+  epochs: 400 # 800
   print_batch_step: 100
   use_visualdl: False
   seed: 31
@@ -32,15 +32,31 @@ DistributedStrategy:
 Model:
   name: swav_resnet50_pretrain
   apex: False
-  queue_length: 0
+  queue_length: 3804 # 0
   crops_for_assign: [0, 1]
   nmb_crops: [2, 6]
   epsilon: 0.05
-  freeze_prototypes_niters: 313
+  freeze_prototypes_niters: 5005 # 313
   normalize: True
   hidden_mlp: 2048
   output_dim: 128
   nmb_prototypes: 3000
+
+# Optimizer:
+#   name: MomentumLARC
+#   momentum: 0.9
+#   weight_decay: 1e-6
+#   trust_coefficient: 0.001
+#   clip: False
+#   tensor_fusion: False
+#   decay_unit: step
+#   LRScheduler:
+#     name: TimmCosine
+#     learning_rate: 4.8
+#     eta_min: 0.0048
+#     warmup_epoch: 10
+#     warmup_start_lr: 0.3
+#     warmup_prefix: True
 
 Optimizer:
   name: MomentumLARC
@@ -52,11 +68,12 @@ Optimizer:
   decay_unit: step
   LRScheduler:
     name: TimmCosine
-    learning_rate: 4.8
-    eta_min: 0.0048
-    warmup_epoch: 10
-    warmup_start_lr: 0.3
+    learning_rate: 0.6
+    eta_min: 0.0006
+    warmup_epoch: 0
+    warmup_start_lr: 0.
     warmup_prefix: True
+    last_epoch: 0
 
 # data loader for train and eval
 DataLoader:

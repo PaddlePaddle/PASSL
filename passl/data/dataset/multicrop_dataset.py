@@ -36,14 +36,12 @@ class MultiCropDataset(ImageFolder):
                  size_crops,
                  num_crops,
                  min_scale_crops,
-                 max_scale_crops,
-                 return_label=False):
+                 max_scale_crops):
         super(MultiCropDataset, self).__init__(root)
 
         assert len(size_crops) == len(num_crops)
         assert len(min_scale_crops) == len(num_crops)
         assert len(max_scale_crops) == len(num_crops)
-        self.return_label = return_label
 
         color_transform = [get_color_distortion(), get_pil_gaussian_blur()]
         mean = [0.485, 0.456, 0.406]
@@ -71,13 +69,11 @@ class MultiCropDataset(ImageFolder):
         Returns:
             tuple: (sample, target) where target is class_index of the target class.
         """
-        path, target = self.samples[index]
+        path, target = self.imgs[index]
         sample = self.loader(path)
         sample = list(map(lambda trans: trans(sample), self.trans))
-        if self.return_label:
-            return sample, target
-
-        return sample
+        
+        return sample, target
 
 
 def get_pil_gaussian_blur(p=0.5):

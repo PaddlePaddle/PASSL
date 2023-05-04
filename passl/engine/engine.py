@@ -229,13 +229,14 @@ class Engine(object):
             self.optimizer = build_optimizer(self.config["Optimizer"], self.model, self.config, len(self.train_dataloader), self.lr_scheduler)
 
         # load pretrained model
-            assert isinstance(
-                self.config["Global"]["pretrained_model"], str
-            ), "pretrained_model type is not available. Please use `string`."
-            self.model.load_pretrained(
-                self.config["Global"]["pretrained_model"],
-                self.config["Global"]["rank"],
-                self.config["Global"].get("finetune", False))
+            if  self.config["Global"]["pretrained_model"] is not None:
+                assert isinstance(
+                    self.config["Global"]["pretrained_model"], str
+                ), "pretrained_model type is not available. Please use `string`."
+                self.model.load_pretrained(
+                    self.config["Global"]["pretrained_model"],
+                    self.config["Global"]["rank"],
+                    self.config["Global"].get("finetune", False))
 
         # for distributed
         if self.config["Global"]["distributed"]:
