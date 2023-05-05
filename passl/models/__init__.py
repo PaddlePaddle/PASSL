@@ -27,7 +27,8 @@ from .cae import *
 from .convnext import *
 from .mocov3 import *
 from .swav import *
-# from .simsiam import *
+from .swav_resnet import *
+from .simsiam import *
 
 __all__ = ["build_model"]
 

@@ -7,9 +7,9 @@ import paddle
 import paddle.nn as nn
 
 from passl.nn import init
-from passl.scheduler import build_lr_scheduler, lr_scheduler
+from passl.scheduler import build_lr_scheduler
 from passl.utils import logger
-from passl.models.resnet import resnet50
+from passl.models.swav_resnet import swavresnet50
 from passl.models.base_model import Model
 
 
@@ -27,7 +27,7 @@ __all__ = [
 class SwAV(Model):
     def __init__(self, **kwargs):
         super().__init__()
-        self.res_model = resnet50(**kwargs)
+        self.res_model = swavresnet50(**kwargs)
     
     def _load_model(self, path, model, tag):
         if os.path.isfile(path):

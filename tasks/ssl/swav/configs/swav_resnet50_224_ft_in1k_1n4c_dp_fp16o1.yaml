@@ -4,7 +4,7 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
+  pretrained_model: swav_800ep_pretrain_adjustresnet.pdparams
   finetune: True
   output_dir: ./output/semi_0426_semi10
   device: gpu
