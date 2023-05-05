@@ -105,68 +105,67 @@ class SwAVFinetune(SwAV):
     def load_pretrained(self, path, rank=0, finetune=False):
         self._load_model(path, self.res_model, 'backbone') 
 
-    def param_groups(self, config, tensor_fusion=True, epochs=None, trainset_length=None):
-        """
-        custom_cfg(dict|optional): [{'name': 'backbone', 'lr': 0.1, 'LRScheduler': {"lr":1.0}}, {'name': 'norm', 'weight_decay_mult': 0}]
-        """
+    # def param_groups(self, config, tensor_fusion=True, epochs=None, trainset_length=None):
+    #     """
+    #     custom_cfg(dict|optional): [{'name': 'backbone', 'lr': 0.1, 'LRScheduler': {"lr":1.0}}, {'name': 'norm', 'weight_decay_mult': 0}]
+    #     """
 
-        self.custom_cfg = config.pop('custom_cfg', None)
-        if self.custom_cfg is not None:
-            assert isinstance(self.custom_cfg, list), "`custom_cfg` must be a list."
+    #     self.custom_cfg = config.pop('custom_cfg', None)
+    #     if self.custom_cfg is not None:
+    #         assert isinstance(self.custom_cfg, list), "`custom_cfg` must be a list."
         
-        for item in self.custom_cfg:
-            assert isinstance(
-                    item, dict), "The item of `custom_cfg` must be a dict"
+    #     for item in self.custom_cfg:
+    #         assert isinstance(
+    #                 item, dict), "The item of `custom_cfg` must be a dict"
         
-        param_group = self._collect_params(config, self.res_model, tensor_fusion, epochs, trainset_length)
+    #     param_group = self._collect_params(config, self.res_model, tensor_fusion, epochs, trainset_length)
 
-        return param_group
+    #     return param_group
     
-    def _collect_params(self, config, model, tensor_fusion, epochs, trainset_length):
-        # Collect different parameter groups
-        if self.custom_cfg is None or len(self.custom_cfg) == 0:
-            return [{'params': model.parameters(), 'tensor_fusion': tensor_fusion}]
+    # def _collect_params(self, config, model, tensor_fusion, epochs, trainset_length):
+    #     # Collect different parameter groups
+    #     if self.custom_cfg is None or len(self.custom_cfg) == 0:
+    #         return [{'params': model.parameters(), 'tensor_fusion': tensor_fusion}]
 
-        # split params
-        self.weight_decay = config['weight_decay']
-        params_dict = {item['name']: [] for item in self.custom_cfg} # key name and a PasslDefault
-        params_dict['PasslDefault'] = []
-        for name, param in model.named_parameters():
-            if param.stop_gradient:
-                continue
-            for idx, item in enumerate(self.custom_cfg):
-                if item['name'] in name:
-                    params_dict[item['name']].append(param)
-                    break
-            else:
-                params_dict['PasslDefault'].append(param)
+    #     # split params
+    #     self.weight_decay = config['weight_decay']
+    #     params_dict = {item['name']: [] for item in self.custom_cfg} # key name and a PasslDefault
+    #     params_dict['PasslDefault'] = []
+    #     for name, param in model.named_parameters():
+    #         if param.stop_gradient:
+    #             continue
+    #         for idx, item in enumerate(self.custom_cfg):
+    #             if item['name'] in name:
+    #                 params_dict[item['name']].append(param)
+    #                 break
+    #         else:
+    #             params_dict['PasslDefault'].append(param)
 
-        res = []
-        for item in self.custom_cfg:
-            weight_decay_mult = item.get("weight_decay_mult", None)
-            if item.get("LRScheduler", None) is not None:
-                lr_scheduler = build_lr_scheduler(item['LRScheduler'], epochs, trainset_length, config['decay_unit'])
-            else:
-                Warning('The LRScheduler is not set for group with name {}, use default LRScheduler'.format(item['name']))
-            # todo: initialize LRCallable here.
-            param_dict = {'params': params_dict[item['name']], 'lr': lr_scheduler}    
+    #     res = []
+    #     for item in self.custom_cfg:
+    #         weight_decay_mult = item.get("weight_decay_mult", None)
+    #         if item.get("LRScheduler", None) is not None:
+    #             lr_scheduler = build_lr_scheduler(item['LRScheduler'], epochs, trainset_length, config['decay_unit'])
+    #         else:
+    #             Warning('The LRScheduler is not set for group with name {}, use default LRScheduler'.format(item['name']))
+    #         param_dict = {'params': params_dict[item['name']], 'lr': lr_scheduler}    
 
-            if self.weight_decay is not None and weight_decay_mult is not None:
-                param_dict['weight_decay'] = self.weight_decay * weight_decay_mult
-            param_dict['tensor_fusion'] = tensor_fusion
-            res.append(param_dict)
-        else:
-            res.append({'params': params_dict['PasslDefault'], 'tensor_fusion': tensor_fusion})
+    #         if self.weight_decay is not None and weight_decay_mult is not None:
+    #             param_dict['weight_decay'] = self.weight_decay * weight_decay_mult
+    #         param_dict['tensor_fusion'] = tensor_fusion
+    #         res.append(param_dict)
+    #     else:
+    #         res.append({'params': params_dict['PasslDefault'], 'tensor_fusion': tensor_fusion})
 
-        msg = 'Parameter groups for optimizer: \n'
-        for idx, item in enumerate(self.custom_cfg):
-            params_name = [p.name for p in params_dict[item['name']]]
-            item = item.copy()
-            item['params_name'] = params_name
-            msg += 'Group {}: \n{} \n'.format(idx, item)
-        logger.info(msg)
+    #     msg = 'Parameter groups for optimizer: \n'
+    #     for idx, item in enumerate(self.custom_cfg):
+    #         params_name = [p.name for p in params_dict[item['name']]]
+    #         item = item.copy()
+    #         item['params_name'] = params_name
+    #         msg += 'Group {}: \n{} \n'.format(idx, item)
+    #     logger.info(msg)
 
-        return res
+    #     return res
     
     def forward(self, inp):
         return self.res_model(inp)

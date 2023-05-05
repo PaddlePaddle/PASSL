@@ -17,11 +17,11 @@ from paddle.optimizer.lr import MultiStepDecay
 from passl.utils import logger
 
 from .lr_scheduler import TimmCosine, ViTLRScheduler, Step, Poly
-from .lr_callable import LRCallable, CosineWithFixLR
+from .lr_callable import LRCallable
 
 
-def build_lr_scheduler(lr_config, epochs, step_each_epoch, decay_unit):
-    lr_config.update({'epochs': epochs, 'step_each_epoch': step_each_epoch, 'decay_unit': decay_unit })
+def build_lr_scheduler(lr_config, epochs, step_each_epoch):
+    lr_config.update({'epochs': epochs, 'step_each_epoch': step_each_epoch})
     if 'name' in lr_config:
         lr_name = lr_config.pop('name')
         if "MultiStepDecay" in lr_name:

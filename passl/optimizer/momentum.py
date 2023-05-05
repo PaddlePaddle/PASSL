@@ -26,6 +26,8 @@ from passl.utils import logger
 class Momentum(Optimizer):
     def __init__(self,
                  params,
+                 lr=0.001,
+                 lr_func=None,
                  momentum=0.9,
                  weight_decay=0.0,
                  use_master_param=True,
@@ -33,6 +35,8 @@ class Momentum(Optimizer):
                  **args):
 
         defaults = dict(
+            lr=lr,
+            lr_func=lr_func,
             momentum=momentum,
             weight_decay=weight_decay,
             use_master_param=use_master_param,
@@ -68,7 +72,7 @@ class Momentum(Optimizer):
                 grad = p.grad
                 if grad is None:
                     continue
-                # print('###########',p.name)
+
                 if grad.is_selected_rows():
                     raise RuntimeError(
                         'Momentum does not support sparse gradients.')

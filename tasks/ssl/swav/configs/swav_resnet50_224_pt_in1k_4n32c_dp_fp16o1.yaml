@@ -49,8 +49,8 @@ Optimizer:
   trust_coefficient: 0.001
   clip: False
   tensor_fusion: False
-  decay_unit: step
-  LRScheduler:
+  lr_decay_unit: step
+  lr:
     name: TimmCosine
     learning_rate: 4.8
     eta_min: 0.0048

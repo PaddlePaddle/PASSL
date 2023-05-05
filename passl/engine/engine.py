@@ -213,20 +213,24 @@ class Engine(object):
             paddle.set_default_dtype(default_dtype)
 
         # build optimizer and lr scheduler
+        assert self.config.get("Optimizer", None) is not None, "Optimizer must be defined in config."
+        self.lr_decay_unit = self.config["Optimizer"].pop('lr_decay_unit', None)
+        if self.lr_decay_unit is None:
+            self.lr_decay_unit = 'step'
+            logger.warning('lr_decay_unit is not set in optimizer config, set to step by default!')
         if self.mode == 'train':
-            assert self.config.get("Optimizer", None) is not None, "Optimizer must be defined in config."
-            if self.config["Optimizer"].get('decay_unit', None) is not None:
-                self.lr_decay_unit = self.config["Optimizer"]['decay_unit']
-            else:
-                self.lr_decay_unit = 'step'
-                Warning('lr_decay_unit is not set in optimizer config, set to step by default')
-            
-            config_lr_scheduler = self.config["Optimizer"].get('LRScheduler', None)
-            self.lr_scheduler = None	                
-            if config_lr_scheduler is not None:	        	  
-                self.lr_scheduler = build_lr_scheduler(config_lr_scheduler, self.config["Global"]["epochs"], len(self.train_dataloader), self.lr_decay_unit)	
+            config_lr_scheduler = self.config.get('LRScheduler', None)
+            self.lr_scheduler = None
+            if config_lr_scheduler is not None:
+                self.lr_decay_unit = config_lr_scheduler.get('decay_unit',
+                                                             'step')
+                self.lr_scheduler = build_lr_scheduler(
+                    config_lr_scheduler, self.config["Global"]["epochs"],
+                    len(self.train_dataloader))
 
-            self.optimizer = build_optimizer(self.config["Optimizer"], self.model, self.config, len(self.train_dataloader), self.lr_scheduler)
+            self.optimizer = build_optimizer(self.config["Optimizer"], self.lr_scheduler, self.model,
+                                             self.config["Global"]["epochs"], len(self.train_dataloader),
+                                             self.lr_decay_unit)
 
         # load pretrained model
             if  self.config["Global"]["pretrained_model"] is not None:

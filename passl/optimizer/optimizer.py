@@ -83,7 +83,6 @@ class Optimizer(object):
                     param_group.setdefault(name, deepcopy(default))
                 else:
                     param_group.setdefault(name, default)
-
         params = param_group['params']
         if len(params) != len(set(params)):
             warnings.warn(
@@ -113,6 +112,15 @@ class Optimizer(object):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+    @staticmethod
+    def _get_lr(param_group):
+        lr_t = param_group["lr"]
+        if isinstance(lr_t, paddle.optimizer.lr.LRScheduler):
+            lr_t = lr_t.get_lr()
+        if 'lr_scale' in param_group:
+            lr_t *= param_group['lr_scale']
+        return lr_t
 
     def state_dict(self):
         def pack_group(group):
@@ -206,15 +214,12 @@ class Optimizer(object):
 
     @paddle.no_grad()
     def lr_step(self, step=None):
-        for i, group in enumerate(self.param_groups):
+        for group in self.param_groups:
             lr = group['lr']
-            
-            if isinstance(lr, paddle.optimizer.lr.LRScheduler): # group defined lr scheduler
+            if isinstance(lr, paddle.optimizer.lr.LRScheduler):
                 lr.step(step)
             elif 'lr_func' in group and callable(group['lr_func']):
                 group['lr_func'](group, step)
-
-        # print("####lr0 {}, lr0 {}".format(self.param_groups[0]['lr'].get_lr(), self.param_groups[1]['lr'].get_lr()))
 
     @paddle.no_grad()
     def get_lr(self, group_id=0):

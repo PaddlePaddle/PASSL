@@ -41,16 +41,16 @@ Optimizer:
   momentum: 0.9
   weight_decay: 0.0
   tensor_fusion: False
-  decay_unit: epoch
-  LRScheduler:
+  lr_decay_unit: epoch
+  lr:
     name: MultiStepDecay
     learning_rate: 0.02
     milestones: [12, 16]
     gamma: 0.2
     last_epoch: -1
-  custom_cfg:
-    - name: head
-      LRScheduler:
+  param_groups:
+    - name: res_model.projection_head
+      lr: 
         name: MultiStepDecay
         learning_rate: 5
         milestones: [12, 16]
@@ -74,7 +74,7 @@ DataLoader:
       samples_tag: semi_10
     sampler:
       name: DistributedBatchSampler
-      batch_size: 64 # accum_steps: 1, total batchsize: 256
+      batch_size: 128 # accum_steps: 1, total batchsize: 256
       drop_last: False
       shuffle: True
     loader:
@@ -96,7 +96,7 @@ DataLoader:
             std: [0.228, 0.224, 0.225]
     sampler:
       name: DistributedBatchSampler
-      batch_size: 64
+      batch_size: 128
       drop_last: False
       shuffle: False
     loader:
