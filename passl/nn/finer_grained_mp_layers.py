@@ -103,8 +103,90 @@ def finer_grained_rowsharded_linear(x, weight, bias=None, name=None):
 
     return y
 
+def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
+    mp_rank = dist_env.get_model_parallel_world_rank()
+    mp_ranks = dist_env.get_model_parallel_world_size()
+    p2p_mp_group = dist_env.get_p2p_model_parallel_group()
+    mp_group = dist_env.get_model_parallel_group()
+    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
+    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
+    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
+    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
+    send_dst = mp_group.ranks[next_mp_rank]
+    recv_src = mp_group.ranks[prev_mp_rank]
 
-def finer_grained_columnsharded_linear(x, weight, bias=None, name=None):
+    hidden_size = x.shape[-1]
+    assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
+    micro_hidden_size = hidden_size // mp_ranks
+
+    # assert micro_hidden_size == x.shape[0], f"micro_hidden_size {micro_hidden_size} must be equal to x.shape[0] {x.shape[0]}"
+
+    # reverse order [mp_ranks-1, ..., 1, 0]
+    cal_index = list(range(mp_ranks-1, -1, -1))
+    # shift
+    shift = mp_ranks - mp_rank
+    cal_index = cal_index[shift:] + cal_index[:shift]
+
+    # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
+    dy_shape = dy.shape
+    x_shape = x.shape
+    w_shape = weight.reshape
+    with paddle.no_grad():
+        dy.reshape_([-1, dy_shape[-1]])
+        x.reshape_([-1, x_shape[-1]])
+
+    for idx, t in enumerate(cal_index):
+        start = t * micro_hidden_size
+        end = start + micro_hidden_size
+
+        # slice and calculate matmul
+        xi = paddle.slice(x, axes=[-1], starts=[start], ends=[end])
+        dwi = paddle.matmul(xi, dy, transpose_x=True)
+
+        # we need to sync and get received
+        if idx > 0:
+            task_send.wait()
+            task_recv.wait()
+            dwi_send = dwi + dwi_recv
+        else:
+            dwi_send = dwi
+
+        # launch async send and recv
+        if idx < mp_ranks-1:
+            if mp_rank % 2 == 0:
+                task_send = dist.isend(dwi_send, dst=send_dst, group=send_group)
+            else:
+                dwi_recv = paddle.zeros_like(dwi_send)
+                task_recv = dist.irecv(dwi_recv, src=recv_src, group=recv_group)
+
+            if mp_rank % 2 == 0:
+                dwi_recv = paddle.zeros_like(dwi_send)
+                task_recv = dist.irecv(dwi_recv, src=recv_src, group=recv_group)
+            else:
+                task_send = dist.isend(dwi_send, dst=send_dst, group=send_group)
+
+    with paddle.no_grad():
+        dy.reshape_(dy_shape)
+        x.reshape_(x_shape)
+
+
+    if bias is not None:
+        bias_grad = paddle.sum(dy, axis=list(range(len(dy.shape)-1)))
+        task_bias_grad = dist.all_reduce(bias_grad, group=mp_group, sync_op=False)
+
+
+    weight_grad = dwi_send
+    x_grad = finer_grained_columnsharded_linear(dy, weight, transpose_y=True)
+
+    if bias is not None:
+        task_bias_grad.wait()
+    else:
+        bias_grad = None
+
+    return x_grad, weight_grad, bias_grad
+
+
+def finer_grained_columnsharded_linear(x, weight, bias=None, transpose_y=False, name=None):
     """
     y = x * weight + b = matmul(x, weight) + b
     """
@@ -139,11 +221,11 @@ def finer_grained_columnsharded_linear(x, weight, bias=None, name=None):
                 task_send = dist.isend(wi, dst=send_dst, group=send_group)
 
         # slice and calculate matmul
-        yi = paddle.matmul(x, wi)
+        yi = paddle.matmul(x, wi, transpose_y=transpose_y)
 
         y.append(yi)
 
-        # we need to sync and get received xi
+        # we need to sync and get received wi
         if idx < mp_ranks-1:
             task_send.wait()
             task_recv.wait()
@@ -164,23 +246,24 @@ def finer_grained_columnsharded_linear(x, weight, bias=None, name=None):
 class FinerGrainedRowShardedLinearFunction(PyLayer):
     @staticmethod
     def forward(ctx, x, weight, bias=None):
-        ctx.save_for_backward([x, weight, bias])
+        ctx.save_for_backward(x, weight, bias)
         y = finer_grained_rowsharded_linear(x, weight, bias)
         return y
 
     @staticmethod
     def backward(ctx, grad_output):
-        # TODO(GuoxiaWang): implement backward logic
-        raise NotImplementedError(
-            "The backward logic is not supported now."
-        )
-        return grad_output
+        x, weight, bias = ctx.saved_tensor()
+        x_grad, weight_grad, bias_grad = finer_grained_rowsharded_linear_grad(grad_output, x, weight, bias)
+        if bias is not None:
+            return x_grad, weight_grad, bias_grad
+        else:
+            return x_grad, weight_grad
 
 
 class FinerGrainedColumnShardedLinearFunction(PyLayer):
     @staticmethod
     def forward(ctx, x, weight, bias=None):
-        ctx.save_for_backward([x, weight, bias])
+        ctx.save_for_backward(x, weight, bias)
         y = finer_grained_columnsharded_linear(x, weight, bias)
         return y
 
