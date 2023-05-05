@@ -24,7 +24,7 @@ DistributedStrategy:
 # model architecture
 Model:
   name: swav_resnet50_linearprobe
-  output_dim: 0 
+  output_dim: 0
   eval_mode: True
   class_num: 1000
 

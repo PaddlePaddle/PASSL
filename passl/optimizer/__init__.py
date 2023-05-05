@@ -93,7 +93,7 @@ def group_params(model, param_groups_cfg=None):
                 if 'regular_exp' in params_dict[g_name]:
                     regular_exp = params_dict[g_name]['regular_exp']
                     group_matcher = re.compile(regular_exp)
-                else: 
+                else:
                     group_matcher = re.compile(g_name)
                 if group_matcher.match(name):
                     params_dict[g_name]["params"].append((name, param))

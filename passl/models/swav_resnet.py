@@ -1,3 +1,17 @@
+# Copyright (c) 2023 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import paddle
 import functools
 import paddle.nn as nn
@@ -11,20 +25,20 @@ def kaiming_normal_init(param, **kwargs):
 def constant_init(param, **kwargs):
     initializer = nn.initializer.Constant(**kwargs)
     initializer(param, param.block)
-    
-    
+
+
 class SwAVResNet(paddle.nn.Layer):
     def __init__(self, block, depth,
         normalize=False, output_dim=0, hidden_mlp=0,
         nmb_prototypes=0, eval_mode=False):
-        
+
         super(SwAVResNet, self).__init__()
         self.l2norm = normalize
         self.eval_mode = eval_mode
         num_out_filters = 512
-        
+
         self.avgpool = paddle.nn.AdaptiveAvgPool2D(output_size=(1, 1))
-       
+
         if output_dim == 0:
             self.projection_head = None
         elif hidden_mlp == 0:
@@ -59,7 +73,7 @@ class SwAVResNet(paddle.nn.Layer):
 
         if self.eval_mode:
             return x
-        
+
         x = self.avgpool(x)
         x = paddle.flatten(x=x, start_axis=1)
         return x
@@ -76,7 +90,7 @@ class SwAVResNet(paddle.nn.Layer):
     def forward(self, inputs):
         if not isinstance(inputs, list):
             inputs = [inputs]
-        
+
         idx_crops = paddle.cumsum(x=paddle.unique_consecutive(x=paddle.
             to_tensor(data=[inp.shape[-1] for inp in inputs]),
             return_counts=True)[1], axis=0) # padiff
@@ -108,4 +122,3 @@ class MultiPrototypes(paddle.nn.Layer):
 
 def swavresnet50(**kwargs):
     return SwAVResNet(block=BottleneckBlock, depth=50, **kwargs)
-

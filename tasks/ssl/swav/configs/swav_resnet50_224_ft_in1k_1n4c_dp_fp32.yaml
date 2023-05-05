@@ -50,7 +50,7 @@ Optimizer:
     last_epoch: -1
   param_groups:
     - name: res_model.projection_head
-      lr: 
+      lr:
         name: MultiStepDecay
         learning_rate: 5
         milestones: [12, 16]

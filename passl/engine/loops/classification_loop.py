@@ -51,7 +51,7 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         for idx in range(self.trainer.accum_steps):
             data = batch[0][idx * step_size:(idx + 1) * step_size]
             label = batch[1][idx * step_size:(idx + 1) * step_size]
-            
+
             # do cast if using fp16 otherwise do nothing
             with paddle.amp.auto_cast(
                     enable=self.trainer.fp16,
@@ -61,7 +61,7 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
                 out = self.trainer.model(data)
                 final_out.append(out)
-                            
+
             loss_dict = self.trainer.train_loss_func(out, label)
 
             for key in loss_dict:
@@ -92,7 +92,7 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         self.trainer.scaler.update()
         # clear gradients
         self.trainer.optimizer.clear_grad()
-        
+
         if self.trainer.lr_decay_unit == 'step':
             self.trainer.optimizer.lr_step(self.global_step)
 
@@ -175,7 +175,7 @@ class ClassificationEvaluationLoop(_Loop):
                     custom_white_list=self.trainer.fp16_custom_white_list,
                     custom_black_list=self.trainer.fp16_custom_black_list,
                     level=self.trainer.fp16_level):
-                
+
                 out = self.trainer.model(batch[0])
                 # calc loss
                 if self.trainer.eval_loss_func is not None:

@@ -72,7 +72,7 @@ class MultiCropDataset(ImageFolder):
         path, target = self.imgs[index]
         sample = self.loader(path)
         sample = list(map(lambda trans: trans(sample), self.trans))
-        
+
         return sample, target
 
 
