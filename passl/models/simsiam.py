@@ -26,7 +26,6 @@ from passl.nn import init
 
 from .resnet import ResNet, BottleneckBlock
 
-
 __all__ = [
     'simsiam_resnet50_pretrain',
     'simsiam_resnet50_linearprobe',
@@ -68,38 +67,6 @@ class SimSiamPretain(Model):
                                         nn.Linear(pred_dim, dim)) # output layer
 
         self.criterion = nn.CosineSimilarity(axis=1)
-
-    def param_groups(self, no_weight_decay_name=[], tensor_fusion=True):
-
-        def param_split(sub_model):
-            param_group_map = defaultdict(list)
-            for n, p in sub_model.named_parameters():
-                state = copy.deepcopy(p.__dict__)
-                state['stop_gradient'] = p.stop_gradient
-                if any(nd in n for nd in no_weight_decay_name):
-                    state['no_weight_decay'] = True
-                param_group_map[str(state)].append(p)
-            return param_group_map
-
-        encoder_param_group_map = param_split(self.encoder)
-        predictor_param_group_map = param_split(self.predictor)
-
-        param_group = []
-        for key in encoder_param_group_map:
-            group = {'params': encoder_param_group_map[key], 'tensor_fusion': tensor_fusion}
-            if 'no_weight_decay' in key:
-                group['weight_decay'] = 0.0
-            param_group.append(group)
-
-        for key in predictor_param_group_map:
-            group = {'params': predictor_param_group_map[key], 'tensor_fusion': tensor_fusion}
-            group['fix_lr'] = True
-            if 'no_weight_decay' in key:
-                group['weight_decay'] = 0.0
-            param_group.append(group)
-
-        return param_group
-
 
     def forward(self, inputs):
         """
