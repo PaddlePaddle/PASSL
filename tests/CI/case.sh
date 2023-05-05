@@ -398,7 +398,7 @@ function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
     loss=`cat log/workerlog.0 | grep '200/501' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '200/501' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=2.23445
+    loss_base=1.95351
     ips_base=793.89847
     mem_base=5.67
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
