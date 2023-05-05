@@ -4,8 +4,9 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: /root/paddlejob/workspace/env_run/tangshiyu/PASSL/swav_800ep_pretrain.pdparams
-  output_dir: ./output
+  pretrained_model: swav_800ep_pretrain_adjustresnet
+  finetune: True
+  output_dir: ./output/semi_0426_semi10
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
@@ -13,8 +14,8 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 100
-  print_batch_step: 100
+  epochs: 20
+  print_batch_step: 50
   use_visualdl: False
   seed: 31
 
@@ -23,10 +24,8 @@ DistributedStrategy:
 
 # model architecture
 Model:
-  name: swav_resnet50_linearprobe
-  output_dim: 0 
-  eval_mode: True
-  class_num: 1000
+  name: swav_resnet50_finetune
+  output_dim: 1000
 
 # loss function config for traing/eval process
 Loss:
@@ -40,15 +39,23 @@ Loss:
 Optimizer:
   name: Momentum
   momentum: 0.9
-  weight_decay: 1e-6
-  tensor_fusion: True
+  weight_decay: 0.0
+  tensor_fusion: False
   decay_unit: epoch
   LRScheduler:
-    name: TimmCosine
-    learning_rate: 0.3
-    eta_min: 0.0
-    last_epoch: 0
-    warmup_epoch: 0
+    name: MultiStepDecay
+    learning_rate: 0.02
+    milestones: [12, 16]
+    gamma: 0.2
+    last_epoch: -1
+  custom_cfg:
+    - name: head
+      LRScheduler:
+        name: MultiStepDecay
+        learning_rate: 5
+        milestones: [12, 16]
+        gamma: 0.2
+        last_epoch: -1
 
 # data loader for train and eval
 DataLoader:
@@ -64,9 +71,10 @@ DataLoader:
         - Normalize:
             mean: [0.485, 0.456, 0.406]
             std: [0.228, 0.224, 0.225]
+      samples_tag: semi_10
     sampler:
       name: DistributedBatchSampler
-      batch_size: 32 # accum_steps: 1, total batchsize: 256
+      batch_size: 64 # accum_steps: 1, total batchsize: 256
       drop_last: False
       shuffle: True
     loader:
@@ -88,7 +96,7 @@ DataLoader:
             std: [0.228, 0.224, 0.225]
     sampler:
       name: DistributedBatchSampler
-      batch_size: 32
+      batch_size: 64
       drop_last: False
       shuffle: False
     loader:

@@ -30,6 +30,7 @@ class SwAV(Model):
         self.res_model = swavresnet50(**kwargs)
     
     def _load_model(self, path, model, tag):
+        path = path + ".pdparams"
         if os.path.isfile(path):
             para_state_dict = paddle.load(path)
             

@@ -38,6 +38,9 @@ function model_list(){
     mocov3_vit_base_patch16_224_pt_in1k_1n8c_dp_fp16o1
     mocov3_deit_base_patch16_224_ft_in1k_1n8c_dp_fp16o1
     mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1
+    swav_resnet50_224_ft_in1k_1n4c_dp_fp32
+    swav_resnet50_224_lp_in1k_1n8c_dp_fp32
+    swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1
 }
 
 ############ case start ############
@@ -353,6 +356,52 @@ function mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
+
+function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
+    echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/swav/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.sh
+
+    loss=`cat log/workerlog.0 | grep '200/501' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '200/501' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=2.23445
+    ips_base=793.89847
+    mem_base=5.67
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+function swav_resnet50_224_lp_in1k_1n8c_dp_fp32() {
+    echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/swav/swav_resnet50_224_lp_in1k_1n8c_dp_fp32.sh
+
+    loss=`cat log/workerlog.0 | grep '200/5005' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '200/5005' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=4.89133
+    ips_base=11111.52955
+    mem_base=0.83
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+
+function swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1() {
+    echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/swav/swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1.sh
+
+    loss=`cat log/workerlog.0 | grep '200/2599' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '200/2599' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=8.00343
+    ips_base=1385.94186
+    mem_base=8.63
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
 
 function check_result() {
     if [ $? -ne 0 ];then

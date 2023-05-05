@@ -5,7 +5,7 @@ Global:
   validate_loop: None
   checkpoint: null
   pretrained_model: null
-  output_dir: ./output/pretrain_0504_fp16
+  output_dir: ./output/
   device: gpu
   save_interval: 1
   max_num_latest_checkpoint: 0
