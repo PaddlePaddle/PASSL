@@ -28,6 +28,7 @@ from passl.models.vision_transformer import DropPath, PatchEmbed
 
 from passl.distributed import distributed_env as dist_env
 from passl.nn import FinerGrainedRowParallelLinear, FinerGrainedColumnParallelLinear
+from passl.distributed.nn import functional as dist_F
 
 __all__ = [
     'ViT_hybrid_base_patch16_224',
@@ -41,17 +42,15 @@ class MlpHybrid(nn.Layer):
                  hidden_features=None,
                  out_features=None,
                  act_layer=nn.GELU,
-                 drop=0.,
-                 input_is_parallel=False,
-                 gather_output=False):
+                 drop=0.):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
         # self.fc1 = nn.Linear(in_features, hidden_features)
-        self.fc1 = FinerGrainedColumnParallelLinear(in_features, hidden_features, input_is_parallel=True, gather_output=False)
+        self.fc1 = FinerGrainedColumnParallelLinear(in_features, hidden_features)
         self.act = act_layer()
         # self.fc2 = nn.Linear(hidden_features, out_features)
-        self.fc2 = FinerGrainedRowParallelLinear(hidden_features, out_features, input_is_parallel=True, gather_output=False)
+        self.fc2 = FinerGrainedRowParallelLinear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
 
         self.apply(self._init_weights)
@@ -78,9 +77,7 @@ class AttentionHybrid(nn.Layer):
                  qkv_bias=False,
                  qk_scale=None,
                  attn_drop=0.,
-                 proj_drop=0.,
-                 input_is_parallel=False,
-                 gather_output=False):
+                 proj_drop=0.):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
@@ -88,11 +85,11 @@ class AttentionHybrid(nn.Layer):
 
         # self.qkv = nn.Linear(dim, dim * 3, bias_attr=qkv_bias)
         # Note(GuoxiaWang): we can use columnsharded_linear or rowsharded_linear according communication volume.
-        # self.qkv = FinerGrainedColumnParallelLinear(dim, dim * 3, bias_attr=qkv_bias, input_is_parallel=True, gather_output=False)
-        self.qkv = FinerGrainedRowParallelLinear(dim, dim * 3, bias_attr=qkv_bias, input_is_parallel=True, gather_output=False)
+        # self.qkv = FinerGrainedColumnParallelLinear(dim, dim * 3, bias_attr=qkv_bias)
+        self.qkv = FinerGrainedRowParallelLinear(dim, dim * 3, bias_attr=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         # self.proj = nn.Linear(dim, dim)
-        self.proj = FinerGrainedRowParallelLinear(dim, dim, input_is_parallel=True, gather_output=False)
+        self.proj = FinerGrainedRowParallelLinear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
 
         self.apply(self._init_weights)
@@ -133,9 +130,7 @@ class BlockHybird(nn.Layer):
                  drop_path=0.,
                  act_layer=nn.GELU,
                  norm_layer='nn.LayerNorm',
-                 epsilon=1e-5,
-                 input_is_parallel=False,
-                 gather_output=False):
+                 epsilon=1e-5):
         super().__init__()
 
         if isinstance(norm_layer, str):
@@ -151,9 +146,7 @@ class BlockHybird(nn.Layer):
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
             attn_drop=attn_drop,
-            proj_drop=drop,
-            input_is_parallel=input_is_parallel,
-            gather_output=gather_output)
+            proj_drop=drop)
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(
             drop_path) if drop_path > 0. else nn.Identity()
@@ -168,9 +161,7 @@ class BlockHybird(nn.Layer):
         self.mlp = MlpHybrid(in_features=dim,
                        hidden_features=mlp_hidden_dim,
                        act_layer=act_layer,
-                       drop=drop,
-                       input_is_parallel=input_is_parallel,
-                       gather_output=gather_output)
+                       drop=drop)
 
     def forward(self, x):
         x = x + self.drop_path(self.attn(self.norm1(x)))
@@ -235,9 +226,7 @@ class VisionTransformerHybrid(Model):
                 attn_drop=attn_drop_rate,
                 drop_path=dpr[i],
                 norm_layer=norm_layer,
-                epsilon=epsilon,
-                input_is_parallel=False if i==0 else True,
-                gather_output=True if i==depth-1 else False) for i in range(depth)
+                epsilon=epsilon) for i in range(depth)
         ])
 
         if isinstance(norm_layer, str):
@@ -283,17 +272,12 @@ class VisionTransformerHybrid(Model):
         x = x + self.pos_embed
         x = self.pos_drop(x)
 
-        mp_rank = dist_env.get_model_parallel_world_rank()
-        mp_world_size = dist_env.get_model_parallel_world_size()
-        mp_group = dist_env.get_model_parallel_group()
-
-        x = paddle.split(x, mp_world_size, axis=0)[mp_rank]
+        x = dist_F.split(x, axis=0, group=dist_env.get_model_parallel_group())
         for blk in self.blocks:
             x = blk(x)
 
-        tensor_list = []
-        dist.all_gather(tensor_list, x, group=mp_group)
-        x = paddle.concat(tensor_list, axis=0)
+        x = dist_F.all_gather(x, group=dist_env.get_model_parallel_group())
+        x = paddle.concat(x, axis=0)
 
         x = self.norm(x)
         return x[:, 0]

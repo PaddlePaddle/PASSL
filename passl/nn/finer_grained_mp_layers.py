@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-def finer_grained_rowsharded_linear(x, weight, bias=None, name=None):
+def finer_grained_rowsharded_linear(x, weight, bias=None, transpose_y=False, name=None):
     """
     y = x * weight + b = matmul(x, weight) + b
     """
@@ -53,7 +53,6 @@ def finer_grained_rowsharded_linear(x, weight, bias=None, name=None):
     hidden_size = x.shape[-1]
     assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
     micro_hidden_size = hidden_size // mp_ranks
-    assert micro_hidden_size == weight.shape[0], f"micro_hidden_size {micro_hidden_size} must be equal to weight.shape[0] {weight.shape[0]}"
 
     # reverse order [mp_ranks-1, ..., 1, 0]
     cal_index = list(range(mp_ranks-1, -1, -1))
@@ -84,7 +83,7 @@ def finer_grained_rowsharded_linear(x, weight, bias=None, name=None):
 
         # slice and calculate matmul
         xi = paddle.slice(x, axes=[-1], starts=[start], ends=[end])
-        yi = paddle.matmul(xi, wi)
+        yi = paddle.matmul(xi, wi, transpose_y=transpose_y)
 
         # sum
         if idx == 0:
@@ -119,8 +118,6 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
     micro_hidden_size = hidden_size // mp_ranks
 
-    # assert micro_hidden_size == x.shape[0], f"micro_hidden_size {micro_hidden_size} must be equal to x.shape[0] {x.shape[0]}"
-
     # reverse order [mp_ranks-1, ..., 1, 0]
     cal_index = list(range(mp_ranks-1, -1, -1))
     # shift
@@ -130,7 +127,6 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
     dy_shape = dy.shape
     x_shape = x.shape
-    w_shape = weight.reshape
     with paddle.no_grad():
         dy.reshape_([-1, dy_shape[-1]])
         x.reshape_([-1, x_shape[-1]])
@@ -173,7 +169,6 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     if bias is not None:
         bias_grad = paddle.sum(dy, axis=list(range(len(dy.shape)-1)))
         task_bias_grad = dist.all_reduce(bias_grad, group=mp_group, sync_op=False)
-
 
     weight_grad = dwi_send
     x_grad = finer_grained_columnsharded_linear(dy, weight, transpose_y=True)
@@ -243,17 +238,120 @@ def finer_grained_columnsharded_linear(x, weight, bias=None, transpose_y=False, 
     return y
 
 
+def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None):
+    mp_rank = dist_env.get_model_parallel_world_rank()
+    mp_ranks = dist_env.get_model_parallel_world_size()
+    p2p_mp_group = dist_env.get_p2p_model_parallel_group()
+    mp_group = dist_env.get_model_parallel_group()
+    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
+    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
+    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
+    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
+    send_dst = mp_group.ranks[next_mp_rank]
+    recv_src = mp_group.ranks[prev_mp_rank]
+
+    hidden_size = x.shape[-1]
+    assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
+    micro_hidden_size = hidden_size // mp_ranks
+
+    # reverse order [mp_ranks-1, ..., 1, 0]
+    cal_index = list(range(mp_ranks-1, -1, -1))
+    # shift
+    shift = mp_ranks - mp_rank
+    cal_index = cal_index[shift:] + cal_index[:shift]
+
+    # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
+    dy_shape = dy.shape
+    x_shape = x.shape
+    with paddle.no_grad():
+        dy.reshape_([-1, dy_shape[-1]])
+        x.reshape_([-1, x_shape[-1]])
+
+    for idx, t in enumerate(cal_index):
+        start = t * micro_hidden_size
+        end = start + micro_hidden_size
+
+        # slice and calculate matmul
+        dyi = paddle.slice(dy, axes=[-1], starts=[start], ends=[end])
+        dwi = paddle.matmul(x, dyi, transpose_x=True)
+
+        # we need to sync and get received
+        if idx > 0:
+            task_send.wait()
+            task_recv.wait()
+            dwi_send = dwi + dwi_recv
+        else:
+            dwi_send = dwi
+
+        # launch async send and recv
+        if idx < mp_ranks-1:
+            if mp_rank % 2 == 0:
+                task_send = dist.isend(dwi_send, dst=send_dst, group=send_group)
+            else:
+                dwi_recv = paddle.zeros_like(dwi_send)
+                task_recv = dist.irecv(dwi_recv, src=recv_src, group=recv_group)
+
+            if mp_rank % 2 == 0:
+                dwi_recv = paddle.zeros_like(dwi_send)
+                task_recv = dist.irecv(dwi_recv, src=recv_src, group=recv_group)
+            else:
+                task_send = dist.isend(dwi_send, dst=send_dst, group=send_group)
+
+    with paddle.no_grad():
+        dy.reshape_(dy_shape)
+        x.reshape_(x_shape)
+
+    if bias is not None:
+        bias_grad = paddle.sum(dy, axis=list(range(len(dy.shape)-1)))
+        task_bias_grad = dist.all_reduce(bias_grad, group=mp_group, sync_op=False)
+
+    weight_grad = dwi_send
+    x_grad = finer_grained_rowsharded_linear(dy, weight, transpose_y=True)
+    if bias is not None:
+        task_bias_grad.wait()
+    else:
+        bias_grad = None
+
+    return x_grad, weight_grad, bias_grad
+
+
 class FinerGrainedRowShardedLinearFunction(PyLayer):
     @staticmethod
-    def forward(ctx, x, weight, bias=None):
+    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+        if split_x:
+            world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
+            mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
+            x = paddle.split(x, world_size, axis=split_axis)[mp_rank]
         ctx.save_for_backward(x, weight, bias)
+        ctx.split_x = split_x
+        ctx.gather_y = gather_y
+        ctx.split_axis = split_axis
+
         y = finer_grained_rowsharded_linear(x, weight, bias)
+
+        if gather_y:
+            mp_group = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_group()
+            tensor_list = []
+            dist.all_gather(tensor_list, y, group=mp_group)
+            y = paddle.concat(tensor_list, axis=0)
         return y
 
     @staticmethod
     def backward(ctx, grad_output):
         x, weight, bias = ctx.saved_tensor()
+        if ctx.gather_y:
+            world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
+            mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
+            grad_output = paddle.split(grad_output, world_size, axis=0)[mp_rank]
+
         x_grad, weight_grad, bias_grad = finer_grained_rowsharded_linear_grad(grad_output, x, weight, bias)
+
+        if ctx.split_x:
+            mp_group = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_group()
+            tensor_list = []
+            dist.all_gather(tensor_list, x_grad, group=mp_group)
+            x_grad = paddle.concat(tensor_list, axis=ctx.split_axis)
+
         if bias is not None:
             return x_grad, weight_grad, bias_grad
         else:
@@ -262,26 +360,53 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
 
 class FinerGrainedColumnShardedLinearFunction(PyLayer):
     @staticmethod
-    def forward(ctx, x, weight, bias=None):
+    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+        if split_x:
+            world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
+            mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
+            x = paddle.split(x, world_size, axis=split_axis)[mp_rank]
         ctx.save_for_backward(x, weight, bias)
+        ctx.split_x = split_x
+        ctx.gather_y = gather_y
+        ctx.split_axis = split_axis
+
         y = finer_grained_columnsharded_linear(x, weight, bias)
+
+        if gather_y:
+            mp_group = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_group()
+            tensor_list = []
+            dist.all_gather(tensor_list, y, group=mp_group)
+            y = paddle.concat(tensor_list, axis=0)
         return y
 
     @staticmethod
     def backward(ctx, grad_output):
-        # TODO(GuoxiaWang): implement backward logic
-        raise NotImplementedError(
-            "The backward logic is not supported now."
-        )
-        return grad_output
+        x, weight, bias = ctx.saved_tensor()
+        if ctx.gather_y:
+            world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
+            mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
+            grad_output = paddle.split(grad_output, world_size, axis=0)[mp_rank]
+
+        x_grad, weight_grad, bias_grad = finer_grained_columnsharded_linear_grad(grad_output, x, weight, bias)
+
+        if ctx.split_x:
+            mp_group = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_group()
+            tensor_list = []
+            dist.all_gather(tensor_list, x_grad, group=mp_group)
+            x_grad = paddle.concat(tensor_list, axis=ctx.split_axis)
+
+        if bias is not None:
+            return x_grad, weight_grad, bias_grad
+        else:
+            return x_grad, weight_grad
 
 
-def finer_grained_row_parallel_linear(x, weight, bias=None, name=None):
-    return FinerGrainedRowShardedLinearFunction.apply(x, weight, bias=bias)
+def finer_grained_row_parallel_linear(x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
+    return FinerGrainedRowShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y)
 
 
-def finer_grained_column_parallel_linear(x, weight, bias=None, name=None):
-    return FinerGrainedColumnShardedLinearFunction.apply(x, weight, bias=bias)
+def finer_grained_column_parallel_linear(x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
+    return FinerGrainedColumnShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y)
 
 
 class FinerGrainedRowParallelLinear(paddle.nn.Layer):
@@ -291,8 +416,9 @@ class FinerGrainedRowParallelLinear(paddle.nn.Layer):
         out_features,
         weight_attr=None,
         bias_attr=None,
-        input_is_parallel=False,
-        gather_output=True,
+        input_split=False,
+        input_split_axis=0,
+        gather_output=False,
         mp_group=None,
         name=None,
     ):
@@ -311,7 +437,8 @@ class FinerGrainedRowParallelLinear(paddle.nn.Layer):
         self._name = name
         self.is_mp = self.world_size > 1
         self.mp_rank = dist_env.get_model_parallel_world_rank()
-        self.input_is_parallel = input_is_parallel
+        self.input_split = input_split
+        self.input_split_axis = input_split_axis
         self.gather_output = gather_output
 
         assert in_features % self.world_size == 0, (
@@ -354,25 +481,22 @@ class FinerGrainedRowParallelLinear(paddle.nn.Layer):
             dtype=self._dtype,
             is_bias=True,
         )
+        if self.bias is not None:
+            self.bias.is_distributed = self.weight.is_distributed
 
         self.linear = finer_grained_row_parallel_linear
 
 
     def forward(self, x):
-
-        if self.input_is_parallel or (not self.is_mp):
-            input_parallel = x
-        else:
-            input_parallel = paddle.split(x,  self.world_size, axis=0)[self.mp_rank]
-
         output = self.linear(
-            input_parallel, self.weight, self.bias, name=self._name
+            x,
+            self.weight,
+            self.bias,
+            split_x=self.input_split and self.is_mp,
+            split_axis=self.input_split_axis,
+            gather_y=self.gather_output and self.is_mp,
+            name=self._name
         )
-
-        if self.is_mp and self.gather_output:
-            tensor_list = []
-            dist.all_gather(tensor_list, output, group=self.model_parallel_group)
-            output = paddle.concat(tensor_list, axis=0)
         return output
 
 
@@ -383,8 +507,9 @@ class FinerGrainedColumnParallelLinear(paddle.nn.Layer):
         out_features,
         weight_attr=None,
         bias_attr=None,
-        input_is_parallel=False,
-        gather_output=True,
+        input_split=False,
+        input_split_axis=0,
+        gather_output=False,
         mp_group=None,
         name=None,
     ):
@@ -403,8 +528,10 @@ class FinerGrainedColumnParallelLinear(paddle.nn.Layer):
         self._name = name
         self.is_mp = self.world_size > 1
         self.mp_rank = dist_env.get_model_parallel_world_rank()
-        self.input_is_parallel = input_is_parallel
+        self.input_split = input_split
+        self.input_split_axis = input_split_axis
         self.gather_output = gather_output
+
         assert out_features % self.world_size == 0, (
             "Number of column of the weight for linear ({}) must be"
             " divisible by model parallel size ({})".format(
@@ -443,20 +570,19 @@ class FinerGrainedColumnParallelLinear(paddle.nn.Layer):
             dtype=self._dtype,
             is_bias=True,
         )
+        if self.bias is not None:
+            self.bias.is_distributed = self.weight.is_distributed
 
         self.linear = finer_grained_column_parallel_linear
 
     def forward(self, x):
-        if self.input_is_parallel or (not self.is_mp):
-            input_parallel = x
-        else:
-            input_parallel = paddle.split(x,  self.world_size, axis=0)[self.mp_rank]
-
         output = self.linear(
-            input_parallel, self.weight, self.bias, name=self._name
+            x,
+            self.weight,
+            self.bias,
+            split_x=self.input_split and self.is_mp,
+            split_axis=self.input_split_axis,
+            gather_y=self.gather_output and self.is_mp,
+            name=self._name
         )
-        if self.is_mp and self.gather_output:
-            tensor_list = []
-            dist.all_gather(tensor_list, output, group=self.model_parallel_group)
-            output = paddle.concat(tensor_list, axis=0)
         return output
