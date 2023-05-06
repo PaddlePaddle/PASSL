@@ -390,10 +390,10 @@ function simsiam_resnet50_lp_in1k_1n8c_dp_fp32() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
-function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
+function swav_resnet50_224_ft_in1k_1n4c_dp() {
     echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
-    bash ./ssl/swav/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.sh
+    bash ./ssl/swav/swav_resnet50_224_ft_in1k_1n4c_dp.sh
 
     loss=`cat log/workerlog.0 | grep '200/501' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
@@ -405,10 +405,10 @@ function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
-function swav_resnet50_224_lp_in1k_1n8c_dp_fp32() {
+function swav_resnet50_224_lp_in1k_1n8c_dp() {
     echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
-    bash ./ssl/swav/swav_resnet50_224_lp_in1k_1n8c_dp_fp32.sh
+    bash ./ssl/swav/swav_resnet50_224_lp_in1k_1n8c_dp.sh
 
     loss=`cat log/workerlog.0 | grep '200/5005' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
