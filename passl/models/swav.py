@@ -72,8 +72,8 @@ class SwAV(Model):
                     model_state_dict[k] = para_state_dict[k]
                     num_params_loaded += 1
             self.set_dict(model_state_dict)
-            logger.info("There are {}/{} variables loaded into {}.".format(
-                num_params_loaded, len(model_state_dict), tag))
+            logger.info("There are {}/{} variables loaded into {} with {}.".format(
+                num_params_loaded, len(model_state_dict), tag, path))
         else:
             logger.info("No pretrained weights found in {} => training with random weights".format(tag))
 

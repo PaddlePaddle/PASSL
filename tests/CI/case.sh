@@ -390,7 +390,7 @@ function simsiam_resnet50_lp_in1k_1n8c_dp_fp32() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
-function swav_resnet50_224_ft_in1k_1n4c_dp() {
+function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
     echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/swav/swav_resnet50_224_ft_in1k_1n4c_dp.sh
@@ -405,7 +405,7 @@ function swav_resnet50_224_ft_in1k_1n4c_dp() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
-function swav_resnet50_224_lp_in1k_1n8c_dp() {
+function swav_resnet50_224_lp_in1k_1n8c_dp_fp32() {
     echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
     bash ./ssl/swav/swav_resnet50_224_lp_in1k_1n8c_dp.sh
