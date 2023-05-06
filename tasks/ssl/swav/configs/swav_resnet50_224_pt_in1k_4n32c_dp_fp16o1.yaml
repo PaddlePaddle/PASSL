@@ -28,16 +28,18 @@ DistributedStrategy:
 # model architecture
 Model:
   name: swav_resnet50_pretrain
+  backbone:
+    type: swavresnet50
+    normalize: True
+    hidden_mlp: 2048
+    output_dim: 128
+    nmb_prototypes: 3000
   apex: False
   queue_length: 0
   crops_for_assign: [0, 1]
   nmb_crops: [2, 6]
   epsilon: 0.05
   freeze_prototypes_niters: 313
-  normalize: True
-  hidden_mlp: 2048
-  output_dim: 128
-  nmb_prototypes: 3000
 
 Optimizer:
   name: MomentumLARC

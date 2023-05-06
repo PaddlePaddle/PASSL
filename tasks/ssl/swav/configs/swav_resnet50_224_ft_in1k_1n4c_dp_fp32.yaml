@@ -25,7 +25,9 @@ DistributedStrategy:
 # model architecture
 Model:
   name: swav_resnet50_finetune
-  output_dim: 1000
+  backbone:
+    type: swavresnet50
+    output_dim: 1000
 
 # loss function config for traing/eval process
 Loss:

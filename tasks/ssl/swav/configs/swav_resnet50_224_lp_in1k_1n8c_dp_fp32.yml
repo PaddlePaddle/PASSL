@@ -24,9 +24,11 @@ DistributedStrategy:
 # model architecture
 Model:
   name: swav_resnet50_linearprobe
-  output_dim: 0
-  eval_mode: True
-  class_num: 1000
+  backbone:
+    type: swavresnet50
+    output_dim: 0
+    eval_mode: True
+    class_num: 1000
 
 # loss function config for traing/eval process
 Loss:

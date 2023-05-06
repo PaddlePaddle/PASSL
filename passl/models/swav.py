@@ -40,7 +40,12 @@ __all__ = [
 class SwAV(Model):
     def __init__(self, **kwargs):
         super().__init__()
-        self.res_model = swavresnet50(**kwargs)
+        backbone_config = kwargs['backbone']
+        backbone_type = backbone_config.pop("type", None)
+        if backbone_type is not None:
+            self.res_model = eval(backbone_type)(**backbone_config)
+        else:
+            AttributeError(f'Backbone type is not assigned, please assign it.')
 
     def _load_model(self, path, model, tag):
         path = path + ".pdparams"

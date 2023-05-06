@@ -23,4 +23,3 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     tools/train.py -c tasks/ssl/swav/configs/swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1.yaml
-    # tools/train.py -c tasks/ssl/swav/configs/swav_resnet50_224_pt_in1k_4n32c_dp_fp16o1.yaml
