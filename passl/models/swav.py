@@ -47,21 +47,21 @@ class SwAV(Model):
         else:
             AttributeError(f'Backbone type is not assigned, please assign it.')
 
-    def _load_model(self, path, model, tag):
+    def _load_model(self, path, tag):
         path = path + ".pdparams"
         if os.path.isfile(path):
             para_state_dict = paddle.load(path)
 
             # resnet
-            model_state_dict = model.state_dict()
+            model_state_dict = self.state_dict()
             keys = model_state_dict.keys()
             num_params_loaded = 0
             for k in keys:
                 if k not in para_state_dict:
-                    print("{} is not in pretrained model".format(k))
+                    logger.info("{} is not in pretrained model".format(k))
                 elif list(para_state_dict[k].shape) != list(model_state_dict[k]
                                                             .shape):
-                    print(
+                    logger.info(
                         "[SKIP] Shape of pretrained params {} doesn't match.(Pretrained: {}, Actual: {})"
                         .format(k, para_state_dict[k].shape, model_state_dict[k]
                                 .shape))
@@ -71,11 +71,11 @@ class SwAV(Model):
                         para_state_dict[k] = para_state_dict[k].astype(model_state_dict[k].dtype)
                     model_state_dict[k] = para_state_dict[k]
                     num_params_loaded += 1
-            model.set_dict(model_state_dict)
-            print("There are {}/{} variables loaded into {}.".format(
+            self.set_dict(model_state_dict)
+            logger.info("There are {}/{} variables loaded into {}.".format(
                 num_params_loaded, len(model_state_dict), tag))
         else:
-            print("No pretrained weights found in {} => training with random weights".format(tag))
+            logger.info("No pretrained weights found in {} => training with random weights".format(tag))
 
     def load_pretrained(self, path, rank=0, finetune=False):
         pass
@@ -106,7 +106,7 @@ class SwAVLinearProbe(SwAV):
         self.apply(self._freeze_norm)
 
     def load_pretrained(self, path, rank=0, finetune=False):
-        self._load_model(path, self.res_model, 'backbone')
+        self._load_model(path, 'backbone')
 
     def forward(self, inp):
         with paddle.no_grad():
@@ -121,7 +121,7 @@ class SwAVFinetune(SwAV):
         self.apply(self._freeze_norm)
 
     def load_pretrained(self, path, rank=0, finetune=False):
-        self._load_model(path, self.res_model, 'backbone')
+        self._load_model(path, 'backbone')
 
     def forward(self, inp):
         return self.res_model(inp)
@@ -137,8 +137,8 @@ class SwAVPretrain(SwAV):
 
         self.apply(self._freeze_norm)
 
-    def load_pretrained(self, path, rank=0, finetune=False):
-        self._load_model('swav_800ep_pretrain.pdparams', self.res_model, 'backbone')
+    # def load_pretrained(self, path, rank=0, finetune=False):
+    #     self._load_model('swav_800ep_pretrain.pdparams', 'backbone')
 
     @paddle.no_grad()
     def distributed_sinkhorn(self, out, sinkhorn_iterations=3):

@@ -20,6 +20,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import paddle
 
+from passl.utils import logger
 from passl.data.dataset import default_loader
 
 IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif",
@@ -66,8 +67,8 @@ class ImageFolder(paddle.io.Dataset):
         if samples_tag is None:
             samples = self.make_dataset(self.root, class_to_idx, extensions)
         elif samples_tag == "semi_1" or samples_tag == "semi_10":
-            # connection reset
-            # subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(percent) + "percent.txt")
+            # connection reset proxyon
+            # subset_file = urllib.request.urlopen("https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/" + str(samples_tag.split('_')[-1]) + "percent.txt")
             # list_imgs = [li.decode("utf-8").split('\n')[0] for li in subset_file]
             subset_file = str(samples_tag.split('_')[-1]) + "percent.txt"
             with open(subset_file, 'r') as f:
@@ -77,7 +78,7 @@ class ImageFolder(paddle.io.Dataset):
         else:
             raise NotImplementedError('{} is not implemented'.format(samples))
 
-        print(f'find total {len(classes)} classes and {len(samples)} images.')
+        logger.info(f'find total {len(classes)} classes and {len(samples)} images.')
 
         self.extensions = extensions
 

@@ -13,7 +13,7 @@ Global:
   eval_interval: 1
   eval_unit: "epoch"
   accum_steps: 1
-  epochs: 400 # 800
+  epochs: 400
   print_batch_step: 100
   use_visualdl: False
   seed: 31
@@ -34,12 +34,12 @@ Model:
     hidden_mlp: 2048
     output_dim: 128
     nmb_prototypes: 3000
-    apex: False
-  queue_length: 3804 # 0
+  apex: False
+  queue_length: 3804
   crops_for_assign: [0, 1]
   nmb_crops: [2, 6]
   epsilon: 0.05
-  freeze_prototypes_niters: 5005 # 313
+  freeze_prototypes_niters: 5005
 
 Optimizer:
   name: MomentumLARC

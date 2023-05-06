@@ -16,10 +16,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import paddle
-from passl.core import grad_sync
+import collections
 
+from passl.core import grad_sync
 from passl.utils import logger
 from .loop import TrainingEpochLoop
 
@@ -51,7 +51,6 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
                 loss_dict = self.trainer.model(sub_batch)
                 if isinstance(loss_dict, paddle.Tensor):
                     loss_dict = {'loss': loss_dict}
-
 
             for key in loss_dict:
                 loss_dict[key] = loss_dict[key] / self.trainer.accum_steps

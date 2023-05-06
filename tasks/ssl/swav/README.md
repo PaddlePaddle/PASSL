@@ -59,22 +59,35 @@ python -m paddle.distributed.launch \
 ```
 
 ## How to End-to-End Fine-tuning
-To perform end-to-end fine-tuning for SwAV, run the training with the trained PASSL format checkpoint:
+To perform end-to-end fine-tuning for SwAV:
 
-```bash
-unset PADDLE_TRAINER_ENDPOINTS
-export PADDLE_NNODES=1
-export PADDLE_MASTER="127.0.0.1:12538"
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-export FLAGS_stop_check_timeout=3600
+* First download the data split text file with following commands:
+    ```bash
+    cd PASSL
 
-python -m paddle.distributed.launch \
-    --nnodes=$PADDLE_NNODES \
-    --master=$PADDLE_MASTER \
-    --devices=$CUDA_VISIBLE_DEVICES \
-    passl-train \
-    -c ./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp16o1.yaml
-```
+    wget "https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/10percent.txt"
+
+    wget "https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/1percent.txt"
+    ```
+
+* Then, download the pretrained models to `./pretrained/swav/swav_resnet50_in1k_800ep_pretrained.pdparams`
+
+* Finally, run the training with the trained PASSL format checkpoint:
+    ```bash
+    unset PADDLE_TRAINER_ENDPOINTS
+    export PADDLE_NNODES=1
+    export PADDLE_MASTER="127.0.0.1:12538"
+    export CUDA_VISIBLE_DEVICES=0,1,2,3
+    export FLAGS_stop_check_timeout=3600
+
+    python -m paddle.distributed.launch \
+        --nnodes=$PADDLE_NNODES \
+        --master=$PADDLE_MASTER \
+        --devices=$CUDA_VISIBLE_DEVICES \
+        passl-train \
+        -c ./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp16o1.yaml
+        -o Global.pretrained_model=./pretrained/swav/swav_resnet50_in1k_800ep_pretrained
+    ```
 
 ## Other Configurations
 We provide more directly runnable configurations, see [SwAV Configurations](./configs/).
