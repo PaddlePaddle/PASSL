@@ -78,7 +78,7 @@ class ImageFolder(paddle.io.Dataset):
         else:
             raise NotImplementedError('{} is not implemented'.format(samples))
 
-        logger.info(f'find total {len(classes)} classes and {len(samples)} images.')
+        print(f'find total {len(classes)} classes and {len(samples)} images.')
 
         self.extensions = extensions
 
