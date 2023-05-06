@@ -19,7 +19,7 @@ from paddle.autograd import PyLayer
 
 
 def split(tensor, axis=0, group=None):
-    return _Split.apply(group, axis, tensor)
+    return _Split.apply(tensor, axis, group)
 
 def all_gather(tensor, group=None):
     """
@@ -33,12 +33,12 @@ def all_gather(tensor, group=None):
         tuple([Tensor]): Output of the collective.
 
     """
-    return _AllGather.apply(group, tensor)
+    return _AllGather.apply(tensor, group)
 
 
 class _Split(PyLayer):
     @staticmethod
-    def forward(ctx, group, axis, tensor):
+    def forward(ctx, tensor, axis, group):
         ctx.group = group
         ctx.axis = axis
 
@@ -53,24 +53,24 @@ class _Split(PyLayer):
         tensor_list = []
         dist.all_gather(tensor_list, grad_output, group=ctx.group)
         grad = paddle.concat(tensor_list, axis=ctx.axis)
-        return (None, None, grad)
+        return grad
 
 
 class _Reduce_Scatter(PyLayer):
     @staticmethod
-    def forward(ctx, op, group, tensor, *input_tensor_list):
+    def forward(ctx, tensor, group, *input_tensor_list):
         ctx.group = group
-        dist.reduce_scatter(tensor, list(input_tensor_list), op=op, group=group)
+        dist.reduce_scatter(tensor, list(input_tensor_list), group=group)
         return tensor
 
     @staticmethod
     def backward(ctx, grad_output):
-        return (None, None, None) + _AllGather.apply(ctx.group, grad_output)
+        return (None) + _AllGather.apply(grad_output, ctx.group)
 
 
 class _AllGather(PyLayer):
     @staticmethod
-    def forward(ctx, group, tensor):
+    def forward(ctx, tensor, group):
         ctx.group = group
 
         out_tensor_list = []
@@ -80,6 +80,7 @@ class _AllGather(PyLayer):
     @staticmethod
     def backward(ctx, *grad_outputs):
         rank = dist.get_rank()
-        gx = paddle.empty_like(grad_outputs[rank])
-        _Reduce_Scatter.apply(paddle.framework.core.ReduceOp.SUM, ctx.group, gx, *grad_outputs)
-        return (None, gx)
+        src_rank_in_group = ctx.group.get_group_rank(rank)
+        gx = paddle.empty_like(grad_outputs[src_rank_in_group])
+        _Reduce_Scatter.apply(gx, ctx.group, *grad_outputs)
+        return gx
