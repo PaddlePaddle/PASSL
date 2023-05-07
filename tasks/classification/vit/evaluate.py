@@ -23,7 +23,7 @@ from passl.data import preprocess as transforms
 from passl.data import dataset as datasets
 from passl.utils.misc import AverageMeter
 
-from passl.distributed import distributed_env as dist_env
+from passl.distributed import env as dist_env
 
 @paddle.no_grad()
 def accuracy(output, target, topk=(1, )):
@@ -87,21 +87,22 @@ acc_top1_metric = AverageMeter('top1', '7.5f')
 acc_top5_metric = AverageMeter('top5', '7.5f')
 loss_metric = AverageMeter('loss', '7.5f')
 
-model.eval()
+#model.eval()
 
 criterion = paddle.nn.CrossEntropyLoss()
-with paddle.no_grad():
-    for images, target in data_loader_val:
-        # compute output
-        with paddle.amp.auto_cast():
-            output = model(images)
-            loss = criterion(output, target)
+#with paddle.no_grad():
+for images, target in data_loader_val:
+    # compute output
+    with paddle.amp.auto_cast(enable=True):
+        output = model(images)
+        loss = criterion(output, target)
+    loss.backward()
 
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
-        batch_size = images.shape[0]
-        loss_metric.update(loss.item())
-        acc_top1_metric.update(acc1.item(), n=batch_size)
-        acc_top5_metric.update(acc5.item(), n=batch_size)
+    acc1, acc5 = accuracy(output, target, topk=(1, 5))
+    batch_size = images.shape[0]
+    loss_metric.update(loss.item())
+    acc_top1_metric.update(acc1.item(), n=batch_size)
+    acc_top5_metric.update(acc5.item(), n=batch_size)
 
 print(
     '* Acc@1 {top1:.3f} Acc@5 {top5:.3f} loss {losses:.3f}'

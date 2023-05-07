@@ -26,7 +26,7 @@ from passl.models.base_model import Model
 from passl.nn import init
 from passl.models.vision_transformer import DropPath, PatchEmbed
 
-from passl.distributed import distributed_env as dist_env
+from passl.distributed import env as dist_env
 from passl.nn import FinerGrainedRowParallelLinear, FinerGrainedColumnParallelLinear
 from passl.distributed.nn import functional as dist_F
 

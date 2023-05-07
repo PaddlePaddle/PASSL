@@ -22,7 +22,7 @@ import paddle.distributed as dist
 from paddle.distributed.fleet.base import topology as tp
 from paddle.distributed.fleet.layers.mpu.random import get_rng_state_tracker
 
-import passl.distributed.distributed_env as dist_env
+import passl.distributed.env as dist_env
 
 __all__ = [
     "finer_grained_rowsharded_linear",
