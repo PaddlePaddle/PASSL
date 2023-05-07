@@ -318,15 +318,23 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
 class FinerGrainedRowShardedLinearFunction(PyLayer):
     @staticmethod
     def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+        # Note(GuoxiaWang): save input dtype to recover grad dtype for amp
+        ctx.x_dtype = x.dtype
+        ctx.weight_dtype = weight.dtype
+        if bias is not None:
+            ctx.bias_dtype = bias.dtype
+
         if split_x:
             world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
             x = paddle.split(x, world_size, axis=split_axis)[mp_rank]
+
         ctx.save_for_backward(x, weight, bias)
         ctx.split_x = split_x
         ctx.gather_y = gather_y
         ctx.split_axis = split_axis
 
+        # Note(GuoxiaWang): it will auto cast dtype when enabling amp
         y = finer_grained_rowsharded_linear(x, weight, bias)
 
         if gather_y:
@@ -344,6 +352,14 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
             grad_output = paddle.split(grad_output, world_size, axis=0)[mp_rank]
 
+        # Note(GuoxiaWang): it needs to be manually converted to the type when enabling the amp.
+        if x.dtype != grad_output.dtype:
+            x = x.astype(grad_output.dtype)
+        if weight.dtype != grad_output.dtype:
+            weight = weight.astype(grad_output.dtype)
+        if bias is not None and bias.dtype != grad_output.dtype:
+            bias = bias.astype(grad_output.dtype)
+
         x_grad, weight_grad, bias_grad = finer_grained_rowsharded_linear_grad(grad_output, x, weight, bias)
 
         if ctx.split_x:
@@ -351,6 +367,14 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
             tensor_list = []
             dist.all_gather(tensor_list, x_grad, group=mp_group)
             x_grad = paddle.concat(tensor_list, axis=ctx.split_axis)
+
+        # Note(GuoxiaWang): recover the grad dtype
+        if x_grad.dtype != ctx.x_dtype:
+            x_grad = x_grad.astype(ctx.x_dtype)
+        if weight_grad.dtype != ctx.weight_dtype:
+            weight_grad = weight_grad.astype(ctx.weight_dtype)
+        if bias is not None and bias_grad.dtype != ctx.bias_dtype:
+            bias_grad = bias_grad.astype(ctx.bias_dtype)
 
         if bias is not None:
             return x_grad, weight_grad, bias_grad
@@ -361,6 +385,12 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
 class FinerGrainedColumnShardedLinearFunction(PyLayer):
     @staticmethod
     def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+        # Note(GuoxiaWang): save input dtype to recover grad dtype for amp
+        ctx.x_dtype = x.dtype
+        ctx.weight_dtype = weight.dtype
+        if bias is not None:
+            ctx.bias_dtype = bias.dtype
+
         if split_x:
             world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
@@ -370,6 +400,7 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
         ctx.gather_y = gather_y
         ctx.split_axis = split_axis
 
+        # Note(GuoxiaWang): it will auto cast dtype when enable amp
         y = finer_grained_columnsharded_linear(x, weight, bias)
 
         if gather_y:
@@ -387,6 +418,14 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
             grad_output = paddle.split(grad_output, world_size, axis=0)[mp_rank]
 
+        # Note(GuoxiaWang): it needs to be manually converted to the type when enabling the amp.
+        if x.dtype != grad_output.dtype:
+            x = x.astype(grad_output.dtype)
+        if weight.dtype != grad_output.dtype:
+            weight = weight.astype(grad_output.dtype)
+        if bias is not None and bias.dtype != grad_output.dtype:
+            bias = bias.astype(grad_output.dtype)
+
         x_grad, weight_grad, bias_grad = finer_grained_columnsharded_linear_grad(grad_output, x, weight, bias)
 
         if ctx.split_x:
@@ -394,6 +433,14 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
             tensor_list = []
             dist.all_gather(tensor_list, x_grad, group=mp_group)
             x_grad = paddle.concat(tensor_list, axis=ctx.split_axis)
+
+        # Note(GuoxiaWang): recover the grad dtype
+        if x_grad.dtype != ctx.x_dtype:
+            x_grad = x_grad.astype(ctx.x_dtype)
+        if weight_grad.dtype != ctx.weight_dtype:
+            weight_grad = weight_grad.astype(ctx.weight_dtype)
+        if bias is not None and bias_grad.dtype != ctx.bias_dtype:
+            bias_grad = bias_grad.astype(ctx.bias_dtype)
 
         if bias is not None:
             return x_grad, weight_grad, bias_grad
