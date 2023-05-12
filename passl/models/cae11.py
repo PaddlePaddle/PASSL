@@ -16,23 +16,19 @@
 
 import math
 import time
-import numpy as np
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
 from functools import partial
+import numpy as np
 
 from .vision_transformer import PatchEmbed, DropPath
 from passl.models.base_model import Model
 from passl.nn import init
-from passl.utils import logger
-from scipy import interpolate
-from passl.models.utils.pos_embed import interpolate_pos_embed
-
 
 __all__ = [
     'CAEPretrain',
-    'cae_base_patch16_224_lp',
+    'cae_base_patch16_224',
     'cae_small_patch16_224_8k_vocab',
     'cae_base_patch16_224_8k_vocab',
     'cae_large_patch16_224_8k_vocab',
@@ -1107,15 +1103,12 @@ class CAEViTLinearProbe(Model):
                  use_mean_pooling=True,
                  init_scale=0.001,
                  lin_probe=False,
-                 sin_pos_emb=False,
-                 linear_type='standard',
-                 linear_depth=1,
                  args=None):
         super().__init__()
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
         self.use_mean_pooling = use_mean_pooling
-        self.sin_pos_emb = sin_pos_emb
+
         self.patch_embed = PatchEmbed(
             img_size=img_size,
             patch_size=patch_size,
@@ -1128,7 +1121,7 @@ class CAEViTLinearProbe(Model):
         if use_abs_pos_emb:
             self.pos_embed = self.create_parameter(
                 [1, num_patches + 1, embed_dim])
-        elif self.sin_pos_emb:
+        elif args.sin_pos_emb:
             # sine-cosine positional embeddings is on the way
             self.pos_embed = self.create_parameter(
                 [1, num_patches + 1, embed_dim])
@@ -1174,11 +1167,10 @@ class CAEViTLinearProbe(Model):
         self.lin_probe = lin_probe
         # NOTE: batch norm
         self.args = args
-        self.linear_type = linear_type
-        self.linear_depth = linear_depth
+        self.linear_type = args.linear_type
         if lin_probe:
-            if self.linear_type != 'standard':
-                if self.linear_type == 'attentive_no_parameter':
+            if args.linear_type != 'standard':
+                if args.linear_type == 'attentive_no_parameter':
                     no_parameter = True
                 else:
                     no_parameter = False
@@ -1196,7 +1188,7 @@ class CAEViTLinearProbe(Model):
                         norm_layer=norm_layer,
                         init_values=0,
                         no_parameter=no_parameter)
-                    for i in range(self.linear_depth)
+                    for i in range(args.linear_depth)
                 ])
 
                 self.query_token = self.create_parameter([1, 1, embed_dim])
@@ -1209,27 +1201,14 @@ class CAEViTLinearProbe(Model):
         if self.pos_embed is not None and use_abs_pos_emb:
             init.trunc_normal_(self.pos_embed, std=.02)
         init.trunc_normal_(self.cls_token, std=.02)
+        # print('init cls_token', self.cls_token.detach().sum().cpu().numpy())
 
-        init.trunc_normal_(self.head.weight, std=.01)
+        init.trunc_normal_(self.head.weight, std=.02)
         init.zeros_(self.head.bias)
         self.apply(self._init_weights)
         self.fix_init_weight()
         self.head.weight.set_value(self.head.weight * init_scale)
         self.head.bias.set_value(self.head.bias * init_scale)
-
-        self.head = paddle.nn.Sequential(
-            paddle.nn.BatchNorm1D(
-                self.head.weight.shape[0],
-                epsilon=1e-6,
-                weight_attr=False,
-                bias_attr=False),
-            self.head)
-
-        for _, p in self.named_parameters():
-            p.stop_gradient = True
-
-        for _, p in self.head[1].named_parameters():
-            p.stop_gradient = False
 
     def build_2d_sincos_position_embedding(self,
                                            embed_dim=768,
@@ -1261,19 +1240,6 @@ class CAEViTLinearProbe(Model):
         pos_embed.stop_gradient = True
         return pos_embed
 
-    # def param_group_fn(self):
-    #     num_layers = len(self.blocks) + 1
-    #     param_groups = {str(i): {'params': []} for i in range(num_layers)}
-    #     for name, param in self.named_parameters():
-    #         if name in ("cls_token", "mask_token", "pos_embed") or name.startswith("patch_embed"):
-    #             param_groups['0']['params'].append((name, param))
-    #         elif name.startswith("blocks"):
-    #             g_name = str(int(name.split('.')[1]) + 1)
-    #             param_groups[g_name]['params'].append((name, param))
-    #         else:
-    #             param_groups[str(num_layers-1)]['params'].append((name, param))
-    #     return param_groups
-
     def fix_init_weight(self):
         def rescale(param, layer_id):
             param.scale(1 / (math.sqrt(2.0 * layer_id)))
@@ -1281,7 +1247,6 @@ class CAEViTLinearProbe(Model):
         for layer_id, layer in enumerate(self.blocks):
             rescale(layer.attn.proj.weight, layer_id + 1)
             rescale(layer.mlp.fc2.weight, layer_id + 1)
-
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1311,12 +1276,14 @@ class CAEViTLinearProbe(Model):
 
     def forward_features(self, x, is_train=True):
         x = self.patch_embed(x)
+        # print('patch_embed: ', x.detach().sum().cpu().numpy())
         batch_size, seq_len, _ = x.shape
 
         cls_tokens = self.cls_token.expand(
             [batch_size, -1,
              -1])  # stole cls_tokens impl from Phil Wang, thanks
         x = paddle.concat((cls_tokens, x), axis=1)
+        # print('concat: ', x.detach().sum().cpu().numpy())
 
         if self.pos_embed is not None:
             if self.use_abs_pos_emb:
@@ -1325,15 +1292,19 @@ class CAEViTLinearProbe(Model):
             else:
                 x = x + self.pos_embed.expand(
                     [batch_size, -1, -1]).astype(x.dtype).clone().detach()
+            # print('pos_embed: ', x.detach().sum().cpu().numpy())
 
         x = self.pos_drop(x)
+        # print('pos_drop: ', x.detach().sum().cpu().numpy())
 
         rel_pos_bias = self.rel_pos_bias(
         ) if self.rel_pos_bias is not None else None
         for blk in self.blocks:
             x = blk(x, rel_pos_bias=rel_pos_bias)
+        # print('x-blocks: ', x.detach().sum().cpu().numpy())
 
         x = self.norm(x)
+        # print('norm: ', x.detach().sum().cpu().numpy())
 
         if self.linear_type == 'standard':
             if self.use_mean_pooling:
@@ -1360,119 +1331,20 @@ class CAEViTLinearProbe(Model):
 
     def forward(self, x, is_train=True):
         x = self.forward_features(x, is_train)
+        # np.save('x_features', x.detach().cpu().numpy())
+        # print('forward_features: ', x.detach().cpu().numpy())
+        # print('forward_features: ', x.detach().mean().cpu().numpy())
         x = self.head(x)
+        # # print('head: ', x.detach().sum().cpu().numpy())
+        # print('head>>>>>>>>>', x.detach().sum().cpu().numpy())
+        # for na, layer in self.head._sub_layers.items():
+        #     print(x.detach().mean().cpu().numpy())
+        #     x = layer(x)
+        #     for n, p in layer.named_parameters():
+        #         print(n, p.detach().sum().cpu().numpy())
+        #     print(na, ':', x.detach().sum().cpu().numpy())
+        # exit(-1)
         return x
-
-    def load_pretrained(self, path, rank=0, finetune=False):
-        checkpoint = paddle.load(path)
-
-        logger.info("Load pre-trained checkpoint from: %s" % path)
-        checkpoint_model = checkpoint['model']
-        state_dict = self.state_dict()
-        for k in ['head.weight', 'head.bias']:
-            if k in checkpoint_model and list(checkpoint_model[
-                                                  k].shape) != list(state_dict[k].shape):
-                print(f"Removing key {k} from pretrained checkpoint")
-                del checkpoint_model[k]
-
-        for key in list(checkpoint_model.keys()):
-            if 'encoder.' in key:
-                new_key = key.replace('encoder.', '')
-                checkpoint_model[new_key] = checkpoint_model[key]
-                checkpoint_model.pop(key)
-            if 'teacher' in key or 'decoder' in key:
-                checkpoint_model.pop(key)
-
-        if self.rel_pos_bias and "rel_pos_bias.relative_position_bias_table" in checkpoint_model:
-            print(
-                "Expand the shared relative position embedding to each transformer block. "
-            )
-            num_layers = self.get_num_layers()
-            rel_pos_bias = checkpoint_model[
-                "rel_pos_bias.relative_position_bias_table"]
-            for i in range(num_layers):
-                checkpoint_model["blocks.%d.attn.relative_position_bias_table"
-                                 % i] = rel_pos_bias.clone()
-
-            checkpoint_model.pop("rel_pos_bias.relative_position_bias_table")
-
-        all_keys = list(checkpoint_model.keys())
-
-        for key in all_keys:
-            if "relative_position_index" in key:
-                checkpoint_model.pop(key)
-
-            if "relative_position_bias_table" in key and self.rel_pos_bias:
-                rel_pos_bias = checkpoint_model[key]
-                src_num_pos, num_attn_heads = rel_pos_bias.size()
-                dst_num_pos, _ = self.state_dict()[key].size()
-                dst_patch_shape = self.patch_embed.patch_shape
-                if dst_patch_shape[0] != dst_patch_shape[1]:
-                    raise NotImplementedError()
-                num_extra_tokens = dst_num_pos - (
-                        dst_patch_shape[0] * 2 - 1) * (dst_patch_shape[1] * 2 - 1)
-                src_size = int((src_num_pos - num_extra_tokens) ** 0.5)
-                dst_size = int((dst_num_pos - num_extra_tokens) ** 0.5)
-                if src_size != dst_size:
-                    print("Position interpolate for %s from %dx%d to %dx%d" %
-                          (key, src_size, src_size, dst_size, dst_size))
-                    extra_tokens = rel_pos_bias[-num_extra_tokens:, :]
-                    rel_pos_bias = rel_pos_bias[:-num_extra_tokens, :]
-
-                    def geometric_progression(a, r, n):
-                        return a * (1.0 - r ** n) / (1.0 - r)
-
-                    left, right = 1.01, 1.5
-                    while right - left > 1e-6:
-                        q = (left + right) / 2.0
-                        gp = geometric_progression(1, q, src_size // 2)
-                        if gp > dst_size // 2:
-                            right = q
-                        else:
-                            left = q
-
-                    dis = []
-                    cur = 1
-                    for i in range(src_size // 2):
-                        dis.append(cur)
-                        cur += q ** (i + 1)
-
-                    r_ids = [-_ for _ in reversed(dis)]
-
-                    x = r_ids + [0] + dis
-                    y = r_ids + [0] + dis
-
-                    t = dst_size // 2.0
-                    dx = np.arange(-t, t + 0.1, 1.0)
-                    dy = np.arange(-t, t + 0.1, 1.0)
-
-                    print("Original positions = %s" % str(x))
-                    print("Target positions = %s" % str(dx))
-
-                    all_rel_pos_bias = []
-
-                    for i in range(num_attn_heads):
-                        z = rel_pos_bias[:, i].view(src_size,
-                                                    src_size).float().numpy()
-                        f = interpolate.interp2d(x, y, z, kind='cubic')
-                        all_rel_pos_bias.append(
-                            paddle.to_tensor(f(dx, dy)).contiguous().view(-1,
-                                                                          1))
-
-                    rel_pos_bias = paddle.concat(all_rel_pos_bias, dim=-1)
-
-                    new_rel_pos_bias = paddle.concat(
-                        (rel_pos_bias, extra_tokens), dim=0)
-                    checkpoint_model[key] = new_rel_pos_bias
-
-        # interpolate position embedding
-        interpolate_pos_embed(self, checkpoint_model)
-
-        # load pre-trained model
-        self.set_state_dict(checkpoint_model)
-
-    def save(self, path, local_rank=0, rank=0):
-        paddle.save(self.state_dict(), path + ".pdparams")
 
 
 def cae_small_patch16_224_8k_vocab(**kwargs):
@@ -1534,7 +1406,10 @@ def cae_small_patch16_224(**kwargs):
     return model
 
 
-def cae_base_patch16_224_lp(**kwargs):
+def cae_base_patch16_224(**kwargs):
+    import numpy as np
+    np.random.seed(2023)
+    paddle.seed(2023)
     model = CAEViTLinearProbe(
         patch_size=16,
         embed_dim=768,
@@ -1542,16 +1417,15 @@ def cae_base_patch16_224_lp(**kwargs):
         num_heads=12,
         mlp_ratio=4,
         qkv_bias=True,
-        sin_pos_emb=True,
-        lin_probe=True,
-        use_mean_pooling=False,
-        use_rel_pos_bias=False,
-        use_abs_pos_emb=False,
-        init_scale=0.001,
-        init_values=0.1,
         norm_layer=partial(
             nn.LayerNorm, epsilon=1e-6, weight_attr=True, bias_attr=True),
         **kwargs)
+    # print(model.__dict__)
+    # data = paddle.to_tensor(np.random.rand(32, 3, 224, 224), dtype='float32')
+    # print('input: ', data)
+    # output = model(data)
+    # print('output: ', output)
+    # exit(-1)
     return model
 
 

@@ -87,6 +87,9 @@ class Engine(object):
                 """ set seed in subproces for dataloader when num_workers > 0"""
                 np.random.seed(seed + worker_id)
                 random.seed(seed + worker_id)
+        else:
+            worker_init_fn = None
+            logger.warning('seed is not set in config and work_init_fn will be set to None!')
 
         RELATED_FLAGS_SETTING = {}
         RELATED_FLAGS_SETTING['FLAGS_cudnn_exhaustive_search'] = 1

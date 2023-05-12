@@ -144,26 +144,25 @@ def build_optimizer(config, lr_scheduler, model, epochs, step_each_epoch, lr_dec
     if hasattr(model, 'param_group_fn'):
         # param groups are defined by model
         model_group_cfg = config.pop('param_group_fn', {})
-        param_group_map = model.param_group_fn(no_weight_decay_name=no_weight_decay_name, weight_decay=weight_decay,
-                                               layer_decay=layer_decay, **model_group_cfg)
+        param_group_map = model.param_group_fn(**model_group_cfg)
     else:
         param_groups_cfg = config.get('param_groups', None)
         if param_groups_cfg and len(param_groups_cfg) > 0:
             param_groups_cfg = build_group_lr_scheduler(param_groups_cfg, epochs, step_each_epoch, lr_decay_unit)
         param_group_map = group_params(model, param_groups_cfg)
-        if isinstance(layer_decay, float):
-            param_group_map = param_group_layer_decay(model,
-                                                      layer_decay,
-                                                      weight_decay=weight_decay,
-                                                      param_groups_map=param_group_map,
-                                                      no_weight_decay_list=no_weight_decay_name,
-                                                      )
-        elif len(no_weight_decay_name) > 0:
-            param_group_map = param_group_weight_decay(model,
-                                                      weight_decay=weight_decay,
-                                                      param_groups_map=param_group_map,
-                                                      no_weight_decay_list=no_weight_decay_name,
-                                                      )
+    if isinstance(layer_decay, float):
+        param_group_map = param_group_layer_decay(model,
+                                                  layer_decay,
+                                                  weight_decay=weight_decay,
+                                                  param_groups_map=param_group_map,
+                                                  no_weight_decay_list=no_weight_decay_name,
+                                                  )
+    elif len(no_weight_decay_name) > 0:
+        param_group_map = param_group_weight_decay(model,
+                                                  weight_decay=weight_decay,
+                                                  param_groups_map=param_group_map,
+                                                  no_weight_decay_list=no_weight_decay_name,
+                                                  )
 
     for key in param_group_map:
         param_group_map[key]['params'] = [p for (n, p) in param_group_map[key]['params']]
