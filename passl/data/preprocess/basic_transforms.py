@@ -57,6 +57,7 @@ __all__ = [
     "SimCLRGaussianBlur",
     "BYOLSolarize",
     "MAERandCropImage",
+    "GaussianBlur",
 ]
 
 
@@ -940,4 +941,22 @@ class BYOLSolarize(object):
                 img = np.asarray(img)
             else:
                 img = ImageOps.solarize(img)
+        return img
+
+class GaussianBlur(object):
+    """Gaussian blur augmentation in SimCLR https://arxiv.org/abs/2002.05709"""
+
+    def __init__(self, sigma=[.1, 2.], p=1.0):
+        self.p = p
+        self.sigma = sigma
+
+    def __call__(self, img):
+        if random.random() < self.p:
+            if not isinstance(img, Image.Image):
+                img = np.ascontiguousarray(img)
+                img = Image.fromarray(img)
+            sigma = random.uniform(self.sigma[0], self.sigma[1])
+            img = img.filter(ImageFilter.GaussianBlur(radius=sigma))
+            if isinstance(img, Image.Image):
+                img = np.asarray(img)
         return img

@@ -285,6 +285,10 @@ class TrainingEpochLoop(_Loop):
                     paddle.to_tensor(batch[0]['label'])
                 ]
 
+            for idx, value in enumerate(batch):
+                if isinstance(value,paddle.Tensor):
+                    batch[idx] = batch[idx].cuda()
+
             self.global_step += 1
 
             # do forward and backward
