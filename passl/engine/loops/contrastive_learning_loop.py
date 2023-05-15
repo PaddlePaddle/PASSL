@@ -28,7 +28,7 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
     def __init__(self, trainer, epochs, max_train_step=None, val_loop=None):
         super().__init__(trainer, epochs, max_train_step=max_train_step, val_loop=val_loop)
 
-    def forward_backward(self, batch, total_iterations):
+    def forward_backward(self, batch):
         # Gradient Merge(GuoxiaWang): Accumulate gradient over multiple
         # steps to save on memory.
 
@@ -63,19 +63,18 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
             scaled.backward()
 
             try:
-                self.trainer.model.after_loss_backward(total_iterations)
+                self.trainer.model.after_loss_backward(self.total_iterations)
             except AttributeError:
                 logger.warning("Model has no after_loss_backward method, ignored this process")
 
         return final_loss_dict
 
-    def train_one_step(self, batch, total_iterations):
-
+    def train_one_step(self, batch):
         # remove label
         batch = batch[0]
 
         # do forward and backward
-        loss_dict = self.forward_backward(batch, total_iterations)
+        loss_dict = self.forward_backward(batch)
 
         grad_sync(self.trainer.optimizer.param_groups)
 

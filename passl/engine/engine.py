@@ -233,14 +233,14 @@ class Engine(object):
                                              self.lr_decay_unit)
 
         # load pretrained model
-            if  self.config["Global"]["pretrained_model"] is not None:
-                assert isinstance(
-                    self.config["Global"]["pretrained_model"], str
-                ), "pretrained_model type is not available. Please use `string`."
-                self.model.load_pretrained(
-                    self.config["Global"]["pretrained_model"],
-                    self.config["Global"]["rank"],
-                    self.config["Global"].get("finetune", False))
+        if  self.config["Global"]["pretrained_model"] is not None:
+            assert isinstance(
+                self.config["Global"]["pretrained_model"], str
+            ), "pretrained_model type is not available. Please use `string`."
+            self.model.load_pretrained(
+                self.config["Global"]["pretrained_model"],
+                self.config["Global"]["rank"],
+                self.config["Global"].get("finetune", False))
 
         # for distributed
         if self.config["Global"]["distributed"]:
@@ -356,7 +356,7 @@ class Engine(object):
             self.vdl_writer.close()
 
     @paddle.no_grad()
-    def eval(self, epoch_id=0):
+    def eval(self):
         assert self.mode in ["train", "eval"]
         self.model.eval()
         self.validating = True

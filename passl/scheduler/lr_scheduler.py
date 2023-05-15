@@ -19,7 +19,6 @@ import math
 from paddle.optimizer import lr
 from passl.utils import logger
 
-
 class TimmCosine(lr.LRScheduler):
     def __init__(self,
                  learning_rate,
@@ -200,3 +199,8 @@ class Poly(lr.LRScheduler):
 
         return self.base_lr * pow(1 - float(self.last_epoch - self.warmups) /
                                   float(self.T_max - self.warmups), 2)
+
+
+class MultiStepDecay(lr.MultiStepDecay):
+    def __init__(self, learning_rate, milestones, gamma, last_epoch, **kwargs):
+         super().__init__(learning_rate, milestones, gamma, last_epoch)
