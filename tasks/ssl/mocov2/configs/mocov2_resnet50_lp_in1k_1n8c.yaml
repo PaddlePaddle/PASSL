@@ -4,7 +4,7 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: /wangguo/PASSL/pretrained/moco/transformed_mocov2_pt_imagenet2012_resnet50
+  pretrained_model: ./output/mocov2_resnet50_pretrain/epoch_96_base_encoder
   output_dir: ./output/
   device: gpu
   save_interval: 1

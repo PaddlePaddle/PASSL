@@ -125,7 +125,7 @@ class MoCoV2Pretain(Model):
         self.register_buffer("queue_ptr", paddle.zeros([1], 'int64'))
 
         self.loss_fuc = nn.CrossEntropyLoss()
-
+    
     def save(self, path, local_rank=0, rank=0):
         paddle.save(self.state_dict(), path + ".pdparams")
 
@@ -299,11 +299,33 @@ class MoCoV2LinearProbe(ResNet):
         if isinstance(layer, (nn.layer.norm._BatchNormBase)):
             layer._use_global_stats = True
 
+    def load_pretrained(self, path, rank=0, finetune=False):
+        if not os.path.exists(path + '.pdparams'):
+            raise ValueError("Model pretrain path {} does not "
+                             "exists.".format(path))
+
+        path = path + ".pdparams"
+        base_encoder_dict = paddle.load(path)
+        for k in list(base_encoder_dict.keys()):
+            # retain only encoder_q up to before the embedding layer
+            if k.startswith('0.'):
+                # remove prefix
+                base_encoder_dict[k[len(
+                    "0."):]] = base_encoder_dict[k]
+                # delete renamed
+                del base_encoder_dict[k]
+
+        for name, param in self.state_dict().items():
+            if name in base_encoder_dict and param.dtype != base_encoder_dict[
+                    name].dtype:
+                base_encoder_dict[name] = base_encoder_dict[name].cast(
+                    param.dtype)
+
+        self.set_state_dict(base_encoder_dict)
 
 def mocov2_resnet50_linearprobe(**kwargs):
     # **kwargs specify numclass
     resnet = MoCoV2LinearProbe(with_pool=True,**kwargs)
-    resnet.fc.load_dict(paddle.load("/wangguo/PASSL/pretrained/moco/class_fc.pdparams"))
     return resnet
 def mocov2_resnet50_pretrain(**kwargs):
     # prepare all layer here
@@ -323,3 +345,9 @@ def mocov2_resnet50_pretrain(**kwargs):
         T=0.2,
         **kwargs)
     return model
+
+if __name__ == "__main__":
+    model = mocov2_resnet50_pretrain()
+    model.save("./mocov2")
+    model_lineprobe = mocov2_resnet50_linearprobe()
+    model_lineprobe.load_pretrained("./mocov2_base_encoder")
