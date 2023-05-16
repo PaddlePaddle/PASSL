@@ -4,7 +4,7 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: ./path/to/pretrain
+  pretrained_model: ./output/mocov2_resnet50_pretrain/latest_base_encoder
   output_dir: ./output/
   device: gpu
   save_interval: 1
@@ -56,7 +56,7 @@ DataLoader:
   Train:
     dataset:
       name: ImageFolder
-      root: ./dataset/train
+      root: ./dataset/ILSVRC2012/train
       transform:
         - RandomResizedCrop:
             size: 224
@@ -66,7 +66,7 @@ DataLoader:
         - Normalize:
             mean: [0.5, 0.5, 0.5]
             std: [0.5, 0.5, 0.5]
-            
+
     sampler:
       name: DistributedBatchSampler
       batch_size: 32
@@ -79,7 +79,7 @@ DataLoader:
   Eval:
     dataset:
       name: ImageFolder
-      root: ./dataset/val
+      root: ./dataset/ILSVRC2012/val
       transform:
         - ResizeImage:
             resize_short: 256

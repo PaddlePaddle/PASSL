@@ -1,4 +1,4 @@
-# MoCo
+# MoCov2
 ![MoCo](https://user-images.githubusercontent.com/11435359/71603927-0ca98d00-2b14-11ea-9fd8-10d984a2de45.png)
 
 This is a PaddlePaddle implementation of the 
@@ -7,14 +7,14 @@ This is a PaddlePaddle implementation of the
 
 ## Install Preparation
 
-MoCo requires `PaddlePaddle >= 2.4`.
+MoCoV2 requires `PaddlePaddle >= 2.4`.
 ```shell
 git clone https://github.com/PaddlePaddle/PASSL.git
 cd /path/to/PASSL
 python setup.py install
 ```
 
-All commands are executed in the subdirectory of `tasks` directory.
+All commands are executed in the `tasks/ssl/mocov2/` directory.
 
 
 ## Data Preparation
@@ -24,9 +24,7 @@ The imagenet 1k dataset needs to be prepared first and will be organized into th
 ```shell
 ILSVRC2012
 ├── train/
-├── xxx
-├── val/
-└── xxx
+└── val/
 ```
 
 Then configure the path.
@@ -42,7 +40,13 @@ To do unsupervised pre-training of a ResNet-50 model on ImageNet in an 8-gpu mac
 
 ### MoCo V2 (Single Node with 8 GPUs)
 ```shell
-sh pretrain.sh
+export FLAGS_stop_check_timeout=3600
+python -m paddle.distributed.launch \
+    --nnodes=$PADDLE_NNODES \
+    --master=$PADDLE_MASTER \
+    --devices=$CUDA_VISIBLE_DEVICES \
+    passl-train \
+    -c ./configs/mocov2_resnet50_pt_in1k_1n8c.yaml
 ```
 
 ## Linear Classification
@@ -53,7 +57,12 @@ When the unsupervised pre-training is complete, or directly download the provide
 #### Linear Classification Training (Single Node with 8 GPUs)
 
 ```shell
-sh linearprobe.sh
+python -m paddle.distributed.launch \
+    --nnodes=$PADDLE_NNODES \
+    --master=$PADDLE_MASTER \
+    --devices=$CUDA_VISIBLE_DEVICES \
+    passl-train \
+    -c ./configs/mocov2_resnet50_lp_in1k_1n8c.yaml
 ```
 
 
@@ -72,7 +81,11 @@ python -m paddle.distributed.launch \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
     -c ./configs/mocov2_resnet50_lp_in1k_1n8c.yaml
+    -o Global.pretrained_model=./pretrained/mocov3/mocov3_vit_base_in1k_300ep_pretrained
+
 ```
+## Other Configurations
+We provide more directly runnable configurations, see [MoCoV2 Configurations](./configs/).
 
 ## Models
 
