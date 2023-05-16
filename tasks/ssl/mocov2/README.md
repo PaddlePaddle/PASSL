@@ -40,7 +40,6 @@ To do unsupervised pre-training of a ResNet-50 model on ImageNet in an 8-gpu mac
 
 ### MoCo V2 (Single Node with 8 GPUs)
 ```shell
-export FLAGS_stop_check_timeout=3600
 python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
