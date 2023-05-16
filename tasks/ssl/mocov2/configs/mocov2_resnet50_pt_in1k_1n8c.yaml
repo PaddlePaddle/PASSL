@@ -94,4 +94,4 @@ DataLoader:
       shuffle: True
     loader:
       num_workers: 8
-      use_shared_memory: False
+      use_shared_memory: True
