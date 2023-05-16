@@ -11,13 +11,11 @@ MoCo requires `PaddlePaddle >= 2.4`.
 ```shell
 git clone https://github.com/PaddlePaddle/PASSL.git
 cd /path/to/PASSL
-```
-
-All commands are executed in the `PASSL` root directory.
-
-```shell
 python setup.py install
 ```
+
+All commands are executed in the subdirectory of `tasks` directory.
+
 
 ## Data Preparation
 
@@ -46,12 +44,6 @@ To do unsupervised pre-training of a ResNet-50 model on ImageNet in an 8-gpu mac
 ```shell
 sh pretrain.sh
 ```
-
-The differences between MoCo v2 and MoCo v1 are as follows:
-* MoCo v2 has a projector
-* Data augmentation
-* Softmax temperature
-* Learning rate scheduler
 
 ## Linear Classification
 
