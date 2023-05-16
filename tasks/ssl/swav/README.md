@@ -40,8 +40,15 @@ python -m paddle.distributed.launch \
 ```
 
 ## How to Linear Classification
-
 By default, we use momentum-SGD and a batch size of 256 for linear classification on frozen features/weights. This can be done with a single 8-GPU node.
+
+- Download pretrained model
+```bash
+mkdir -p pretrained/swav
+wget -O ./pretrained/swav/swav_resnet50_in1k_800ep_bz4096_pretrained.pdparams https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_800ep_bz4096_pretrained.pdparams
+```
+
+- Train linear classification model
 
 ```bash
 unset PADDLE_TRAINER_ENDPOINTS
@@ -70,7 +77,13 @@ To perform end-to-end fine-tuning for SwAV:
     wget "https://raw.githubusercontent.com/google-research/simclr/master/imagenet_subsets/1percent.txt"
     ```
 
-* Then, download the pretrained models to `./pretrained/swav/swav_resnet50_in1k_800ep_pretrained.pdparams`
+* Then, download the pretrained models to `./pretrained/swav/swav_resnet50_in1k_800ep_bz4096_pretrained.pdparams`
+
+- Download pretrained model
+```bash
+mkdir -p pretrained/swav
+wget -O ./pretrained/swav/swav_resnet50_in1k_800ep_bz4096_pretrained.pdparams https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_800ep_bz4096_pretrained.pdparams
+```
 
 * Finally, run the training with the trained PASSL format checkpoint:
     ```bash

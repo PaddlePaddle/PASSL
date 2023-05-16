@@ -158,11 +158,6 @@ def save_checkpoint(net,
         if loss_scaler is not None:
             opt_state_dict['scaler_state'] = loss_scaler.state_dict()
 
-        # Solve AttrDict can't pickle error
-        for group in opt_state_dict['param_groups']:
-            if 'LRScheduler' in group:
-                group['LRScheduler'] = dict(group['LRScheduler'])
-
         for model_prefix in model_prefixs:
             paddle.save(opt_state_dict, model_prefix + ".pdopt")
             paddle.save(metric_info, model_prefix + ".pdstates")

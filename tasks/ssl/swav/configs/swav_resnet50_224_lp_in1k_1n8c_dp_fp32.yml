@@ -4,7 +4,7 @@ Global:
   train_loop: ClassificationTrainingEpochLoop
   validate_loop: ClassificationEvaluationLoop
   checkpoint: null
-  pretrained_model: ./pretrained/swav/swav_resnet50_in1k_800ep_pretrained
+  pretrained_model: ./pretrained/swav/swav_resnet50_in1k_800ep_bz4096_pretrained
   output_dir: ./output
   device: gpu
   save_interval: 1
