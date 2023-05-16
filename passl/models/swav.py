@@ -22,6 +22,7 @@ import paddle.nn as nn
 
 from passl.nn import init
 from passl.utils import logger
+from passl.utils.infohub import runtime_info_hub
 from passl.models.base_model import Model
 from passl.models.resnet import ResNet, BottleneckBlock
 
@@ -135,9 +136,6 @@ class SwAVPretrain(SwAV):
 
         self.apply(self._freeze_norm)
 
-    # def load_pretrained(self, path, rank=0, finetune=False):
-    #     self._load_model('swav_800ep_pretrain.pdparams', 'backbone')
-
     @paddle.no_grad()
     def distributed_sinkhorn(self, out, sinkhorn_iterations=3):
         Q = paddle.exp(x=out / self.epsilon).t()
@@ -158,6 +156,15 @@ class SwAVPretrain(SwAV):
 
     def forward(self, inp):
         bs = inp[0].shape[0]
+
+        if runtime_info_hub.total_iterations < self.freeze_prototypes_niters:
+            for name, p in self.res_model.named_parameters():
+                if 'prototypes' in name:
+                    p.stop_gradient = True
+        else:
+            for name, p in self.res_model.named_parameters():
+                if 'prototypes' in name:
+                    p.stop_gradient = False
 
         # normalize the prototypes
         with paddle.no_grad():

@@ -62,11 +62,6 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
             scaled = self.trainer.scaler.scale(loss_dict["loss"])
             scaled.backward()
 
-            try:
-                self.trainer.model.after_loss_backward(self.total_iterations)
-            except AttributeError:
-                logger.warning("Model has no after_loss_backward method, ignored this process")
-
         return final_loss_dict
 
     def train_one_step(self, batch):

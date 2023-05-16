@@ -233,7 +233,7 @@ class Engine(object):
                                              self.lr_decay_unit)
 
         # load pretrained model
-        if  self.config["Global"]["pretrained_model"] is not None:
+        if self.config["Global"]["pretrained_model"] is not None:
             assert isinstance(
                 self.config["Global"]["pretrained_model"], str
             ), "pretrained_model type is not available. Please use `string`."

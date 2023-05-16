@@ -77,7 +77,7 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         out = paddle.concat(final_out, axis=0)
         return out, final_loss_dict
 
-    def train_one_step(self, batch, total_iterations=None):
+    def train_one_step(self, batch):
 
         # do forward and backward
         out, loss_dict = self.forward_backward(batch)

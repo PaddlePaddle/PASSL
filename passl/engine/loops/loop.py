@@ -26,6 +26,7 @@ import paddle
 from passl.utils import io
 from passl.utils import logger
 from passl.utils.misc import SmoothedValue
+from passl.utils.infohub import runtime_info_hub
 
 class _Loop:
     """Basic Loops interface."""
@@ -264,7 +265,7 @@ class TrainingEpochLoop(_Loop):
 
         for batch_idx, batch in enumerate(self.trainer.train_dataloader):
             self.cur_batch_idx = batch_idx
-            self.total_iterations = (self.trainer.cur_epoch_id-1)*self.total_batch_idx + batch_idx
+            runtime_info_hub.total_iterations = (self.trainer.cur_epoch_id-1)*self.total_batch_idx + batch_idx
 
             if self.max_train_step is not None and self.global_step >= self.max_train_step:
                 logger.info(
