@@ -56,6 +56,7 @@ The differences between MoCo v2 and MoCo v1 are as follows:
 ## Linear Classification
 
 When the unsupervised pre-training is complete, or directly download the provided pre-training checkpoint, you can use the following script to train a supervised linear classifier.
+### MoCo v2
 
 #### Linear Classification Training (Single Node with 8 GPUs)
 
@@ -63,7 +64,6 @@ When the unsupervised pre-training is complete, or directly download the provide
 sh linearprobe.sh
 ```
 
-### MoCo v2
 
 #### [Optional] Download checkpoint & Modify yaml  configure
 ```shell
