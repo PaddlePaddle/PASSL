@@ -9,14 +9,14 @@ This is a PaddlePaddle implementation of the
 
 MoCo requires `PaddlePaddle >= 2.4`.
 ```shell
-# git clone https://github.com/PaddlePaddle/PASSL.git
-# cd /path/to/PASSL
+git clone https://github.com/PaddlePaddle/PASSL.git
+cd /path/to/PASSL
 ```
 
 All commands are executed in the `PASSL` root directory.
 
 ```shell
-# python setup.py install
+python setup.py install
 ```
 
 ## Data Preparation
@@ -44,7 +44,7 @@ To do unsupervised pre-training of a ResNet-50 model on ImageNet in an 8-gpu mac
 
 ### MoCo V2 (Single Node with 8 GPUs)
 ```shell
-# sh pretrain.sh
+sh pretrain.sh
 ```
 
 The differences between MoCo v2 and MoCo v1 are as follows:
@@ -60,7 +60,7 @@ When the unsupervised pre-training is complete, or directly download the provide
 #### Linear Classification Training (Single Node with 8 GPUs)
 
 ```shell
-# sh linearprobe.sh
+sh linearprobe.sh
 ```
 
 ### MoCo v2
