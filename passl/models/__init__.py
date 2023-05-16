@@ -18,6 +18,7 @@ import importlib
 from .base_model import Model
 from .resnet import *
 from .vision_transformer import *
+from .vision_transformer_hybrid import *
 from .deit import *
 from .cait import *
 from .mae import *
