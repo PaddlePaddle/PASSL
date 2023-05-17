@@ -22,7 +22,7 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
-    -c ../../tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n8c_dp_fp32.yaml \
+    -c ../../tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.yaml \
     -o Global.print_batch_step=20 \
     -o Global.max_train_step=201 \
     -o Global.flags.FLAGS_cudnn_exhaustive_search=0 \
