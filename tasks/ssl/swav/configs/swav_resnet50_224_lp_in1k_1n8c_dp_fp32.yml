@@ -57,7 +57,7 @@ DataLoader:
   Train:
     dataset:
       name: ImageFolder
-      root: data/ILSVRC2012/train
+      root: ./dataset/ILSVRC2012/train
       transform:
         - RandomResizedCrop:
             size: 224
@@ -78,7 +78,7 @@ DataLoader:
   Eval:
     dataset:
       name: ImageFolder
-      root: data/ILSVRC2012/val
+      root: ./dataset/ILSVRC2012/val
       transform:
         - Resize:
             size: 256

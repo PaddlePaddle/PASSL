@@ -62,7 +62,7 @@ DataLoader:
   Train:
     dataset:
       name: MultiCropDataset
-      root: ./data/ILSVRC2012
+      root: ./dataset/ILSVRC2012
       size_crops: [224, 96]
       num_crops: [2, 6]
       min_scale_crops: [0.14, 0.05]
