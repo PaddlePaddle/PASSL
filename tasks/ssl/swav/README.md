@@ -108,12 +108,12 @@ We provide more directly runnable configurations, see [SwAV Configurations](./co
 ## Models
 
 ### ViT-Base
-| Model         | Phase       | Dataset      | Configs                                                      | GPUs       | Epochs | Top1 Acc (%) | Links                                                   |
+| Model         | Phase       | Dataset      | Configs  | GPUs       | Epochs | Top1 Acc (%) | Links                                                   |
 | ------------- | ----------- | ------------ | ------------------------------------------------------------ | ---------- | ------ | -------- | ------------------------------------------------------------ |
-| resnet50 | pretrain    | ImageNet2012 | [config](./configs/swav_resnet50_224_pt_in1k_4n32c_dp_fp16o1.yaml) | A100*N4C32 | 800    | -        | [model]() \| [log]() |
-| resnet50 | linear probe | ImageNet2012 | [config](./configs/swav_resnet50_224_lp_in1k_4n32c_dp_fp16o1.yaml) | A100*N1C8  | 75.3    | 0.7662   |        [model]() \| [log]() |
-| resnet50 | finetune    | ImageNet2012 | [config](./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp16o1.yaml) | A100*N1C4  | 100    | 69.0   | [model]() \| [log]() |
-
+| resnet50 | pretrain    | ImageNet2012 | [config](./configs/swav_resnet50_224_pt_in1k_4n32c_dp_fp16o1.yaml) | A100*N4C32 | 800    | -        | [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_800ep_bz4096_pretrained.pdparams) \| [log](https://github.com/shiyutang/files/files/11493437/pretrain_train.log) |
+| resnet50 | linear probe | ImageNet2012 | [config](./configs/swav_resnet50_224_lp_in1k_4n32c_dp_fp16o1.yaml) | A100*N1C8  |  100  | 75.3    |        [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_linearprobe.pdparams) \| [log](https://github.com/shiyutang/files/files/11493435/linear_train.log) |
+| resnet50 | finetune-semi10    | ImageNet2012 | [config](./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp16o1.yaml) | A100*N1C4  | 20    | 69.0   | [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_finetune_10percent.pdparams) \| [log](https://github.com/shiyutang/files/files/11493438/semi10_train.log) |
+| resnet50 | finetune-semi10    | ImageNet2012 | [config](./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp16o1.yaml) | A100*N1C4  | 20    | 55.0   | [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_finetune_1percent.pdparams) \| [log](https://github.com/shiyutang/files/files/11493451/semi1.log) |
 ## Citations
 
 ```bibtex
