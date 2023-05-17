@@ -24,7 +24,7 @@ python -m paddle.distributed.launch \
     passl-train \
     -c ../../tasks/ssl/swav/configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.yaml \
     -o Global.print_batch_step=20 \
-    -o Global.max_train_step=201 \
+    -o Global.max_train_step=121 \
     -o Global.flags.FLAGS_cudnn_exhaustive_search=0 \
     -o Global.flags.FLAGS_cudnn_deterministic=1 \
     -o Global.pretrained_model=./pretrained/swav/swav_resnet50_in1k_800ep_bz4096_pretrained

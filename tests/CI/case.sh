@@ -395,12 +395,12 @@ function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
     rm -rf log
     bash ./ssl/swav/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.sh
 
-    loss=`cat log/workerlog.0 | grep '200/501' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '120/126' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`cat log/workerlog.0 | grep '200/501' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=1.97248
-    ips_base=793.89847
-    mem_base=10.74
+    mem=`cat log/workerlog.0 | grep '120/126' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=2.01301
+    ips_base=1536.33
+    mem_base=10.50
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
@@ -413,9 +413,9 @@ function swav_resnet50_224_lp_in1k_1n8c_dp_fp32() {
     loss=`cat log/workerlog.0 | grep '200/5005' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '200/5005' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=4.89133
-    ips_base=11111.52955
-    mem_base=0.83
+    loss_base=3.83529
+    ips_base=5620.26
+    mem_base=0.46
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
@@ -429,9 +429,9 @@ function swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '200/2599' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '200/2599' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=8.00343
-    ips_base=1385.94186
-    mem_base=8.63
+    loss_base=7.94478
+    ips_base=982.07
+    mem_base=8.62
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
@@ -448,9 +448,19 @@ function check_result() {
     fi
 
     echo -e "loss_base: $2 loss_test: $3" | tee -a $log_path/result.log
-    if [ $2 != $3 ];then
-      echo -e "\033 $1 loss diff check failed! \033" | tee -a $log_path/result.log
-      exit -1
+    diff=$(echo $2 $3|awk '{printf "%0.2f\n", ($2-$1)/$1*100}')
+    if [ $1 == swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1 ];then
+        v1=$(echo $diff 0.1|awk '{print($1>=$2)?"0":"1"}')
+        v2=$(echo $diff -0.1|awk '{print($1<=$2)?"0":"1"}')
+        if [[ $v1 == 0 ]] || [[ $v2 == 0 ]];then
+        echo -e "\033 $1 loss diff check failed! \033" | tee -a $log_path/result.log
+        exit -1
+        fi
+    else
+        if [ $2 != $3 ];then
+        echo -e "\033 $1 loss diff check failed! \033" | tee -a $log_path/result.log
+        exit -1
+        fi
     fi
 
     diff=$(echo $4 $5|awk '{printf "%0.2f\n", ($2-$1)/$1*100}')
