@@ -1210,7 +1210,7 @@ class CAEViTLinearProbe(Model):
             init.trunc_normal_(self.pos_embed, std=.02)
         init.trunc_normal_(self.cls_token, std=.02)
 
-        init.trunc_normal_(self.head.weight, std=.01)
+        init.trunc_normal_(self.head.weight, std=.02)
         init.zeros_(self.head.bias)
         self.apply(self._init_weights)
         self.fix_init_weight()
@@ -1230,6 +1230,7 @@ class CAEViTLinearProbe(Model):
 
         for _, p in self.head[1].named_parameters():
             p.stop_gradient = False
+
 
     def build_2d_sincos_position_embedding(self,
                                            embed_dim=768,
@@ -1261,19 +1262,6 @@ class CAEViTLinearProbe(Model):
         pos_embed.stop_gradient = True
         return pos_embed
 
-    # def param_group_fn(self):
-    #     num_layers = len(self.blocks) + 1
-    #     param_groups = {str(i): {'params': []} for i in range(num_layers)}
-    #     for name, param in self.named_parameters():
-    #         if name in ("cls_token", "mask_token", "pos_embed") or name.startswith("patch_embed"):
-    #             param_groups['0']['params'].append((name, param))
-    #         elif name.startswith("blocks"):
-    #             g_name = str(int(name.split('.')[1]) + 1)
-    #             param_groups[g_name]['params'].append((name, param))
-    #         else:
-    #             param_groups[str(num_layers-1)]['params'].append((name, param))
-    #     return param_groups
-
     def fix_init_weight(self):
         def rescale(param, layer_id):
             param.scale(1 / (math.sqrt(2.0 * layer_id)))
@@ -1281,7 +1269,6 @@ class CAEViTLinearProbe(Model):
         for layer_id, layer in enumerate(self.blocks):
             rescale(layer.attn.proj.weight, layer_id + 1)
             rescale(layer.mlp.fc2.weight, layer_id + 1)
-
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1470,6 +1457,8 @@ class CAEViTLinearProbe(Model):
 
         # load pre-trained model
         self.set_state_dict(checkpoint_model)
+        init.trunc_normal_(self.head[1].weight, std=0.01)
+
 
     def save(self, path, local_rank=0, rank=0):
         paddle.save(self.state_dict(), path + ".pdparams")
