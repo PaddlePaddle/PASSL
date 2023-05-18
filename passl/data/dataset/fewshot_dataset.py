@@ -54,5 +54,5 @@ class FewShotDataset(ImageFolder):
             self.imgs = [(os.path.join(root, li.split('_')[0], li), self.class_to_idx[li.split('_')[0]]) for li in list_imgs]
         else:
             raise FileNotFoundError('{} is not existed'.format(txt_file_name))
-        print('Previous information is not correct.')
-        print(f'Actually, we have total {len(self.imgs)} images in semi-training setting.')
+        logger.info('Previous information is not correct.')
+        logger.info(f'Actually, we have total {len(self.imgs)} images in semi-training setting.')

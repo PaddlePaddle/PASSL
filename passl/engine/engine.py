@@ -345,6 +345,7 @@ class Engine(object):
     def init_runtime_info_hub(self):
         runtime_info_hub.epochs = self.train_loop.epochs
         runtime_info_hub.max_steps = self.train_loop.max_steps
+        runtime_info_hub.total_iterations = self.train_loop.global_step
 
     def train(self):
         assert self.mode == "train"

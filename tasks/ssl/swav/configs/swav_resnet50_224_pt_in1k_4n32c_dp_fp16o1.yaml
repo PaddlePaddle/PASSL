@@ -61,7 +61,7 @@ Optimizer:
 DataLoader:
   Train:
     dataset:
-      name: MultiCropDataset
+      name: SwAVMultiCropDataset
       root: ./dataset/ILSVRC2012
       size_crops: [224, 96]
       num_crops: [2, 6]

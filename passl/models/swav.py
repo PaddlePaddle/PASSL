@@ -89,7 +89,7 @@ class SwAV(Model):
 class SwAVLinearProbe(SwAV):
     def __init__(self, class_num=1000, **kwargs):
         super().__init__(**kwargs)
-        self.linear = RegLog(class_num)
+        self.linear = RegLogit(class_num)
         self.res_model.eval()
 
         # freeze all layers but the last fc
@@ -226,11 +226,11 @@ def swav_resnet50_pretrain(apex, **kwargs): # todo
 
     return model
 
-class RegLog(paddle.nn.Layer):
+class RegLogit(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
 
     def __init__(self, num_labels):
-        super(RegLog, self).__init__()
+        super(RegLogit, self).__init__()
         s = 2048
         self.av_pool = paddle.nn.AdaptiveAvgPool2D(output_size=(1, 1))
         self.linear = paddle.nn.Linear(in_features=s, out_features=num_labels)
