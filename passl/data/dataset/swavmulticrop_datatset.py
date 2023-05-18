@@ -29,14 +29,14 @@ from passl.data.preprocess import (
 )
 
 
-class MultiCropDataset(ImageFolder):
+class SwAVMultiCropDataset(ImageFolder):
     def __init__(self,
                  root,
                  size_crops,
                  num_crops,
                  min_scale_crops,
                  max_scale_crops):
-        super(MultiCropDataset, self).__init__(root)
+        super(SwAVMultiCropDataset, self).__init__(root)
 
         assert len(size_crops) == len(num_crops)
         assert len(min_scale_crops) == len(num_crops)

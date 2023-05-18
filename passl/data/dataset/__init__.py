@@ -63,5 +63,5 @@ def default_loader(path: str):
 
 from .imagenet_dataset import ImageNetDataset
 from .imagefolder_dataset import ImageFolder
-from .multicrop_dataset import SwAVMultiCropDataset
+from .swavmulticrop_datatset import SwAVMultiCropDataset
 from .fewshot_dataset import FewShotDataset
