@@ -32,7 +32,7 @@ from passl.models.utils.pos_embed import interpolate_pos_embed
 
 __all__ = [
     'CAEPretrain',
-    'cae_base_patch16_224_lp',
+    'cae_base_patch16_224',
     'cae_small_patch16_224_8k_vocab',
     'cae_base_patch16_224_8k_vocab',
     'cae_large_patch16_224_8k_vocab',
@@ -1346,8 +1346,15 @@ class CAEViTLinearProbe(Model):
             return query_tokens[:, 0, :]
 
     def forward(self, x, is_train=True):
+        print('input: ', x.detach())
         x = self.forward_features(x, is_train)
-        x = self.head(x)
+        print('forward_features: ', x.detach().sum().cpu().numpy())
+        for na, layer in self.head._sub_layers.items():
+            print(x.detach().mean().cpu().numpy())
+            x = layer(x)
+            for n, p in layer.named_parameters():
+                print(n, p.detach().sum().cpu().numpy())
+            print(na, ':', x.detach().sum().cpu().numpy())
         return x
 
     def load_pretrained(self, path, rank=0, finetune=False):
@@ -1523,7 +1530,7 @@ def cae_small_patch16_224(**kwargs):
     return model
 
 
-def cae_base_patch16_224_lp(**kwargs):
+def cae_base_patch16_224(**kwargs):
     model = CAEViTLinearProbe(
         patch_size=16,
         embed_dim=768,
