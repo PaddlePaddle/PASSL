@@ -198,33 +198,7 @@ class SwAVPretrain(SwAV):
                 if 'prototypes' in name and p.grad is not None:
                     p.clear_grad()
 
-def swav_resnet50_linearprobe(**kwargs):
-    model = SwAVLinearProbe(**kwargs)
-    return model
 
-def swav_resnet50_finetune(**kwargs):
-    model = SwAVFinetune(**kwargs)
-    if paddle.distributed.get_world_size() > 1:
-        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    return model
-
-def swav_resnet50_pretrain(apex, **kwargs): # todo
-    flags = {}
-    flags['FLAGS_cudnn_exhaustive_search'] = True
-    flags['FLAGS_cudnn_deterministic'] = False
-    paddle.set_flags(flags)
-
-    model = SwAVPretrain(**kwargs)
-
-    if paddle.distributed.get_world_size() > 1:
-        if not apex:
-            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        else:
-            # with apex syncbn speeds up computation than global syncbn
-            process_group = apex.parallel.create_syncbn_process_group(8)
-            model = apex.parallel.convert_syncbn_model(model, process_group=process_group)
-
-    return model
 
 class RegLogit(paddle.nn.Layer):
     """Creates logistic regression on top of frozen features"""
@@ -348,3 +322,27 @@ class MultiPrototypes(paddle.nn.Layer):
 
 def swavresnet50(**kwargs):
     return SwAVResNet(block=BottleneckBlock, depth=50, **kwargs)
+
+
+def swav_resnet50_linearprobe(**kwargs):
+    model = SwAVLinearProbe(**kwargs)
+    return model
+
+def swav_resnet50_finetune(**kwargs):
+    model = SwAVFinetune(**kwargs)
+    if paddle.distributed.get_world_size() > 1:
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    return model
+
+def swav_resnet50_pretrain(apex, **kwargs):
+    model = SwAVPretrain(**kwargs)
+
+    if paddle.distributed.get_world_size() > 1:
+        if not apex:
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+        else:
+            # with apex syncbn speeds up computation than global syncbn
+            process_group = apex.parallel.create_syncbn_process_group(8)
+            model = apex.parallel.convert_syncbn_model(model, process_group=process_group)
+
+    return model

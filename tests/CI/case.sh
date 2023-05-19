@@ -448,20 +448,11 @@ function check_result() {
     fi
 
     echo -e "loss_base: $2 loss_test: $3" | tee -a $log_path/result.log
-    diff=$(echo $2 $3|awk '{printf "%0.2f\n", ($2-$1)/$1*100}')
-    if [ $1 == swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1 ];then
-        v1=$(echo $diff 0.2|awk '{print($1>=$2)?"0":"1"}')
-        v2=$(echo $diff -0.2|awk '{print($1<=$2)?"0":"1"}')
-        if [[ $v1 == 0 ]] || [[ $v2 == 0 ]];then
+    if [ $2 != $3 ];then
         echo -e "\033 $1 loss diff check failed! \033" | tee -a $log_path/result.log
         exit -1
-        fi
-    else
-        if [ $2 != $3 ];then
-        echo -e "\033 $1 loss diff check failed! \033" | tee -a $log_path/result.log
-        exit -1
-        fi
     fi
+
 
     diff=$(echo $4 $5|awk '{printf "%0.2f\n", ($2-$1)/$1*100}')
     echo -e "ips_base: $4 ips_test: $5 ips_diff: $diff% " | tee -a $log_path/result.log
