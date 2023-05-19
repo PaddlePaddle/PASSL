@@ -50,7 +50,6 @@ def build_dataloader(config, mode, device, use_dali=False,
     if config_batch_transform_ops is not None:
         batch_transform = utils.create_preprocess_operators(
             config_batch_transform_ops)
-
     dataset = eval("dataset.{}".format(dataset_name))(**config_dataset)
     logger.debug("build dataset({}) success...".format(dataset))
 

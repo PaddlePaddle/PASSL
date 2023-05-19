@@ -26,6 +26,7 @@ import paddle
 from passl.utils import io
 from passl.utils import logger
 from passl.utils.misc import SmoothedValue
+from passl.utils.infohub import runtime_info_hub
 
 class _Loop:
     """Basic Loops interface."""

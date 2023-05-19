@@ -1,0 +1,78 @@
+# global configs
+Global:
+  task_type: ContrastiveLearning
+  train_loop: ContrastiveLearningTrainingEpochLoop
+  validate_loop: None
+  checkpoint: null
+  pretrained_model: null
+  output_dir: ./output/
+  device: gpu
+  save_interval: 1
+  max_num_latest_checkpoint: 0
+  eval_during_train: False
+  eval_interval: 1
+  eval_unit: "epoch"
+  accum_steps: 1
+  epochs: 400
+  print_batch_step: 100
+  use_visualdl: False
+  seed: 31
+
+# FP16 setting
+FP16:
+  level: O1
+
+DistributedStrategy:
+  data_parallel: True
+
+# model architecture
+Model:
+  name: swav_resnet50_pretrain
+  backbone:
+    type: swavresnet50
+    normalize: True
+    hidden_mlp: 2048
+    output_dim: 128
+    nmb_prototypes: 3000
+  apex: False
+  queue_length: 3804
+  crops_for_assign: [0, 1]
+  nmb_crops: [2, 6]
+  epsilon: 0.05
+  freeze_prototypes_niters: 5005
+
+Optimizer:
+  name: MomentumLARC
+  momentum: 0.9
+  weight_decay: 1e-6
+  trust_coefficient: 0.001
+  clip: False
+  tensor_fusion: False
+  lr_decay_unit: step
+  lr:
+    name: TimmCosine
+    learning_rate: 0.6
+    eta_min: 0.0006
+    warmup_epoch: 0
+    warmup_start_lr: 0.
+    warmup_prefix: True
+    last_epoch: 0
+
+# data loader for train and eval
+DataLoader:
+  Train:
+    dataset:
+      name: SwAVMultiCropDataset
+      root: ./dataset/ILSVRC2012
+      size_crops: [224, 96]
+      num_crops: [2, 6]
+      min_scale_crops: [0.14, 0.05]
+      max_scale_crops: [1, 0.14]
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 64 # 4 card # 128 32 card # accum_steps: 1, total batchsize: 4096
+      drop_last: True
+      shuffle: True
+    loader:
+      num_workers: 10
+      use_shared_memory: True

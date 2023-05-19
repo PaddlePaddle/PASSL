@@ -31,6 +31,7 @@ from passl.utils import profiler
 from passl.utils import logger
 from .loop import _Loop, TrainingEpochLoop
 
+
 class ClassificationTrainingEpochLoop(TrainingEpochLoop):
 
     def __init__(self, trainer, epochs, max_train_step=None, val_loop=None):
@@ -174,6 +175,7 @@ class ClassificationEvaluationLoop(_Loop):
                     custom_white_list=self.trainer.fp16_custom_white_list,
                     custom_black_list=self.trainer.fp16_custom_black_list,
                     level=self.trainer.fp16_level):
+
                 out = self.trainer.model(batch[0])
                 # calc loss
                 if self.trainer.eval_loss_func is not None:
