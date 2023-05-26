@@ -14,7 +14,6 @@
 
 import paddle
 import paddle.distributed as dist
-from paddle.distributed.communication.group import _get_or_throw_group_rank
 from paddle.autograd import PyLayer
 
 

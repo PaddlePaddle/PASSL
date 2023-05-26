@@ -312,7 +312,8 @@ class Engine(object):
             val_loop=self.validate_loop,
         )
 
-        self.init_runtime_info_hub()
+        if self.mode == 'train':
+            self.init_runtime_info_hub()
 
     @property
     def cur_epoch_id(self):
