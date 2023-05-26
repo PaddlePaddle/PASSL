@@ -40,7 +40,7 @@ DataLoader:
   Train:
     dataset:
       name: ImageFolder
-      root: ./dataset/train
+      root: ./dataset/ILSVRC2012/train
       transform:
         - TwoViewsTransform:
             base_transform1:
