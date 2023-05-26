@@ -19,7 +19,6 @@ import math
 from paddle.optimizer import lr
 from passl.utils import logger
 
-
 class TimmCosine(lr.LRScheduler):
     def __init__(self,
                  learning_rate,

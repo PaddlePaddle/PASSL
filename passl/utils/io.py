@@ -157,6 +157,7 @@ def save_checkpoint(net,
     if local_rank == 0:
         if loss_scaler is not None:
             opt_state_dict['scaler_state'] = loss_scaler.state_dict()
+
         for model_prefix in model_prefixs:
             paddle.save(opt_state_dict, model_prefix + ".pdopt")
             paddle.save(metric_info, model_prefix + ".pdstates")

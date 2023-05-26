@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
-import numpy as np
 import os
+import numpy as np
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import paddle
-
 from passl.data.dataset import default_loader
 
 IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif",
@@ -61,6 +60,7 @@ class ImageFolder(paddle.io.Dataset):
         self.root = root
         classes, class_to_idx = self.find_classes(self.root)
         samples = self.make_dataset(self.root, class_to_idx, extensions)
+
         print(f'find total {len(classes)} classes and {len(samples)} images.')
 
         self.extensions = extensions

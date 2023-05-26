@@ -16,15 +16,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
-import time
-import collections
-import platform
 import paddle
-from passl.core import grad_sync, param_sync
-from passl.utils import io
+import collections
 
-from passl.utils import profiler
+from passl.core import grad_sync
 from passl.utils import logger
 from .loop import TrainingEpochLoop
 
@@ -70,7 +65,6 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
         return final_loss_dict
 
     def train_one_step(self, batch):
-
         # remove label
         batch = batch[0]
 
@@ -88,9 +82,9 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
         # do update loss scaling if using fp16
         # otherwise do nothing
         self.trainer.scaler.update()
+
         # clear gradients
         self.trainer.optimizer.clear_grad()
-
         if self.trainer.lr_decay_unit == 'step':
             self.trainer.optimizer.lr_step(self.global_step)
 

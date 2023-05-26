@@ -16,10 +16,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
 import paddle
 from .optimizer import Optimizer
-from passl.utils import logger
 
 
 class MomentumLARC(Optimizer):
