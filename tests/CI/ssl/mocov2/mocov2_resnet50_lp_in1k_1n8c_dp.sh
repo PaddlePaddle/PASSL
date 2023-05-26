@@ -29,3 +29,5 @@ python -m paddle.distributed.launch \
     -o Global.flags.FLAGS_cudnn_exhaustive_search=0 \
     -o Global.flags.FLAGS_cudnn_deterministic=1 \
     -o DataLoader.Train.sampler.batch_size=64
+    -o Global.pretrained_model=./pretrained/mocov2/mocov2_latest_base_encoder
+
