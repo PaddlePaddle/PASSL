@@ -411,12 +411,12 @@ function mocov2_resnet50_lp_in1k_1n8c_dp_fp32() {
     rm -rf log
     bash ./ssl/mocov2/mocov2_resnet50_lp_in1k_1n8c.sh
 
-    loss=`cat log/workerlog.0 | grep '50/313' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '50/5004' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`cat log/workerlog.0 | grep '50/313' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=6.89298
-    ips_base=6285.21
-    mem_base=5.38
+    mem=`cat log/workerlog.0 | grep '50/5004' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=4.69785
+    ips_base=6670.45070
+    mem_base=0.81
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
@@ -426,12 +426,12 @@ function mocov2_resnet50_pt_in1k_1n8c_dp_fp32() {
     rm -rf log
     bash ./ssl/mocov2/mocov2_resnet50_pt_in1k_1n8c.sh
 
-    loss=`cat log/workerlog.0 | grep '50/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    loss=`cat log/workerlog.0 | grep '50/5004' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
-    mem=`cat log/workerlog.0 | grep '50/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=-0.32798
-    ips_base=1731.37
-    mem_base=10.55
+    mem=`cat log/workerlog.0 | grep '50/5004' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=9.30424
+    ips_base=2369.80220
+    mem_base=3.38 
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
