@@ -23,7 +23,7 @@ python -m paddle.distributed.launch \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
-    -c ../../tasks/ssl/mocov2/configs/mocov2_resnet50_pt_in1k_1n8c.yaml
+    -c ../../tasks/ssl/mocov2/configs/mocov2_resnet50_pt_in1k_1n8c.yaml \
     -o Global.print_batch_step=1 \
     -o Global.max_train_step=50 \
     -o Global.flags.FLAGS_cudnn_exhaustive_search=0 \
