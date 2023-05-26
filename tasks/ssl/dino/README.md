@@ -34,8 +34,8 @@ python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    tools/train.py \
-    -c tasks/ssl/dino/configs/dino_deit_small_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml \
+    passl-train \
+    -c ./configs/dino_deit_small_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml \
     -o Global.pretrained_model=./pretrained/dino/dino_deitsmall8_pretrain
 ```
 

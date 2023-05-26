@@ -34,8 +34,8 @@ python -m paddle.distributed.launch \
     --nnodes=$PADDLE_NNODES \
     --master=$PADDLE_MASTER \
     --devices=$CUDA_VISIBLE_DEVICES \
-    tools/train.py \
-    -c tasks/ssl/dinov2/configs/dinov2_vit_small_patch14_224_lp_in1k_1n8c_dp_fp16o1.yaml \
+    passl-train \
+    -c ./configs/dinov2_vit_small_patch14_224_lp_in1k_1n8c_dp_fp16o1.yaml \
     -o Global.pretrained_model=./pretrained/dinov2/dinov2_vits14_pretrain
 ```
 
