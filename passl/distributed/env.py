@@ -272,9 +272,8 @@ def init_model_parallel_ring_group():
     global _mp_ring_comm_group
     _mp_ring_comm_group = {}
 
-    mp_group = get_model_parallel_group()
-
-    hcg = get_hcg()
+    hcg = fleet.get_hybrid_communicate_group()
+    mp_group = hcg.get_model_parallel_group()
 
     world_size = dist.get_world_size()
     rank = dist.get_rank()
