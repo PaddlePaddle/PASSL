@@ -16,8 +16,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import paddle
 import collections
+
+import paddle
+import paddle.distributed as dist
 
 from passl.core import grad_sync
 from passl.utils import logger
@@ -71,7 +73,8 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
         # do forward and backward
         loss_dict = self.forward_backward(batch)
 
-        grad_sync(self.trainer.optimizer.param_groups)
+        comm_group = dist.fleet.get_hybrid_communicate_group().get_data_parallel_group()
+        grad_sync(self.trainer.optimizer.param_groups, comm_group=comm_group)
 
         # do unscale and step if using fp16 and not found nan/inf
         # otherwise do nothing

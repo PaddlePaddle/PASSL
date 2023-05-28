@@ -40,6 +40,7 @@ from passl.utils import io
 from passl.core import recompute_warp, GradScaler, param_sync
 from passl.models.utils import EMA
 from passl.utils.infohub import runtime_info_hub
+from passl.distributed import env as dist_env
 from . import loops
 
 
@@ -71,22 +72,40 @@ class Engine(object):
         self.config["Global"]["distributed"] = dist.get_world_size() != 1
         self.config["Global"]["rank"] = dist.get_rank()
         self.config["Global"]["world_size"] = dist.get_world_size()
+
+
         if self.config["Global"]["distributed"]:
-            dist.init_parallel_env()
+            assert self.config.get("DistributedStrategy", None) is not None
+            hybrid_configs = self.config["DistributedStrategy"].get("hybrid_configs", {})
+            if len(hybrid_configs) > 0:
+                self.hybrid_parallel = True
+                seed = self.config["Global"].get("seed", 42)
+                dist_env.init_dist_env(seed=seed, hybrid_configs=hybrid_configs)
+            else:
+                self.hybrid_parallel = False
+                dist.fleet.init(is_collective=True)
 
-        # set seed
-        seed = self.config["Global"].get("seed", False)
-        if seed:
-            assert isinstance(seed, int), "The 'seed' must be a integer!"
-            seed += self.config["Global"]["rank"]
-            paddle.seed(seed)
-            np.random.seed(seed)
-            random.seed(seed)
-
+        if self.hybrid_parallel:
+            seed = dist_env.get_dp_seed()
             def worker_init_fn(worker_id):
                 """ set seed in subproces for dataloader when num_workers > 0"""
                 np.random.seed(seed + worker_id)
                 random.seed(seed + worker_id)
+        else:
+            # backward compatibility
+            # set seed
+            seed = self.config["Global"].get("seed", False)
+            if seed:
+                assert isinstance(seed, int), "The 'seed' must be a integer!"
+                seed += self.config["Global"]["rank"]
+                paddle.seed(seed)
+                np.random.seed(seed)
+                random.seed(seed)
+
+                def worker_init_fn(worker_id):
+                    """ set seed in subproces for dataloader when num_workers > 0"""
+                    np.random.seed(seed + worker_id)
+                    random.seed(seed + worker_id)
 
         RELATED_FLAGS_SETTING = {}
         RELATED_FLAGS_SETTING['FLAGS_cudnn_exhaustive_search'] = 1
@@ -131,12 +150,12 @@ class Engine(object):
         if self.mode == 'train':
             self.train_dataloader = build_dataloader(
                 self.config["DataLoader"], "Train", self.device, self.use_dali,
-                worker_init_fn)
+                worker_init_fn, self.hybrid_parallel)
         if self.mode == "eval" or (self.mode == "train" and
                                    self.config["Global"]["eval_during_train"]):
             self.eval_dataloader = build_dataloader(
                 self.config["DataLoader"], "Eval", self.device, self.use_dali,
-                worker_init_fn)
+                worker_init_fn, self.hybrid_parallel)
 
         # build loss
         self.train_loss_func = None
@@ -253,26 +272,12 @@ class Engine(object):
                 recompute_warp(
                     self.model,
                     **self.config["DistributedStrategy"]['recompute'])
-            if self.config["DistributedStrategy"].get("data_sharding", False):
-                assert 'data_parallel' not in self.config[
-                    "DistributedStrategy"], "data_parallel cannot be set when using data_sharding"
-                # from paddle.distributed.fleet.meta_optimizers.dygraph_optimizer.sharding_optimizer_stage2 import ShardingOptimizerStage2
-                # from paddle.distributed.fleet.meta_parallel.sharding.sharding_stage2 import ShardingStage2
-                # from paddle.distributed.fleet.meta_parallel.sharding.sharding_utils import ShardingScaler
 
-                # # Note(GuoxiaWang): Only support global data parallel now!
-                # # First, we need to split optimizer
-                # self.optimizer = ShardingOptimizerStage2(
-                #     params=self.model.parameters(), optim=self.optimizer)
-
-                # # Second, warpper the origin model to have gradient sharding function
-                # self.model = ShardingStage2(
-                #     self.model,
-                #     self.optimizer,
-                #     accumulate_grads=self.accum_steps > 1,
-                #     device=self.config["Global"]["device"], )
-                # self.scaler = ShardingScaler(self.scaler)
-                assert False, "Do not support data_sharding now!"
+            if self.hybrid_parallel:
+                hcg = dist_env.get_hcg()
+                if hcg.get_model_parallel_world_size() > 1:
+                    from paddle.distributed.fleet.meta_parallel import TensorParallel
+                    self.model = TensorParallel(self.model, hcg, strategy=None)
             else:
                 # we always use pure data parallel default
                 assert 'data_parallel' in self.config["DistributedStrategy"] and \

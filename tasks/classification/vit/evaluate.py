@@ -44,7 +44,8 @@ mp_degree = 2
 pp_degree = 1
 sharding_degree = 1
 if mp_degree > 1:
-    dist_env.init_dist_env(seed=42, mp_degree=mp_degree, pp_degree=pp_degree, sharding_degree=sharding_degree)
+    hybrid_configs = {'mp_degree': mp_degree, 'pp_degree': pp_degree, 'sharding_degree': sharding_degree}
+    dist_env.init_dist_env(seed=42, hybrid_configs=hybrid_configs)
 
     from paddle.distributed.fleet.meta_parallel import TensorParallel
     model = vision_transformer_hybrid.ViT_hybrid_base_patch16_224()

@@ -23,7 +23,7 @@ from passl.data import utils
 
 
 def build_dataloader(config, mode, device, use_dali=False,
-                     worker_init_fn=None):
+                     worker_init_fn=None, hybrid_parallel=False):
     assert mode in ['Train', 'Eval', 'Test'
                     ], "Dataset mode should be Train, Eval, Test"
 
@@ -57,6 +57,15 @@ def build_dataloader(config, mode, device, use_dali=False,
     config_sampler = config[mode]['sampler']
     config_sampler = copy.deepcopy(config_sampler)
     sampler_name = config_sampler.pop("name")
+
+    if hybrid_parallel:
+        from paddle.distributed import fleet
+        hcg = fleet.get_hybrid_communicate_group()
+        data_ranks = hcg.get_data_sharding_parallel_world_size()
+        data_rank = hcg.get_data_sharding_parallel_world_rank()
+        print(data_ranks, data_rank)
+        config_sampler.update({'num_replicas': data_ranks, 'rank': data_rank})
+
     batch_sampler = eval("sampler.{}".format(sampler_name))(dataset,
                                                             **config_sampler)
     logger.debug("build batch_sampler({}) success...".format(batch_sampler))
