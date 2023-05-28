@@ -127,9 +127,16 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
     dy_shape = dy.shape
     x_shape = x.shape
-    with paddle.no_grad():
-        dy.reshape_([-1, dy_shape[-1]])
-        x.reshape_([-1, x_shape[-1]])
+
+    w_shape = weight.shape
+    if len(w_shape) == 2:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-1]])
+            x.reshape_([-1, x_shape[-1]])
+    else:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-2], dy_shape[-1]])
+            x.reshape_([-1, x_shape[-2], x_shape[-1]])
 
     for idx, t in enumerate(cal_index):
         start = t * micro_hidden_size
@@ -137,7 +144,10 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
 
         # slice and calculate matmul
         xi = paddle.slice(x, axes=[-1], starts=[start], ends=[end])
-        dwi = paddle.matmul(xi, dy, transpose_x=True)
+        if len(w_shape) == 2:
+            dwi = paddle.matmul(xi, dy, transpose_x=True)
+        else:
+            dwi = paddle.bmm(xi.transpose((0, 2, 1)), dy)
 
         # we need to sync and get received
         if idx > 0:
@@ -164,6 +174,7 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     with paddle.no_grad():
         dy.reshape_(dy_shape)
         x.reshape_(x_shape)
+        dwi_send.reshape_(w_shape)
 
 
     if bias is not None:
@@ -250,7 +261,7 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
     send_dst = mp_group.ranks[next_mp_rank]
     recv_src = mp_group.ranks[prev_mp_rank]
 
-    hidden_size = x.shape[-1]
+    hidden_size = dy.shape[-1]
     assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
     micro_hidden_size = hidden_size // mp_ranks
 
@@ -263,9 +274,15 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
     # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
     dy_shape = dy.shape
     x_shape = x.shape
-    with paddle.no_grad():
-        dy.reshape_([-1, dy_shape[-1]])
-        x.reshape_([-1, x_shape[-1]])
+    w_shape = weight.shape
+    if len(w_shape) == 2:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-1]])
+            x.reshape_([-1, x_shape[-1]])
+    else:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-2], dy_shape[-1]])
+            x.reshape_([-1, x_shape[-2], x_shape[-1]])
 
     for idx, t in enumerate(cal_index):
         start = t * micro_hidden_size
@@ -273,7 +290,10 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
 
         # slice and calculate matmul
         dyi = paddle.slice(dy, axes=[-1], starts=[start], ends=[end])
-        dwi = paddle.matmul(x, dyi, transpose_x=True)
+        if len(w_shape) == 2:
+            dwi = paddle.matmul(x, dyi, transpose_x=True)
+        else:
+            dwi = paddle.bmm(x.transpose((0, 2, 1)), dyi)
 
         # we need to sync and get received
         if idx > 0:
@@ -300,6 +320,7 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
     with paddle.no_grad():
         dy.reshape_(dy_shape)
         x.reshape_(x_shape)
+        dwi_send.reshape_(w_shape)
 
     if bias is not None:
         bias_grad = paddle.sum(dy, axis=list(range(len(dy.shape)-1)))
@@ -317,10 +338,11 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
 
 class FinerGrainedRowShardedLinearFunction(PyLayer):
     @staticmethod
-    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
         # Note(GuoxiaWang): save input dtype to recover grad dtype for amp
         ctx.x_dtype = x.dtype
         ctx.weight_dtype = weight.dtype
+        ctx.name = name
         if bias is not None:
             ctx.bias_dtype = bias.dtype
 
@@ -384,10 +406,11 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
 
 class FinerGrainedColumnShardedLinearFunction(PyLayer):
     @staticmethod
-    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
         # Note(GuoxiaWang): save input dtype to recover grad dtype for amp
         ctx.x_dtype = x.dtype
         ctx.weight_dtype = weight.dtype
+        ctx.name = name
         if bias is not None:
             ctx.bias_dtype = bias.dtype
 
@@ -449,11 +472,11 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
 
 
 def finer_grained_row_parallel_linear(x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
-    return FinerGrainedRowShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y)
+    return FinerGrainedRowShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y, name=name)
 
 
 def finer_grained_column_parallel_linear(x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
-    return FinerGrainedColumnShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y)
+    return FinerGrainedColumnShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y, name=name)
 
 
 class FinerGrainedRowParallelLinear(paddle.nn.Layer):
