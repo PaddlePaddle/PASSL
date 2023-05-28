@@ -36,14 +36,14 @@ def get_finer_grained_model_parallel_communication_info():
     hcg = fleet.get_hybrid_communicate_group()
     mp_rank = hcg.get_model_parallel_rank()
     mp_ranks = hcg.get_model_parallel_world_size()
-    assert hasattr(hcg, '_p2p_mp_group'), "hcg must have _p2p_mp_group, you need to initialize p2p model parallel group first"
-    p2p_mp_group = hcg.get_p2p_model_parallel_group()
+    assert hasattr(hcg, '_mp_ring_comm_group'), "hcg must have _mp_ring_comm_group, you need to initialize model parallel ring group first"
+    mp_ring_comm_group = hcg.get_model_parallel_ring_group()
     mp_group = hcg.get_model_parallel_group()
 
     next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
     prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
-    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
-    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
+    send_group = mp_ring_comm_group[f'mp_{mp_rank}to{next_mp_rank}']
+    recv_group = mp_ring_comm_group[f'mp_{prev_mp_rank}to{mp_rank}']
     send_dst = mp_group.ranks[next_mp_rank]
     recv_src = mp_group.ranks[prev_mp_rank]
 
