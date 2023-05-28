@@ -15,6 +15,7 @@
 import os
 import random
 import copy
+import types
 import numpy as np
 from itertools import product
 
@@ -251,6 +252,22 @@ def init_dp_sharding_parallel_group():
         if rank in ranks:
             _dp_sharding_group = group
 
+    # register attr and method to hcg instance
+    setattr(hcg, '_dp_sharding_group', _dp_sharding_group)
+
+    def get_data_sharding_parallel_group(self):
+        return self._dp_sharding_group
+
+    def get_data_sharding_parallel_world_rank(self):
+        return self._dp_sharding_group.rank
+
+    def get_data_sharding_parallel_world_size(self):
+        return self._dp_sharding_group.nranks
+
+    hcg.get_data_sharding_parallel_group = types.MethodType(get_data_sharding_parallel_group, hcg)
+    hcg.get_data_sharding_parallel_world_rank = types.MethodType(get_data_sharding_parallel_world_rank, hcg)
+    hcg.get_data_sharding_parallel_world_size = types.MethodType(get_data_sharding_parallel_world_size, hcg)
+
 def init_p2p_model_parallel_group():
     global _p2p_mp_group
     _p2p_mp_group = {}
@@ -277,6 +294,15 @@ def init_p2p_model_parallel_group():
                 src_rank = mp_group.get_group_rank(p2p_ranks[0])
                 dst_rank = mp_group.get_group_rank(p2p_ranks[1])
                 _p2p_mp_group[f'mp_{src_rank}to{dst_rank}'] = group
+
+    # register attr and method to hcg instance
+    setattr(hcg, '_p2p_mp_group', _p2p_mp_group)
+
+    def get_p2p_model_parallel_group(self):
+        return self._p2p_mp_group
+
+    hcg.get_p2p_model_parallel_group = types.MethodType(get_p2p_model_parallel_group, hcg)
+
 
 def init_dist_env(seed, mp_degree=1, pp_degree=1, sharding_degree=1):
     """
