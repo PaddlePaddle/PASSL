@@ -326,6 +326,7 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
         ctx.x_dtype = x.dtype
         ctx.weight_dtype = weight.dtype
         ctx.name = name
+        ctx.has_bias = bias is not None
         if bias is not None:
             ctx.bias_dtype = bias.dtype
 
@@ -334,7 +335,10 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
             x = paddle.split(x, world_size, axis=split_axis)[mp_rank]
 
-        ctx.save_for_backward(x, weight, bias)
+        if ctx.has_bias:
+            ctx.save_for_backward(x, weight, bias)
+        else:
+            ctx.save_for_backward(x, weight)
         ctx.split_x = split_x
         ctx.gather_y = gather_y
         ctx.split_axis = split_axis
@@ -351,7 +355,11 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
 
     @staticmethod
     def backward(ctx, grad_output):
-        x, weight, bias = ctx.saved_tensor()
+        if ctx.has_bias:
+            x, weight, bias = ctx.saved_tensor()
+        else:
+            x, weight = ctx.saved_tensor()
+            bias = None
         if ctx.gather_y:
             world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
@@ -394,6 +402,7 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
         ctx.x_dtype = x.dtype
         ctx.weight_dtype = weight.dtype
         ctx.name = name
+        ctx.has_bias = bias is not None
         if bias is not None:
             ctx.bias_dtype = bias.dtype
 
@@ -401,7 +410,11 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
             world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
             x = paddle.split(x, world_size, axis=split_axis)[mp_rank]
-        ctx.save_for_backward(x, weight, bias)
+
+        if ctx.has_bias:
+            ctx.save_for_backward(x, weight, bias)
+        else:
+            ctx.save_for_backward(x, weight)
         ctx.split_x = split_x
         ctx.gather_y = gather_y
         ctx.split_axis = split_axis
@@ -418,7 +431,11 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
 
     @staticmethod
     def backward(ctx, grad_output):
-        x, weight, bias = ctx.saved_tensor()
+        if ctx.has_bias:
+            x, weight, bias = ctx.saved_tensor()
+        else:
+            x, weight = ctx.saved_tensor()
+            bias = None
         if ctx.gather_y:
             world_size = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
             mp_rank = tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_rank()
