@@ -43,6 +43,8 @@ function model_list(){
     swav_resnet50_224_ft_in1k_1n4c_dp_fp32
     swav_resnet50_224_lp_in1k_1n8c_dp_fp32
     swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1
+    dino_deit_small_patch16_224_lp_in1k_1n8c_dp_fp16o1
+    dinov2_vit_small_patch14_224_lp_in1k_1n8c_dp_fp16o1
 }
 
 ############ case start ############
@@ -435,6 +437,41 @@ function swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1() {
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
+
+
+###### DINO ######
+function dino_deit_small_patch16_224_lp_in1k_1n8c_dp_fp16o1() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/dino/dino_deit_small_patch16_224_lp_in1k_1n8c_dp_fp16o1.sh
+
+    loss=`cat log/workerlog.0 | grep '100/5005' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '100/5005' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=3.67321
+    ips_base=1537.45
+    mem_base=0.30
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+
+###### DINOv2 ######
+function dinov2_vit_small_patch14_224_lp_in1k_1n8c_dp_fp16o1() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/dinov2/dinov2_vit_small_patch14_224_lp_in1k_1n8c_dp_fp16o1.sh
+
+    loss=`cat log/workerlog.0 | grep '100/10010' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '100/10010' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=2.27472
+    ips_base=1399.82
+    mem_base=0.21
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
 
 function check_result() {
     if [ $? -ne 0 ];then
