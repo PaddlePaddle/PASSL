@@ -19,10 +19,9 @@ from paddle.fluid import core
 from paddle.nn import functional as F
 
 import paddle.distributed as dist
+from paddle.distributed import fleet
 from paddle.distributed.fleet.base import topology as tp
 from paddle.distributed.fleet.layers.mpu.random import get_rng_state_tracker
-
-import passl.distributed.env as dist_env
 
 __all__ = [
     "finer_grained_rowsharded_linear",
@@ -33,22 +32,30 @@ __all__ = [
     "FinerGrainedColumnParallelLinear"
 ]
 
+def get_finer_grained_model_parallel_communication_info():
+    hcg = fleet.get_hybrid_communicate_group()
+    mp_rank = hcg.get_model_parallel_rank()
+    mp_ranks = hcg.get_model_parallel_world_size()
+    assert hasattr(hcg, '_mp_ring_comm_group'), "hcg must have _mp_ring_comm_group, you need to initialize model parallel ring group first"
+    mp_ring_comm_group = hcg.get_model_parallel_ring_group()
+    mp_group = hcg.get_model_parallel_group()
+
+    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
+    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
+    send_group = mp_ring_comm_group[f'mp_{mp_rank}to{next_mp_rank}']
+    recv_group = mp_ring_comm_group[f'mp_{prev_mp_rank}to{mp_rank}']
+    send_dst = mp_group.ranks[next_mp_rank]
+    recv_src = mp_group.ranks[prev_mp_rank]
+
+    return mp_rank, mp_ranks, mp_group, send_group, recv_group, send_dst, recv_src
 
 def finer_grained_rowsharded_linear(x, weight, bias=None, transpose_y=False, name=None):
     """
     y = x * weight + b = matmul(x, weight) + b
     """
 
-    mp_rank = dist_env.get_model_parallel_world_rank()
-    mp_ranks = dist_env.get_model_parallel_world_size()
-    p2p_mp_group = dist_env.get_p2p_model_parallel_group()
-    mp_group = dist_env.get_model_parallel_group()
-    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
-    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
-    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
-    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
-    send_dst = mp_group.ranks[next_mp_rank]
-    recv_src = mp_group.ranks[prev_mp_rank]
+    mp_rank, mp_ranks, mp_group, send_group, recv_group, send_dst, recv_src = \
+        get_finer_grained_model_parallel_communication_info()
 
     hidden_size = x.shape[-1]
     assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
@@ -103,16 +110,8 @@ def finer_grained_rowsharded_linear(x, weight, bias=None, transpose_y=False, nam
     return y
 
 def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
-    mp_rank = dist_env.get_model_parallel_world_rank()
-    mp_ranks = dist_env.get_model_parallel_world_size()
-    p2p_mp_group = dist_env.get_p2p_model_parallel_group()
-    mp_group = dist_env.get_model_parallel_group()
-    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
-    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
-    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
-    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
-    send_dst = mp_group.ranks[next_mp_rank]
-    recv_src = mp_group.ranks[prev_mp_rank]
+    mp_rank, mp_ranks, mp_group, send_group, recv_group, send_dst, recv_src = \
+        get_finer_grained_model_parallel_communication_info()
 
     hidden_size = x.shape[-1]
     assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
@@ -127,9 +126,16 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
     dy_shape = dy.shape
     x_shape = x.shape
-    with paddle.no_grad():
-        dy.reshape_([-1, dy_shape[-1]])
-        x.reshape_([-1, x_shape[-1]])
+
+    w_shape = weight.shape
+    if len(w_shape) == 2:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-1]])
+            x.reshape_([-1, x_shape[-1]])
+    else:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-2], dy_shape[-1]])
+            x.reshape_([-1, x_shape[-2], x_shape[-1]])
 
     for idx, t in enumerate(cal_index):
         start = t * micro_hidden_size
@@ -137,7 +143,10 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
 
         # slice and calculate matmul
         xi = paddle.slice(x, axes=[-1], starts=[start], ends=[end])
-        dwi = paddle.matmul(xi, dy, transpose_x=True)
+        if len(w_shape) == 2:
+            dwi = paddle.matmul(xi, dy, transpose_x=True)
+        else:
+            dwi = paddle.bmm(xi.transpose((0, 2, 1)), dy)
 
         # we need to sync and get received
         if idx > 0:
@@ -164,6 +173,7 @@ def finer_grained_rowsharded_linear_grad(dy, x, weight, bias=None, name=None):
     with paddle.no_grad():
         dy.reshape_(dy_shape)
         x.reshape_(x_shape)
+        dwi_send.reshape_(w_shape)
 
 
     if bias is not None:
@@ -186,16 +196,8 @@ def finer_grained_columnsharded_linear(x, weight, bias=None, transpose_y=False, 
     y = x * weight + b = matmul(x, weight) + b
     """
 
-    mp_rank = dist_env.get_model_parallel_world_rank()
-    mp_ranks = dist_env.get_model_parallel_world_size()
-    p2p_mp_group = dist_env.get_p2p_model_parallel_group()
-    mp_group = dist_env.get_model_parallel_group()
-    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
-    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
-    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
-    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
-    send_dst = mp_group.ranks[next_mp_rank]
-    recv_src = mp_group.ranks[prev_mp_rank]
+    mp_rank, mp_ranks, mp_group, send_group, recv_group, send_dst, recv_src = \
+        get_finer_grained_model_parallel_communication_info()
 
     wi = weight
     y = []
@@ -239,18 +241,10 @@ def finer_grained_columnsharded_linear(x, weight, bias=None, transpose_y=False, 
 
 
 def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None):
-    mp_rank = dist_env.get_model_parallel_world_rank()
-    mp_ranks = dist_env.get_model_parallel_world_size()
-    p2p_mp_group = dist_env.get_p2p_model_parallel_group()
-    mp_group = dist_env.get_model_parallel_group()
-    next_mp_rank = (mp_rank + 1) % len(mp_group.ranks)
-    prev_mp_rank = (mp_rank - 1 + len(mp_group.ranks)) % len(mp_group.ranks)
-    send_group = p2p_mp_group[f'mp_{mp_rank}to{next_mp_rank}']
-    recv_group = p2p_mp_group[f'mp_{prev_mp_rank}to{mp_rank}']
-    send_dst = mp_group.ranks[next_mp_rank]
-    recv_src = mp_group.ranks[prev_mp_rank]
+    mp_rank, mp_ranks, mp_group, send_group, recv_group, send_dst, recv_src = \
+        get_finer_grained_model_parallel_communication_info()
 
-    hidden_size = x.shape[-1]
+    hidden_size = dy.shape[-1]
     assert hidden_size % mp_ranks == 0, f"hidden_size {hidden_size} must be divided by mp_ranks {mp_ranks}"
     micro_hidden_size = hidden_size // mp_ranks
 
@@ -263,9 +257,15 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
     # Note(GuoxiaWang): we reshape inplace to avoid allocate memory, finally we will reshape back.
     dy_shape = dy.shape
     x_shape = x.shape
-    with paddle.no_grad():
-        dy.reshape_([-1, dy_shape[-1]])
-        x.reshape_([-1, x_shape[-1]])
+    w_shape = weight.shape
+    if len(w_shape) == 2:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-1]])
+            x.reshape_([-1, x_shape[-1]])
+    else:
+        with paddle.no_grad():
+            dy.reshape_([-1, dy_shape[-2], dy_shape[-1]])
+            x.reshape_([-1, x_shape[-2], x_shape[-1]])
 
     for idx, t in enumerate(cal_index):
         start = t * micro_hidden_size
@@ -273,7 +273,10 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
 
         # slice and calculate matmul
         dyi = paddle.slice(dy, axes=[-1], starts=[start], ends=[end])
-        dwi = paddle.matmul(x, dyi, transpose_x=True)
+        if len(w_shape) == 2:
+            dwi = paddle.matmul(x, dyi, transpose_x=True)
+        else:
+            dwi = paddle.bmm(x.transpose((0, 2, 1)), dyi)
 
         # we need to sync and get received
         if idx > 0:
@@ -300,6 +303,7 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
     with paddle.no_grad():
         dy.reshape_(dy_shape)
         x.reshape_(x_shape)
+        dwi_send.reshape_(w_shape)
 
     if bias is not None:
         bias_grad = paddle.sum(dy, axis=list(range(len(dy.shape)-1)))
@@ -317,10 +321,11 @@ def finer_grained_columnsharded_linear_grad(dy, x, weight, bias=None, name=None)
 
 class FinerGrainedRowShardedLinearFunction(PyLayer):
     @staticmethod
-    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
         # Note(GuoxiaWang): save input dtype to recover grad dtype for amp
         ctx.x_dtype = x.dtype
         ctx.weight_dtype = weight.dtype
+        ctx.name = name
         if bias is not None:
             ctx.bias_dtype = bias.dtype
 
@@ -384,10 +389,11 @@ class FinerGrainedRowShardedLinearFunction(PyLayer):
 
 class FinerGrainedColumnShardedLinearFunction(PyLayer):
     @staticmethod
-    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False):
+    def forward(ctx, x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
         # Note(GuoxiaWang): save input dtype to recover grad dtype for amp
         ctx.x_dtype = x.dtype
         ctx.weight_dtype = weight.dtype
+        ctx.name = name
         if bias is not None:
             ctx.bias_dtype = bias.dtype
 
@@ -449,11 +455,11 @@ class FinerGrainedColumnShardedLinearFunction(PyLayer):
 
 
 def finer_grained_row_parallel_linear(x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
-    return FinerGrainedRowShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y)
+    return FinerGrainedRowShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y, name=name)
 
 
 def finer_grained_column_parallel_linear(x, weight, bias=None, split_x=False, split_axis=0, gather_y=False, name=None):
-    return FinerGrainedColumnShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y)
+    return FinerGrainedColumnShardedLinearFunction.apply(x, weight, bias=bias, split_x=split_x, split_axis=split_axis, gather_y=gather_y, name=name)
 
 
 class FinerGrainedRowParallelLinear(paddle.nn.Layer):
@@ -483,7 +489,6 @@ class FinerGrainedRowParallelLinear(paddle.nn.Layer):
         )
         self._name = name
         self.is_mp = self.world_size > 1
-        self.mp_rank = dist_env.get_model_parallel_world_rank()
         self.input_split = input_split
         self.input_split_axis = input_split_axis
         self.gather_output = gather_output
@@ -574,7 +579,6 @@ class FinerGrainedColumnParallelLinear(paddle.nn.Layer):
         )
         self._name = name
         self.is_mp = self.world_size > 1
-        self.mp_rank = dist_env.get_model_parallel_world_rank()
         self.input_split = input_split
         self.input_split_axis = input_split_axis
         self.gather_output = gather_output

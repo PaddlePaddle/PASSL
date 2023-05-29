@@ -15,6 +15,7 @@
 import os
 import random
 import copy
+import types
 import numpy as np
 from itertools import product
 
@@ -26,8 +27,8 @@ from paddle.distributed.fleet.meta_parallel import get_rng_state_tracker
 _seed = None
 _dp_seed = None
 _hcg = None
-_dp_sharding_group = None
-p2p_mp_group = None
+_dp_sharding_comm_group = None
+_mp_ring_comm_group = None
 
 
 def set_seed(seed):
@@ -133,22 +134,22 @@ def get_data_sharding_parallel_world_size():
     """
     get data sharding parallel world size
     """
-    global _dp_sharding_group
-    return _dp_sharding_group.nranks
+    global _dp_sharding_comm_group
+    return _dp_sharding_comm_group.nranks
 
 def get_data_sharding_parallel_world_rank():
     """
     get daisp sharding parallel world rank
     """
-    global _dp_sharding_group
-    return _dp_sharding_group.rank
+    global _dp_sharding_comm_group
+    return _dp_sharding_comm_group.rank
 
 def get_data_sharding_parallel_group():
     """
     get data sharding parallel group
     """
-    global _dp_sharding_group
-    return _dp_sharding_group
+    global _dp_sharding_comm_group
+    return _dp_sharding_comm_group
 
 def get_data_parallel_world_size():
     """
@@ -223,9 +224,9 @@ def get_model_parallel_group():
     hcg = get_hcg()
     return hcg.get_model_parallel_group()
 
-def get_p2p_model_parallel_group():
-    global _p2p_mp_group
-    return _p2p_mp_group
+def get_model_parallel_ring_group():
+    global _mp_ring_comm_group
+    return _mp_ring_comm_group
 
 
 def init_dp_sharding_parallel_group():
@@ -244,20 +245,35 @@ def init_dp_sharding_parallel_group():
     degree = hcg._dp_degree * hcg._sharding_degree
     arr = group_arr.transpose(transpose_axes).reshape((-1, degree))
 
-    global _dp_sharding_group
+    global _dp_sharding_comm_group
     for i in range(world_size // degree):
         ranks = arr[i].tolist()
         group = dist.new_group(ranks)
         if rank in ranks:
-            _dp_sharding_group = group
+            _dp_sharding_comm_group = group
 
-def init_p2p_model_parallel_group():
-    global _p2p_mp_group
-    _p2p_mp_group = {}
+    # register attr and method to hcg instance
+    setattr(hcg, '_dp_sharding_comm_group', _dp_sharding_comm_group)
 
-    mp_group = get_model_parallel_group()
+    def get_data_sharding_parallel_group(self):
+        return self._dp_sharding_comm_group
 
-    hcg = get_hcg()
+    def get_data_sharding_parallel_world_rank(self):
+        return self._dp_sharding_comm_group.rank
+
+    def get_data_sharding_parallel_world_size(self):
+        return self._dp_sharding_comm_group.nranks
+
+    hcg.get_data_sharding_parallel_group = types.MethodType(get_data_sharding_parallel_group, hcg)
+    hcg.get_data_sharding_parallel_world_rank = types.MethodType(get_data_sharding_parallel_world_rank, hcg)
+    hcg.get_data_sharding_parallel_world_size = types.MethodType(get_data_sharding_parallel_world_size, hcg)
+
+def init_model_parallel_ring_group():
+    global _mp_ring_comm_group
+    _mp_ring_comm_group = {}
+
+    hcg = fleet.get_hybrid_communicate_group()
+    mp_group = hcg.get_model_parallel_group()
 
     world_size = dist.get_world_size()
     rank = dist.get_rank()
@@ -276,7 +292,16 @@ def init_p2p_model_parallel_group():
             if p2p_ranks[0] in mp_group.ranks or p2p_ranks[1] in mp_group.ranks:
                 src_rank = mp_group.get_group_rank(p2p_ranks[0])
                 dst_rank = mp_group.get_group_rank(p2p_ranks[1])
-                _p2p_mp_group[f'mp_{src_rank}to{dst_rank}'] = group
+                _mp_ring_comm_group[f'mp_{src_rank}to{dst_rank}'] = group
+
+    # register attr and method to hcg instance
+    setattr(hcg, '_mp_ring_comm_group', _mp_ring_comm_group)
+
+    def get_model_parallel_ring_group(self):
+        return self._mp_ring_comm_group
+
+    hcg.get_model_parallel_ring_group = types.MethodType(get_model_parallel_ring_group, hcg)
+
 
 def init_dist_env(seed, mp_degree=1, pp_degree=1, sharding_degree=1):
     """
@@ -301,7 +326,7 @@ def init_dist_env(seed, mp_degree=1, pp_degree=1, sharding_degree=1):
 
     # merge DP and Sharding to a common communication group so that you can communicate data dim
     init_dp_sharding_parallel_group()
-    init_p2p_model_parallel_group()
+    init_model_parallel_ring_group()
 
     # set seed
     set_seed(seed)
