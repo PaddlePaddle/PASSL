@@ -63,6 +63,7 @@ python -m paddle.distributed.launch \
     --devices=$CUDA_VISIBLE_DEVICES \
     passl-train \
     -c ./configs/swav_resnet50_224_lp_in1k_1n8c_dp_fp32.yaml
+
 ```
 
 ## How to End-to-End Fine-tuning
@@ -112,7 +113,7 @@ We provide more directly runnable configurations, see [SwAV Configurations](./co
 | resnet50 | linear probe | ImageNet2012 | [config](./configs/swav_resnet50_224_lp_in1k_4n32c_dp_fp32.yaml) | A100*N1C8  |  100  | 75.3    |        [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_linearprobe.pdparams) \| [log](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_linearprobe.log) |
 | resnet50 | finetune-semi10    | ImageNet2012 | [config](./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.yaml) | A100*N1C4  | 20    | 69.0   | [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_finetune_10percent.pdparams) \| [log](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_finetune_10percent.log) |
 | resnet50 | finetune-semi10    | ImageNet2012 | [config](./configs/swav_resnet50_224_ft_in1k_1n4c_dp_fp32.yaml) | A100*N1C4  | 20    | 55.0   | [model](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_finetune_1percent.pdparams) \| [log](https://passl.bj.bcebos.com/models/swav/swav_resnet50_in1k_finetune_1percent.log) |
-## Citations
+
 
 ```bibtex
 @misc{caron2021unsupervised,

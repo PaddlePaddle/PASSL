@@ -14,7 +14,6 @@
 
 import paddle
 import paddle.distributed as dist
-from paddle.distributed.communication.group import _get_or_throw_group_rank
 from paddle.autograd import PyLayer
 
 
@@ -34,6 +33,10 @@ def all_gather(tensor, group=None):
 
     """
     return _AllGather.apply(tensor, group)
+
+
+def softmax(tensor, axis=-1, group=None):
+    return ParallelSoftmax.apply(tensor, axis, group)
 
 
 class _Split(PyLayer):
@@ -84,3 +87,43 @@ class _AllGather(PyLayer):
         gx = paddle.empty_like(grad_outputs[src_rank_in_group])
         _Reduce_Scatter.apply(gx, ctx.group, *grad_outputs)
         return gx
+
+class ParallelSoftmax(PyLayer):
+    @staticmethod
+    def forward(ctx, tensor, axis, group):
+        ctx.group = group
+        ctx.axis = axis
+        ctx.dtype = tensor.dtype
+        assert axis == -1 or len(tensor.shape) - 1, \
+            f"Only support lastest axis for ParallelSoftmax, but got {axis}."
+
+        nranks = 1 if group is None else group.nranks
+        ctx.nranks = nranks
+
+        max_value = paddle.max(tensor, axis=axis, keepdim=True)
+        # local to global
+        if nranks > 1:
+            dist.all_reduce(max_value, dist.ReduceOp.MAX, group=group)
+        tensor = paddle.exp(tensor - max_value)
+        sum_exp = paddle.sum(tensor, axis=axis, keepdim=True)
+        # local to global
+        if nranks > 1:
+            dist.all_reduce(sum_exp, dist.ReduceOp.SUM, group=group)
+        out = tensor / sum_exp
+
+        ctx.save_for_backward(out)
+
+        return out
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        [out] = ctx.saved_tensor()
+
+        grad_sum = paddle.sum(grad_output * out, axis=ctx.axis, keepdim=True)
+        # local to global
+        if ctx.nranks > 1:
+            dist.all_reduce(grad_sum, dist.ReduceOp.SUM, group=ctx.group)
+        grad = out * (grad_output - grad_sum)
+        if grad.dtype != ctx.dtype:
+            grad = grad.astype(ctx.dtype)
+        return grad
