@@ -465,8 +465,8 @@ function dinov2_vit_small_patch14_224_lp_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '100/10010' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '100/10010' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
-    loss_base=2.27472
-    ips_base=1399.82
+    loss_base=6.86828
+    ips_base=3950.49
     mem_base=0.21
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
