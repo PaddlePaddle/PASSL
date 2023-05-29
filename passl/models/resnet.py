@@ -52,14 +52,19 @@ __all__ = [
 class ResNet(PDResNet, Model):
     def __init__(
         self,
-        block,
+        block=None,
         depth=50,
         width=64,
         class_num=1000,
         with_pool=True,
         groups=1,
         zero_init_residual=True,
-    ):
+        ):
+        if block == None:
+            if depth <= 34:
+                block=BasicBlock
+            else:
+                block=BottleneckBlock
         super().__init__(block, depth=depth, width=width, num_classes=class_num, with_pool=with_pool, groups=groups)
 
         # Zero-initialize the last BN in each residual branch,

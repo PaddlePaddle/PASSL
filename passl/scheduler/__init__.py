@@ -15,7 +15,7 @@ import paddle
 
 from passl.utils import logger
 
-from .lr_scheduler import TimmCosine, ViTLRScheduler, Step, Poly, MultiStepDecay
+from .lr_scheduler import TimmCosine, ViTLRScheduler, Step, Poly, MultiStepDecay, CosineDecay
 from .lr_callable import LRCallable
 
 

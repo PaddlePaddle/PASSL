@@ -68,6 +68,9 @@ class ContrastiveLearningTrainingEpochLoop(TrainingEpochLoop):
         # remove label
         batch = batch[0]
 
+        for idx, value in enumerate(batch):
+            if isinstance(value,paddle.Tensor):
+                batch[idx] = batch[idx].cuda()
         # do forward and backward
         loss_dict = self.forward_backward(batch)
 

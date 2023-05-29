@@ -40,9 +40,12 @@ function model_list(){
     mocov3_vit_base_patch16_224_lp_in1k_1n8c_dp_fp16o1
     simsiam_resnet50_pt_in1k_1n8c_dp_fp32
     simsiam_resnet50_lp_in1k_1n8c_dp_fp32
+    mocov2_resnet50_pt_in1k_1n8c_dp_fp32
+    mocov2_resnet50_lp_in1k_1n8c_dp_fp32
     swav_resnet50_224_ft_in1k_1n4c_dp_fp32
     swav_resnet50_224_lp_in1k_1n8c_dp_fp32
     swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1
+
 }
 
 ############ case start ############
@@ -390,6 +393,24 @@ function simsiam_resnet50_lp_in1k_1n8c_dp_fp32() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
+
+function simsiam_resnet50_pt_in1k_1n8c_dp_fp32() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/simsiam/simsiam_resnet50_pt_in1k_1n8c_dp_fp32.sh
+
+    loss=`cat log/workerlog.0 | grep '50/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '50/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=-0.32798
+    ips_base=1731.37
+    mem_base=10.55
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+###### swav ######
+
 function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
     echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
@@ -404,6 +425,7 @@ function swav_resnet50_224_ft_in1k_1n4c_dp_fp32() {
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
+
 
 function swav_resnet50_224_lp_in1k_1n8c_dp_fp32() {
     echo "=========== $FUNCNAME run begin ==========="
@@ -420,7 +442,6 @@ function swav_resnet50_224_lp_in1k_1n8c_dp_fp32() {
     echo "=========== $FUNCNAME run  end ==========="
 }
 
-
 function swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1() {
     echo "=========== $FUNCNAME run begin ==========="
     rm -rf log
@@ -432,6 +453,38 @@ function swav_resnet50_224_pt_in1k_1n8c_dp_fp16o1() {
     loss_base=7.93896
     ips_base=1000.3
     mem_base=8.37
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+###### MocoV2 ######
+
+function mocov2_resnet50_lp_in1k_1n8c_dp_fp32() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/mocov2/mocov2_resnet50_lp_in1k_1n8c.sh
+
+    loss=`cat log/workerlog.0 | grep '49/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=4.12551
+    ips_base=6449.01604
+    mem_base=0.77
+    check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
+    echo "=========== $FUNCNAME run  end ==========="
+}
+
+function mocov2_resnet50_pt_in1k_1n8c_dp_fp32() {
+      echo "=========== $FUNCNAME run begin ==========="
+    rm -rf log
+    bash ./ssl/mocov2/mocov2_resnet50_pt_in1k_1n8c.sh
+
+    loss=`cat log/workerlog.0 | grep '49/2502' | awk -F 'loss: ' '{print $2}' | awk -F ',' '{print $1}'`
+    ips=`cat log/workerlog.0 | grep 'ips: ' | awk -F 'ips: ' '{print $2}' | awk -F ' images/sec,' '{print $1}'| awk 'NR>1 {print}' | awk '{a+=$1}END{print a/NR}'`
+    mem=`cat log/workerlog.0 | grep '49/2502' | awk -F 'max mem: ' '{print $2}' | awk -F ' GB,' '{print $1}'`
+    loss_base=10.05231
+    ips_base=2045.23616
+    mem_base=6.17 
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }

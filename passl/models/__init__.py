@@ -29,7 +29,7 @@ from .convnext import *
 from .mocov3 import *
 from .swav import *
 from .simsiam import *
-
+from .mocov2 import *
 __all__ = ["build_model"]
 
 

@@ -286,6 +286,7 @@ class TrainingEpochLoop(_Loop):
                     paddle.to_tensor(batch[0]['label'])
                 ]
 
+
             self.global_step += 1
 
             # do forward and backward

@@ -200,7 +200,58 @@ class Poly(lr.LRScheduler):
         return self.base_lr * pow(1 - float(self.last_epoch - self.warmups) /
                                   float(self.T_max - self.warmups), 2)
 
+class MultiStepDecay(lr.LRScheduler):
+    def __init__(self,
+                 learning_rate,
+                 step_each_epoch,
+                 epochs,
+                 milestones,
+                 gamma=0.1,
+                 last_epoch=-1,
+                 verbose=False,
+                 decay_unit='epoch',
+                 **kwargs):
+        self.milestones = milestones
+        assert decay_unit in ['step', 'epoch']
+        if decay_unit=='step':
+            milestones = [mile*step_each_epoch for mile in milestones]
+        self.gamma = gamma
+        super().__init__(learning_rate, last_epoch, verbose)
+    def get_lr(self):
+        for i in range(len(self.milestones)):
+            if self.last_epoch < self.milestones[i]:
+                return self.base_lr * (self.gamma**i)
+        return self.base_lr * (self.gamma ** len(self.milestones))
 
-class MultiStepDecay(lr.MultiStepDecay):
-    def __init__(self, learning_rate, milestones, gamma, last_epoch, **kwargs):
-         super().__init__(learning_rate, milestones, gamma, last_epoch)
+class CosineDecay(lr.LRScheduler):
+    def __init__(self,
+                 learning_rate,
+                 step_each_epoch,
+                 epochs,
+                 decay_unit='epoch',
+                 warmups=0,
+                 verbose=False,
+                 last_epoch=-1,
+                 **kwargs):
+        
+        assert decay_unit in ['step', 'epoch']
+        self.T_max = epochs if decay_unit == 'epoch' else step_each_epoch * epochs
+        self.warmups = warmups if decay_unit == 'epoch' else step_each_epoch * warmups
+
+        assert self.warmups < self.T_max
+
+        self.last_epoch = last_epoch
+        super(CosineDecay, self).__init__(learning_rate, last_epoch, verbose)
+
+    def get_lr(self):
+
+        progress = (
+            self.last_epoch - self.warmups) / float(self.T_max - self.warmups)
+        progress = min(1.0, max(0.0, progress))
+
+        if self.warmups:
+            lr = lr * min(1.0, self.last_epoch / self.warmups)
+        else:
+            lr = 0.5 * self.base_lr * (1.0 + math.cos(math.pi * progress))
+
+        return lr
