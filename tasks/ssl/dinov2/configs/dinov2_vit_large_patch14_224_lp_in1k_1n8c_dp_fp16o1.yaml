@@ -1,0 +1,116 @@
+# global configs
+Global:
+  task_type: Classification
+  train_loop: ClassificationTrainingEpochLoop
+  validate_loop: ClassificationEvaluationLoop
+  checkpoint: null
+  pretrained_model: ./pretrained/dinov2/dinov2_vitl14_pretrain
+  output_dir: ./output/
+  device: gpu
+  save_interval: 1
+  max_num_latest_checkpoint: 0
+  eval_during_train: True
+  eval_interval: 1
+  eval_unit: "epoch"
+  accum_steps: 1
+  epochs: 10
+  print_batch_step: 100
+  use_visualdl: False
+  seed: 2023
+
+# FP16 setting
+FP16:
+  level: O1
+
+DistributedStrategy:
+  data_parallel: True
+
+# model architecture
+Model:
+  name: dinov2_vit_large_linearprobe
+  backbone:
+    type: dinov2_vit_large
+    patch_size: 14
+    output_dim: 0
+    n_last_blocks: 1
+    avgpool_patchtokens: True
+  class_num: 1000
+
+# loss function config for traing/eval process
+Loss:
+  Train:
+    - CELoss:
+        weight: 1.0
+  Eval:
+    - CELoss:
+        weight: 1.0
+
+LRScheduler:
+    name: TimmCosine
+    learning_rate: 0.01
+    decay_unit: epoch
+    last_epoch: 0
+    warmup_epoch: 0
+
+Optimizer:
+  name: Momentum
+  momentum: 0.9
+  weight_decay: 0.0
+
+# data loader for train and eval
+DataLoader:
+  Train:
+    dataset:
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/train
+      transform:
+        - RandomResizedCrop:
+            size: 224
+        - RandomHorizontalFlip:
+        - ToTensor:
+        - Normalize:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 16 # accum_steps: 1, total batchsize: 128
+      drop_last: False
+      shuffle: True
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+
+  Eval:
+    dataset:
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/val
+      transform:
+        - Resize:
+            size: 256
+            interpolation: bicubic
+        - CenterCrop:
+            size: 224
+        - ToTensor:
+        - Normalize:
+            mean: [0.485, 0.456, 0.406]
+            std: [0.229, 0.224, 0.225]
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 32
+      drop_last: False
+      shuffle: False
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+
+Metric:
+  Train:
+    - TopkAcc:
+        topk: [1, 5]
+  Eval:
+    - TopkAcc:
+        topk: [1, 5]
+
+Export:
+  export_type: paddle
+  input_shape: [None, 3, 224, 224]
