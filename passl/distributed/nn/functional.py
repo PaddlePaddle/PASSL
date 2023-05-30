@@ -17,6 +17,11 @@ import paddle.distributed as dist
 from paddle.autograd import PyLayer
 
 
+def ensure_divisibility(numerator, denominator):
+    """Ensure that numerator is divisible by the denominator."""
+    assert numerator % denominator == 0, '{} is not divisible by {}'.format(
+        numerator, denominator)
+
 def split(tensor, axis=0, group=None):
     return _Split.apply(tensor, axis, group)
 
@@ -37,6 +42,51 @@ def all_gather(tensor, group=None):
 
 def softmax(tensor, axis=-1, group=None):
     return ParallelSoftmax.apply(tensor, axis, group)
+
+
+def row_to_col(input, group):
+    """ N, S, R, C => N, R, S, C using sync all_to_all """
+
+    nranks = 1 if group is None else group.nranks
+    if nranks == 1:
+        return input
+
+    ensure_divisibility(input.shape[2], nranks)
+    input = paddle.concat(
+        paddle.split(
+            input, nranks, axis=2), axis=0)
+
+    if not input.stop_gradient:
+        output = All2All.apply(input, in_axis=2, out_axis=1, group=group)
+    else:
+        output = _all_to_all(input, in_axis=2, out_axis=1, group=group)
+
+    output = paddle.concat(
+        paddle.split(
+            output, nranks, axis=0), axis=1)
+    return output
+
+
+def col_to_row(input):
+    """ N, R, S, C => N, S, R, C using sync all_to_all """
+    nranks = 1 if group is None else group.nranks
+    if nranks == 1:
+        return input
+
+    ensure_divisibility(input.shape[1], nranks)
+    input = paddle.concat(
+        paddle.split(
+            input, nranks, axis=1), axis=0)
+
+    if not input.stop_gradient:
+        output = All2All.apply(input, in_axis=1, out_axis=2, group=group)
+    else:
+        output = _all_to_all(input, in_axis=1, out_axis=2, group=group)
+
+    output = paddle.concat(
+        paddle.split(
+            output, nranks, axis=0), axis=2)
+    return output
 
 
 class _Split(PyLayer):
@@ -127,3 +177,29 @@ class ParallelSoftmax(PyLayer):
         if grad.dtype != ctx.dtype:
             grad = grad.astype(ctx.dtype)
         return grad
+
+
+@paddle.no_grad()
+def _all_to_all(tensor, in_axis=-1, out_axis=-1, sync_op=True, group=None):
+    tensor_shape = list(tensor.shape)
+
+    out = paddle.zeros(tensor_shape, tensor.dtype)
+    out.stop_gradient = tensor.stop_gradient
+    task = group.process_group.alltoall(tensor, out)
+    task.wait()
+
+    return out
+
+
+class All2All(PyLayer):
+    @staticmethod
+    def forward(ctx, input, in_axis=-1, out_axis=-1, group=None):
+        ctx.in_axis = in_axis
+        ctx.out_axis = out_axis
+        ctx.group = group
+        return _all_to_all(input, in_axis=in_axis, out_axis=out_axis, group=group)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return _all_to_all(
+            grad_output, in_axis=ctx.out_axis, out_axis=ctx.in_axis, group=ctx.group)
