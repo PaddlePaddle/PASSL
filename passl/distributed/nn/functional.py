@@ -22,8 +22,10 @@ def ensure_divisibility(numerator, denominator):
     assert numerator % denominator == 0, '{} is not divisible by {}'.format(
         numerator, denominator)
 
+
 def split(tensor, axis=0, group=None):
     return _Split.apply(tensor, axis, group)
+
 
 def all_gather(tensor, group=None):
     """
@@ -44,48 +46,34 @@ def softmax(tensor, axis=-1, group=None):
     return ParallelSoftmax.apply(tensor, axis, group)
 
 
-def row_to_col(input, group):
-    """ N, S, R, C => N, R, S, C using sync all_to_all """
+def reshard_transpose(input, in_axis, out_axis, group):
+    """ N, S, R, C => N, R, S, C using sync all_to_all and reshard.
+        For example:
+            in_axis = 1
+            out_axis = 2
+            nranks = 8
+            input shape = [N, S, R, C]
+
+            output shape = [N, S/8, 8*R, C]
+    """
 
     nranks = 1 if group is None else group.nranks
     if nranks == 1:
         return input
 
-    ensure_divisibility(input.shape[2], nranks)
+    ensure_divisibility(input.shape[in_axis], nranks)
     input = paddle.concat(
         paddle.split(
-            input, nranks, axis=2), axis=0)
+            input, nranks, axis=in_axis), axis=0)
 
     if not input.stop_gradient:
-        output = All2All.apply(input, in_axis=2, out_axis=1, group=group)
+        output = All2All.apply(input, in_axis=in_axis, out_axis=out_axis, group=group)
     else:
-        output = _all_to_all(input, in_axis=2, out_axis=1, group=group)
+        output = _all_to_all(input, in_axis=in_axis, out_axis=out_axis, group=group)
 
     output = paddle.concat(
         paddle.split(
-            output, nranks, axis=0), axis=1)
-    return output
-
-
-def col_to_row(input):
-    """ N, R, S, C => N, S, R, C using sync all_to_all """
-    nranks = 1 if group is None else group.nranks
-    if nranks == 1:
-        return input
-
-    ensure_divisibility(input.shape[1], nranks)
-    input = paddle.concat(
-        paddle.split(
-            input, nranks, axis=1), axis=0)
-
-    if not input.stop_gradient:
-        output = All2All.apply(input, in_axis=1, out_axis=2, group=group)
-    else:
-        output = _all_to_all(input, in_axis=1, out_axis=2, group=group)
-
-    output = paddle.concat(
-        paddle.split(
-            output, nranks, axis=0), axis=2)
+            output, nranks, axis=0), axis=out_axis)
     return output
 
 
