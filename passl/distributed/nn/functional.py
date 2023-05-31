@@ -174,9 +174,12 @@ def _all_to_all(tensor, in_axis=-1, out_axis=-1, sync_op=True, group=None):
     out = paddle.zeros(tensor_shape, tensor.dtype)
     out.stop_gradient = tensor.stop_gradient
     task = group.process_group.alltoall(tensor, out)
-    task.wait()
 
-    return out
+    if sync_op:
+        task.wait()
+        return out
+    else:
+        return task, out
 
 
 class All2All(PyLayer):
