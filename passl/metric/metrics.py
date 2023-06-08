@@ -37,6 +37,9 @@ class TopkAcc(nn.Layer):
         if isinstance(x, dict):
             x = x["logits"]
 
+        if x.dtype == paddle.float16 or x.dtype == paddle.bfloat16:
+            x = paddle.cast(x, 'float32')
+
         if len(label.shape) == 1:
             label = label.reshape([label.shape[0], -1])
 
