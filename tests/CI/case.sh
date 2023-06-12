@@ -208,7 +208,7 @@ function convmae_convvit_base_patch16_pt_in1k_1n8c_dp_fp16o1() {
     mem=`cat log/workerlog.0 | grep '99/2502' | awk -F 'max mem: ' '{print $2}'`
     loss_base=1.5487
     ips_base=0.456938
-    mem_base=14574
+    mem_base=14035
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
     echo "=========== $FUNCNAME run  end ==========="
 }
