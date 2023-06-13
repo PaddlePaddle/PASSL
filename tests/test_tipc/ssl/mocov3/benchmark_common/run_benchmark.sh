@@ -113,6 +113,7 @@ function _train(){
         rm ${log_file}
         cp mylog/workerlog.${workerlog_id} ${log_file}
     fi
+    rm -rf dataset # 执行完成后删除数据集保证PDC磁盘空间充足
 }
 
 export PYTHONPATH=$(dirname "$PWD"):$PYTHONPATH
