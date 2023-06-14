@@ -32,6 +32,7 @@ from .adafactor import Adafactor
 from .momentum import Momentum
 from .momentum_lars import MomentumLARS
 from .momentum_larc import MomentumLARC
+from .adan import Adan
 from .utils.group_params import (
     param_group_layer_decay,
     param_group_weight_decay,

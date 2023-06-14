@@ -39,9 +39,9 @@ class CombinedLoss(nn.Layer):
             self.loss_func.append(eval(name)(**param))
 
     def __call__(self, input, target):
-        if isinstance(input, dict) and input["logits"].dtype == paddle.float16:
+        if isinstance(input, dict) and (input["logits"].dtype == paddle.float16 or input["logits"].dtype == paddle.bfloat16):
             input["logits"] = paddle.cast(input["logits"], 'float32')
-        elif input.dtype == paddle.float16:
+        elif input.dtype == paddle.float16 or input.dtype == paddle.bfloat16:
             input = paddle.cast(input, 'float32')
 
         loss_dict = {}
