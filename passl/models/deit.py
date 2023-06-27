@@ -49,7 +49,7 @@ class DeitVisionTransformer(Model):
                  img_size=224,
                  patch_size=16,
                  in_chans=3,
-                 class_num=1000,
+                 num_classes=1000,
                  embed_dim=768,
                  depth=12,
                  num_heads=12,
@@ -63,7 +63,7 @@ class DeitVisionTransformer(Model):
                  epsilon=1e-5,
                  **kwargs):
         super().__init__()
-        self.class_num = class_num
+        self.num_classes = num_classes
 
         self.num_features = self.embed_dim = embed_dim
 
@@ -101,7 +101,7 @@ class DeitVisionTransformer(Model):
 
         # Classifier head
         self.head = nn.Linear(embed_dim,
-                              class_num) if class_num > 0 else nn.Identity()
+                              num_classes) if num_classes > 0 else nn.Identity()
 
         init.trunc_normal_(self.pos_embed, std=.002)
         init.trunc_normal_(self.cls_token, std=.002)
@@ -197,7 +197,7 @@ class DistilledVisionTransformer(DeitVisionTransformer):
     def __init__(self,
                  img_size=224,
                  patch_size=16,
-                 class_num=1000,
+                 num_classes=1000,
                  embed_dim=768,
                  depth=12,
                  num_heads=12,
@@ -209,7 +209,7 @@ class DistilledVisionTransformer(DeitVisionTransformer):
         super().__init__(
             img_size=img_size,
             patch_size=patch_size,
-            class_num=class_num,
+            num_classes=num_classes,
             embed_dim=embed_dim,
             depth=depth,
             num_heads=num_heads,
@@ -229,7 +229,7 @@ class DistilledVisionTransformer(DeitVisionTransformer):
 
         self.head_dist = nn.Linear(
             self.embed_dim,
-            self.class_num) if self.class_num > 0 else nn.Identity()
+            self.num_classes) if self.num_classes > 0 else nn.Identity()
 
         init.trunc_normal_(self.dist_token, std=.02)
         init.trunc_normal_(self.pos_embed, std=.02)

@@ -87,9 +87,9 @@ class SwAV(Model):
             layer._use_global_stats = True
 
 class SwAVLinearProbe(SwAV):
-    def __init__(self, class_num=1000, **kwargs):
+    def __init__(self, num_classes=1000, **kwargs):
         super().__init__(**kwargs)
-        self.linear = RegLogit(class_num)
+        self.linear = RegLogit(num_classes)
         self.res_model.eval()
 
         # freeze all layers but the last fc
@@ -266,7 +266,7 @@ class SwAVResNet(paddle.nn.Layer):
                     constant_init(sublayer.weight, value=1.0)
                     constant_init(sublayer.bias, value=0.0)
 
-        self.encoder = functools.partial(ResNet, block=block, depth=depth)(with_pool=False, class_num=0)
+        self.encoder = functools.partial(ResNet, block=block, depth=depth)(with_pool=False, num_classes=0)
 
     def forward_backbone(self, x):
         x = self.encoder(x)

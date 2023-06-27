@@ -55,12 +55,12 @@ class ResNet(PDResNet, Model):
         block,
         depth=50,
         width=64,
-        class_num=1000,
+        num_classes=1000,
         with_pool=True,
         groups=1,
         zero_init_residual=True,
     ):
-        super().__init__(block, depth=depth, width=width, num_classes=class_num, with_pool=with_pool, groups=groups)
+        super().__init__(block, depth=depth, width=width, num_classes=num_classes, with_pool=with_pool, groups=groups)
 
         # Zero-initialize the last BN in each residual branch,
         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
