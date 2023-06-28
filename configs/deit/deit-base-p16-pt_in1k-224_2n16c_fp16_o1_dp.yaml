@@ -27,7 +27,7 @@ model:
       mlp_ratio: 4
       qkv_bias: True
       epsilon: 1e-6
-      class_num: 1000
+      num_classes: 1000
       drop_rate: 0.0
       drop_path_rate : 0.1
 
