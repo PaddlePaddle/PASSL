@@ -317,13 +317,13 @@ def main(args):
         "alpha": args.mixup,
         "prob": args.mixup_switch_prob,
         "epsilon": args.smoothing,
-        "num_classes": args.nb_classes
+        "class_num": args.nb_classes
     }
     batch_transform_ops['Cutmix'] = {
         "alpha": args.cutmix,
         "prob": args.mixup_switch_prob,
         "epsilon": args.smoothing,
-        "num_classes": args.nb_classes
+        "class_num": args.nb_classes
     }
     mixup_fn = transforms.TransformOpSampler(**batch_transform_ops)
 
