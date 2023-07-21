@@ -201,10 +201,8 @@ class ParamStorage(object):
 
         # Convert the param value
         tmp_tensor = self.buffer._slice(self._fill, var_end)
-        if in_dygraph_mode():
-            tmp_tensor = tmp_tensor.value().get_tensor()
-        param.value().get_tensor()._share_data_with(tmp_tensor)
-        param.value().get_tensor()._set_dims(p_shape)
+        tmp_tensor._share_buffer_to(param)
+        param.get_tensor()._set_dims(p_shape)
 
         self._fill = offset
 
