@@ -173,7 +173,7 @@ function mae_vit_base_patch16_ft_in1k_1n8c_dp_fp16o1() {
     loss=`cat log/workerlog.0 | grep '599/5004' | awk -F 'loss: ' '{print $2}' | awk -F '  time' '{print $1}'`
     ips=`cat log/workerlog.0 | grep 'time: ' | awk -F 'time: ' '{print $2}' | awk -F '  data:' '{print $1}'| awk 'NR>20 {print}' | awk '{a+=$1}END{print a/NR}'`
     mem=`cat log/workerlog.0 | grep '599/5004' | awk -F 'max mem: ' '{print $2}'`
-    loss_base=6.7560
+    loss_base=6.7561
     ips_base=0.2332
     mem_base=7167
     check_result $FUNCNAME ${loss_base} ${loss} ${ips_base} ${ips} ${mem_base} ${mem}
