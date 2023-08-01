@@ -501,7 +501,7 @@ function check_result() {
         v1=$(echo $diff 5.0|awk '{print($1>=$2)?"0":"1"}')
         v2=$(echo $diff -5.0|awk '{print($1<=$2)?"0":"1"}')
     fi
-    if [ $v2 == 0 ];then
+    if [[ $v1 == 0 ]] || [[ $v2 == 0 ]];then
       echo -e "\033 $1 ips diff check failed! \033" | tee -a $log_path/result.log
       exit -1
     fi
