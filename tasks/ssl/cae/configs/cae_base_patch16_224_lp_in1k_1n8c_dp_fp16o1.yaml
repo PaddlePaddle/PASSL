@@ -1,0 +1,124 @@
+# global configs
+Global:
+  task_type: Classification
+  train_loop: ClassificationTrainingEpochLoop
+  validate_loop: ClassificationEvaluationLoop
+  checkpoint: null
+  pretrained_model: output/cae_base_patch16_224_8k_vocab_pretrained_800ep.pd
+  output_dir: ./output/
+  device: gpu
+  save_interval: 50
+  max_num_latest_checkpoint: 0
+  eval_during_train: True
+  eval_interval: 1
+  eval_unit: "epoch"
+  accum_steps: 1
+  epochs: 90
+  print_batch_step: 20
+  use_visualdl: False
+  seed: 2022
+  flags:
+    FLAGS_cudnn_batchnorm_spatial_persistent: 0
+
+# FP16 setting
+FP16:
+  level: O1
+
+GradScaler:
+  init_loss_scaling: 2.**16
+  incr_every_n_steps: 2000
+  decr_every_n_nan_or_inf: 1
+
+DistributedStrategy:
+  data_parallel: True
+
+# model architecture
+Model:
+  name: cae_base_patch16_224
+  num_classes: 1000
+
+# loss function config for traing/eval process
+Loss:
+  Train:
+    - CELoss:
+        weight: 1.0
+  Eval:
+    - CELoss:
+        weight: 1.0
+
+
+Optimizer:
+  name: MomentumLARS
+  momentum: 0.9
+  weight_decay: 0.0
+  clip: False
+  lr_decay_unit: step
+  lr:
+    name: TimmCosine
+    learning_rate: 0.2
+    warmup_epoch: 10
+
+# data loader for train and eval
+DataLoader:
+  Train:
+    dataset:
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/train
+      transform:
+        - MAERandCropImage:
+            size: 224
+            interpolation: bicubic
+            backend: pil
+        - RandomHorizontalFlip:
+        - NormalizeImage:
+            scale: 1.0 / 255.0
+            mean: [ 0.485, 0.456, 0.406 ]
+            std: [ 0.229, 0.224, 0.225 ]
+            order: hwc
+        - ToCHWImage:
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 512 # accum_steps: 1, total batchsize: 4096
+      drop_last: True
+      shuffle: True
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+
+  Eval:
+    dataset:
+      name: ImageFolder
+      root: ./dataset/ILSVRC2012/val
+      transform:
+        - Resize:
+            size: 256
+            interpolation: bicubic
+            backend: pil
+        - CenterCrop:
+            size: 224
+        - NormalizeImage:
+            scale: 1.0 / 255.0
+            mean: [ 0.485, 0.456, 0.406 ]
+            std: [ 0.229, 0.224, 0.225 ]
+            order: hwc
+        - ToCHWImage:
+    sampler:
+      name: DistributedBatchSampler
+      batch_size: 256
+      drop_last: False
+      shuffle: False
+    loader:
+      num_workers: 8
+      use_shared_memory: True
+
+Metric:
+  Train:
+    - TopkAcc:
+        topk: [1, 5]
+  Eval:
+    - TopkAcc:
+        topk: [1, 5]
+
+Export:
+  export_type: paddle
+  input_shape: [None, 3, 224, 224]

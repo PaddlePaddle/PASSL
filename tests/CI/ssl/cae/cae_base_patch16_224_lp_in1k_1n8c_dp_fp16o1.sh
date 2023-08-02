@@ -11,37 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#unset PADDLE_TRAINER_ENDPOINTS
+#export PADDLE_NNODES=1
+#export PADDLE_MASTER="xxx.xxx.xxx.xxx:12538"
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export FLAGS_stop_check_timeout=3600
+unset DISTRIBUTED_TRAINER_ENDPOINTS
+unset PADDLE_TRAINER_ENDPOINTS
 
-tmp_my_name=linprobe_ep90_fp16o1
-my_name=${tmp_my_name%.*}
-OUTPUT_DIR='./output/'$my_name
-echo $OUTPUT_DIR
-DATA_PATH='./dataset/ILSVRC2012/'
-MODEL_PATH='pretrained/cae/cae_base_patch16_224_8k_vocab_pretrained_800ep.pd'
-FLAGS_cudnn_exhaustive_search=True
-export FLAGS_gemm_use_half_precision_compute_type=False
-
-python -m paddle.distributed.launch  \
-  --nnodes=$PADDLE_NNODES \
-  --master=$PADDLE_MASTER \
-  --devices=$CUDA_VISIBLE_DEVICES \
-  ../../tasks/ssl/cae/main_linprobe.py \
-  --print_freq 1 \
-  --max_train_step 200 \
-  --data_path ${DATA_PATH} \
-  --output_dir ${OUTPUT_DIR} \
-  --model cae_base_patch16_224 \
-  --finetune $MODEL_PATH \
-  --nb_classes 1000 \
-  --batch_size 512 \
-  --epochs 90 \
-  --blr 0.1 \
-  --weight_decay 0.0 \
-  --dist_eval \
-  --log_dir $OUTPUT_DIR \
-  --enable_linear_eval \
-  --use_cls \
-  --save_freq 50 \
-  --disable_rel_pos_bias \
-  --linear_type standard \
-  --exp_name $my_name
+python -m paddle.distributed.launch \
+    --nnodes=$PADDLE_NNODES \
+    --master=$PADDLE_MASTER \
+    --devices=$CUDA_VISIBLE_DEVICES \
+    passl-train \
+    -c ./configs/cae_base_patch16_224_lp_in1k_1n8c_dp_fp16o1.yaml \
+    -o flags.FLAGS_cudnn_exhaustive_search=0 \
+    -o flags.FLAGS_cudnn_deterministic=1 \
+    -o Global.print_batch_step=1 \
+    -o Global.max_train_step=200 \
+    -o Global.pretrained_model=pretrained/cae/cae_base_patch16_224_8k_vocab_pretrained_800ep.pd
