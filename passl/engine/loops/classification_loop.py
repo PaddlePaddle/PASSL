@@ -23,6 +23,7 @@ import time
 import collections
 import platform
 import paddle
+import paddle.distributed as dist
 from passl.core import grad_sync, param_sync
 from passl.utils import io
 
@@ -82,7 +83,8 @@ class ClassificationTrainingEpochLoop(TrainingEpochLoop):
         # do forward and backward
         out, loss_dict = self.forward_backward(batch)
 
-        grad_sync(self.trainer.optimizer.param_groups)
+        comm_group = dist.fleet.get_hybrid_communicate_group().get_data_parallel_group()
+        grad_sync(self.trainer.optimizer.param_groups, comm_group=comm_group)
 
         # do unscale and step if using fp16 and not found nan/inf
         # otherwise do nothing
@@ -186,14 +188,16 @@ class ClassificationEvaluationLoop(_Loop):
                         output_info[key].update(float(loss_dict[key]), batch_size)
 
             # just for DistributedBatchSampler issue: repeat sampling
-            current_samples = batch_size * paddle.distributed.get_world_size()
+            data_ranks = dist.fleet.get_hybrid_communicate_group().get_data_sharding_parallel_world_size()
+            current_samples = batch_size * data_ranks
             accum_samples += current_samples
 
             # calc metric
             if self.trainer.eval_metric_func is not None:
-                if paddle.distributed.get_world_size() > 1:
+                if data_ranks > 1:
+                    group = dist.fleet.get_hybrid_communicate_group().get_data_sharding_parallel_group()
                     label_list = []
-                    paddle.distributed.all_gather(label_list, batch[1])
+                    dist.all_gather(label_list, batch[1], group=group)
                     labels = paddle.concat(label_list, 0)
 
                     if isinstance(out, dict):
@@ -202,12 +206,12 @@ class ClassificationEvaluationLoop(_Loop):
                         pred = []
                         for x in out:
                             pred_list = []
-                            paddle.distributed.all_gather(pred_list, x)
+                            dist.all_gather(pred_list, x, group=group)
                             pred_x = paddle.concat(pred_list, 0)
                             pred.append(pred_x)
                     else:
                         pred_list = []
-                        paddle.distributed.all_gather(pred_list, out)
+                        dist.all_gather(pred_list, out, group=group)
                         pred = paddle.concat(pred_list, 0)
 
                     if accum_samples > total_samples and not self.trainer.use_dali:

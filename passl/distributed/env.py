@@ -259,6 +259,8 @@ def init_dp_sharding_parallel_group():
         return self._dp_sharding_comm_group
 
     def get_data_sharding_parallel_world_rank(self):
+        if self._dp_sharding_comm_group.nranks == 1:
+            return 0
         return self._dp_sharding_comm_group.rank
 
     def get_data_sharding_parallel_world_size(self):
@@ -303,20 +305,26 @@ def init_model_parallel_ring_group():
     hcg.get_model_parallel_ring_group = types.MethodType(get_model_parallel_ring_group, hcg)
 
 
-def init_dist_env(seed, mp_degree=1, pp_degree=1, sharding_degree=1):
+def init_dist_env(seed, hybrid_configs={}):
     """
     init distributed env
     """
+
+    mp_degree = hybrid_configs.get('mp_degree', 1)
+    pp_degree = hybrid_configs.get('pp_degree', 1)
+    sharding_degree = hybrid_configs.get('sharding_degree', 1)
+
     strategy = fleet.DistributedStrategy()
     other_degree = mp_degree * pp_degree * sharding_degree
     assert dist.get_world_size() % other_degree == 0
     dp_degree = dist.get_world_size() // other_degree
-    strategy.hybrid_configs = {
-        "dp_degree": dp_degree,
-        "mp_degree": mp_degree,
-        "pp_degree": pp_degree,
-        "sharding_degree": sharding_degree
-    }
+
+    if 'dp_degree' in hybrid_configs:
+        assert hybrid_configs['dp_degree'] == dp_degree
+    else:
+        hybrid_configs['dp_degree'] = dp_degree
+
+    strategy.hybrid_configs = hybrid_configs
     strategy.tensor_parallel_configs = {"tensor_init_seed": seed}
 
     # init Fleet env

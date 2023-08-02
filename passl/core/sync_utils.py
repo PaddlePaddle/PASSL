@@ -29,8 +29,6 @@ def grad_sync(param_groups, comm_group=None, grad_avg=True):
 
     for group in param_groups:
         for p in group['params']:
-            if p.is_distributed:
-                continue
 
             grad = p.grad
             if grad is None:
@@ -56,9 +54,6 @@ def param_sync(model, src_rank=0, comm_group=None):
         return
 
     for _, param in model._obtain_parameters_buffers().items():
-
-        if hasattr(param, 'is_distributed') and param.is_distributed:
-            continue
 
         if getattr(param, "no_sync", False):
             continue
