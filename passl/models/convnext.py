@@ -119,7 +119,7 @@ class ConvNeXt(Model):
     def __init__(
             self,
             in_chans=3,
-            class_num=1000,
+            num_classes=1000,
             depths=[3, 3, 9, 3],
             dims=[96, 192, 384, 768],
             drop_path_rate=0.,
@@ -158,7 +158,7 @@ class ConvNeXt(Model):
             cur += depths[i]
 
         self.norm = nn.LayerNorm(dims[-1], epsilon=1e-6)
-        self.head = nn.Linear(dims[-1], class_num)
+        self.head = nn.Linear(dims[-1], num_classes)
 
         self.apply(self._init_weights)
         self.head.weight.set_value(self.head.weight * head_init_scale)

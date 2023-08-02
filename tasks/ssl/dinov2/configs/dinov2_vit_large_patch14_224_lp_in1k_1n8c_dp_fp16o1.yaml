@@ -34,7 +34,7 @@ Model:
     output_dim: 0
     n_last_blocks: 1
     avgpool_patchtokens: True
-  class_num: 1000
+  num_classes: 1000
 
 # loss function config for traing/eval process
 Loss:

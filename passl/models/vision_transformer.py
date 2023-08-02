@@ -257,7 +257,7 @@ class VisionTransformer(Model):
                  img_size=224,
                  patch_size=16,
                  in_chans=3,
-                 class_num=1000,
+                 num_classes=1000,
                  embed_dim=768,
                  depth=12,
                  num_heads=12,
@@ -272,7 +272,7 @@ class VisionTransformer(Model):
                  representation_size=None,
                  **kwargs):
         super().__init__()
-        self.class_num = class_num
+        self.num_classes = num_classes
         self.representation_size = representation_size
 
         self.num_features = self.embed_dim = embed_dim
@@ -322,14 +322,14 @@ class VisionTransformer(Model):
             self.tanh = nn.Tanh()
             self.head = nn.Linear(
                 representation_size,
-                class_num) if class_num > 0 else nn.Identity()
+                num_classes) if num_classes > 0 else nn.Identity()
             init.xavier_uniform_(self.head0.weight)
             init.zeros_(self.head0.bias)
             init.xavier_uniform_(self.head.weight)
             init.constant_(self.head.bias, -10.0)
         else:
             self.head = nn.Linear(
-                embed_dim, class_num) if class_num > 0 else nn.Identity()
+                embed_dim, num_classes) if num_classes > 0 else nn.Identity()
             init.zeros_(self.head.weight)
             init.zeros_(self.head.bias)
 

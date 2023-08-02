@@ -28,7 +28,7 @@ Model:
     type: swavresnet50
     output_dim: 0
     eval_mode: True
-  class_num: 1000
+  num_classes: 1000
 
 # loss function config for traing/eval process
 Loss:

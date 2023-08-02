@@ -37,7 +37,7 @@ EMA:
 Model:
   name: convnext_base
   drop_path_rate : 0.5
-  class_num: 1000
+  num_classes: 1000
 
 # loss function config for traing/eval process
 Loss:

@@ -28,7 +28,7 @@ DistributedStrategy:
 # model architecture
 Model:
   name: simsiam_resnet50_linearprobe
-  class_num: 1000
+  num_classes: 1000
 
 # loss function config for traing/eval process
 Loss:

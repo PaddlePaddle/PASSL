@@ -280,9 +280,9 @@ class DINO(Model):
 
 class LinearClassifier(nn.Layer):
     """Linear layer to train on top of frozen features"""
-    def __init__(self, dim, class_num=1000):
+    def __init__(self, dim, num_classes=1000):
         super(LinearClassifier, self).__init__()
-        self.linear = nn.Linear(dim, class_num)
+        self.linear = nn.Linear(dim, num_classes)
         normal_(self.linear.weight)
         zeros_(self.linear.bias)
 
@@ -293,14 +293,14 @@ class LinearClassifier(nn.Layer):
 
 class DINOLinearProbe(DINO):
 
-    def __init__(self, class_num=1000, **kwargs):
+    def __init__(self, num_classes=1000, **kwargs):
         super().__init__(**kwargs)
         self.backbone.eval()
 
         self.n_last_blocks = self.backbone.n_last_blocks
         self.avgpool_patchtokens = self.backbone.avgpool_patchtokens
         embed_dim = self.backbone.embed_dim * (self.n_last_blocks + int(self.avgpool_patchtokens))
-        self.linear = LinearClassifier(embed_dim, class_num)
+        self.linear = LinearClassifier(embed_dim, num_classes)
 
         # freeze all layers but the last fc
         for name, param in self.named_parameters():

@@ -30,7 +30,7 @@ DistributedStrategy:
 # model architecture
 Model:
   name: ViT_large_patch16_224
-  class_num: 21841
+  num_classes: 21841
   drop_rate: 0.1
 
 # loss function config for traing/eval process
